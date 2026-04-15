@@ -2,6 +2,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export async function addQuickGig(formData: FormData) {
   const title = formData.get('title') as string;
@@ -23,7 +24,9 @@ export async function addQuickGig(formData: FormData) {
         project_id, 
         date, 
         gross_value,
-        location: 'A definir', // Evita erro se o banco exigir location NOT NULL
+        location: 'A definir',
+        bring_sound: false,
+        sound_cost: 0,
       }
     ]);
 
@@ -34,6 +37,55 @@ export async function addQuickGig(formData: FormData) {
 
   revalidatePath('/');
   return { success: true };
+}
+
+export async function updateGig(formData: FormData) {
+  const id = formData.get('id') as string;
+  const title = formData.get('title') as string;
+  const project_id = formData.get('project_id') as string;
+  const date = formData.get('date') as string;
+  const location = formData.get('location') as string;
+  const gross_value = parseFloat(formData.get('gross_value') as string) || 0;
+  const bring_sound = formData.get('bring_sound') === 'true';
+  const sound_cost = bring_sound ? (parseFloat(formData.get('sound_cost') as string) || 0) : 0;
+  const rawSoundPerson = formData.get('sound_person_id') as string;
+  const sound_person_id = bring_sound && rawSoundPerson ? rawSoundPerson : null;
+
+  if (!id || !title || !project_id || !date) {
+    return { error: 'Campos obrigatórios faltando.' };
+  }
+
+  const { error } = await supabase
+    .from('go_gigs')
+    .update({ title, project_id, date, location, gross_value, bring_sound, sound_cost, sound_person_id })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating gig:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath('/');
+  revalidatePath(`/gigs/${id}`);
+  return { success: true };
+}
+
+export async function deleteGig(gigId: string) {
+  // Delete lineup entries first (FK cascade may handle this, but safer to be explicit)
+  await supabase.from('go_lineup').delete().eq('gig_id', gigId);
+
+  const { error } = await supabase
+    .from('go_gigs')
+    .delete()
+    .eq('id', gigId);
+
+  if (error) {
+    console.error('Error deleting gig:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath('/');
+  redirect('/');
 }
 
 export async function addMemberToLineup(formData: FormData) {

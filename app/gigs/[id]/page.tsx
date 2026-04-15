@@ -1,10 +1,11 @@
 import { supabase } from '@/lib/supabase';
-import { GigWithProject, LineupWithMember, GoMember } from '@/lib/types';
+import { GigWithProject, LineupWithMember, GoMember, GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
-import { ArrowLeft, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Volume2 } from 'lucide-react';
 import Link from 'next/link';
 import { AddLineupMember } from '@/components/add-lineup-member';
 import { LineupMemberCard } from '@/components/lineup-member-card';
+import { EditGigModal } from '@/components/edit-gig-modal';
 import { getUserRole } from '@/lib/auth';
 
 export const revalidate = 0;
@@ -14,12 +15,13 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const id = resolvedParams.id;
   const role = await getUserRole();
   
-  // Fetch Gig with Project Join
+  // Fetch Gig with Project Join + sound person join
   const { data: gigData, error: gigError } = await supabase
     .from('go_gigs')
     .select(`
       *,
-      go_projects ( * )
+      go_projects ( * ),
+      sound_person:go_members!go_gigs_sound_person_id_fkey ( name, instrument )
     `)
     .eq('id', id)
     .single() as { data: GigWithProject | null, error: PostgrestError | null };
@@ -47,14 +49,21 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     `)
     .eq('gig_id', id) as { data: LineupWithMember[] | null, error: PostgrestError | null };
 
-  // Fetch all available members for the form
+  // Fetch all available members for the add-lineup form
   const { data: membersData } = await supabase
     .from('go_members')
     .select('*')
     .order('name', { ascending: true }) as { data: GoMember[] | null };
 
+  // Fetch projects for the edit-gig form
+  const { data: projectsData } = await supabase
+    .from('go_projects')
+    .select('*')
+    .order('name', { ascending: true }) as { data: GoProject[] | null };
+
   const lineup = lineupData || [];
   const members = membersData || [];
+  const projects = projectsData || [];
 
   const projectColor = gigData.go_projects?.color_hex || '#71717a';
 
@@ -66,20 +75,29 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     hour: '2-digit', minute: '2-digit' 
   });
 
-  const totalCost = lineup.reduce((acc, curr) => acc + curr.fee_amount, 0);
+  const lineupCost = lineup.reduce((acc, curr) => acc + curr.fee_amount, 0);
+  const soundCost = gigData.bring_sound ? (gigData.sound_cost ?? 0) : 0;
+  const totalCost = lineupCost + soundCost;
   const netProfit = gigData.gross_value - totalCost;
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative pb-32">
       {/* Top Header */}
       <header className="mb-8">
-        <Link 
-          href="/" 
-          className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-50 transition-colors mb-6 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          Voltar para Timeline
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-50 transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Voltar para Timeline
+          </Link>
+
+          {/* Edit Gig Button — admin only */}
+          {role === 'admin' && (
+            <EditGigModal gig={gigData} projects={projects} members={members} />
+          )}
+        </div>
         
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 inline-flex" style={{ backgroundColor: `${projectColor}15`, padding: '4px 10px', borderRadius: '6px', border: '1px solid #27272a', width: 'fit-content' }}>
@@ -93,7 +111,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             {gigData.title}
           </h1>
           
-          <div className="flex flex-col md:flex-row md:items-center gap-3 text-sm text-zinc-400">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 text-sm text-zinc-400 flex-wrap">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 stroke-[1.5]" />
               <span className="capitalize">{dateFormatted} às {timeFormatted}</span>
@@ -103,6 +121,20 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               <MapPin className="w-4 h-4 stroke-[1.5]" />
               <span className="truncate">{gigData.location}</span>
             </div>
+            {gigData.bring_sound && (
+              <>
+                <span className="hidden md:block text-zinc-700">•</span>
+                <div className="flex items-center gap-2 text-amber-400">
+                  <Volume2 className="w-4 h-4 stroke-[1.5]" />
+                  <span className="font-medium">
+                    Levar som
+                    {gigData.sound_person && (
+                      <span className="text-zinc-500 font-normal"> · {gigData.sound_person.name}</span>
+                    )}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -110,27 +142,42 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       {/* Financial Summary Card */}
       <section className="mb-10">
         <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase mb-4 px-1">Resumo Financeiro</h2>
-        <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-sm">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Valor Bruto Acordado</span>
-            <span className="text-xl md:text-2xl font-bold text-zinc-50">R$ {gigData.gross_value}</span>
-          </div>
-          
-          <div className="hidden md:block w-px h-12 bg-zinc-800" />
-          <div className="md:hidden h-px w-full bg-zinc-800/80" />
-          
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Custo Escala Total</span>
-            <span className="text-xl md:text-2xl font-bold text-red-400">R$ {totalCost.toFixed(2)}</span>
-          </div>
-          
-          <div className="hidden md:block w-px h-12 bg-zinc-800" />
-          <div className="md:hidden h-px w-full bg-zinc-800/80" />
+        <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Cachê Bruto</span>
+              <span className="text-xl md:text-2xl font-bold text-zinc-50">R$ {gigData.gross_value.toFixed(2)}</span>
+            </div>
+            
+            <div className="hidden md:block w-px h-12 bg-zinc-800" />
 
-          <div className="flex flex-col gap-1.5 md:items-end">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Lucro Líquido do Projeto</span>
-            <span className="text-2xl md:text-3xl font-black text-emerald-400 tracking-tight">R$ {netProfit.toFixed(2)}</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Músicos (Escala)</span>
+              <span className="text-xl md:text-2xl font-bold text-red-400">− R$ {lineupCost.toFixed(2)}</span>
+            </div>
+
+            {gigData.bring_sound && (
+              <>
+                <div className="hidden md:block w-px h-12 bg-zinc-800" />
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] uppercase tracking-wider text-amber-500/80 font-semibold">Custo do Som</span>
+                  <span className="text-xl md:text-2xl font-bold text-amber-400">− R$ {soundCost.toFixed(2)}</span>
+                </div>
+              </>
+            )}
+            
+            <div className="hidden md:block w-px h-12 bg-zinc-800" />
+
+            <div className="flex flex-col gap-1.5 md:items-end">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Lucro Líquido</span>
+              <span className={`text-2xl md:text-3xl font-black tracking-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                R$ {netProfit.toFixed(2)}
+              </span>
+            </div>
           </div>
+
+          {/* Dividers for mobile */}
+          <div className="md:hidden h-px w-full bg-zinc-800/60" />
         </div>
       </section>
 

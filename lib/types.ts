@@ -19,6 +19,9 @@ export type GoGig = {
   date: string; // timestamptz
   gross_value: number;
   paid: boolean;
+  bring_sound: boolean;
+  sound_cost: number;
+  sound_person_id: string | null;
 };
 
 export type GoLineup = {
@@ -34,6 +37,10 @@ export type GigWithProject = GoGig & {
   go_projects: {
     name: string;
     color_hex: string;
+  } | null;
+  sound_person: {
+    name: string;
+    instrument: string;
   } | null;
 };
 
