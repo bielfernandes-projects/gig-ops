@@ -24,9 +24,9 @@ export type GoGig = {
 export type GoLineup = {
   id: string; // uuid
   gig_id: string; // uuid (fk to go_gigs)
-  musician_id: string; // uuid (fk to go_members)
-  agreed_fee: number;
-  is_paid: boolean;
+  member_id: string; // uuid (fk to go_members)
+  fee_amount: number;
+  status: string; // 'pago' | 'pendente' or similar
 };
 
 // Joined types for easy consumption

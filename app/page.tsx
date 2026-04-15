@@ -33,7 +33,7 @@ export default async function Home() {
   const lineups = lineupsData || [];
 
   const totalGross = gigs.reduce((acc, gig) => acc + gig.gross_value, 0);
-  const totalCost = lineups.reduce((acc, member) => acc + member.agreed_fee, 0);
+  const totalCost = lineups.reduce((acc, member) => acc + member.fee_amount, 0);
   const netProfit = totalGross - totalCost;
 
   return (
@@ -47,7 +47,7 @@ export default async function Home() {
         <div className="flex gap-4 overflow-x-auto pb-4 snap-x hide-scrollbar">
           <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start">
             <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 block mb-1">Lucro Estimado</span>
-            <span className="text-xl md:text-2xl font-black text-emerald-400">R$ {netProfit}</span>
+            <span className="text-xl md:text-2xl font-black text-emerald-400">R$ {netProfit.toFixed(2)}</span>
           </div>
           <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start">
             <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 block mb-1">Gigs Ativas</span>
@@ -91,7 +91,7 @@ export default async function Home() {
 }
 
 function GigCard({ gig, lineupData }: { gig: GigWithProject; lineupData: GoLineup[] }) {
-  const totalFees = lineupData.reduce((acc, curr) => acc + curr.agreed_fee, 0);
+  const totalFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const estimatedProfit = gig.gross_value - totalFees;
   
   const projectColor = gig.go_projects?.color_hex || '#71717a';

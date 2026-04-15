@@ -3,6 +3,7 @@
 import { useTransition, useOptimistic } from 'react';
 import { togglePaymentStatus } from '@/app/actions/gig-actions';
 import { Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function TogglePaymentButton({ 
   lineupId, 
@@ -29,7 +30,15 @@ export function TogglePaymentButton({
       setOptimisticStatus(!optimisticStatus);
       
       // Call the server action
-      await togglePaymentStatus(lineupId, !optimisticStatus);
+      const res = await togglePaymentStatus(lineupId, !optimisticStatus);
+      
+      if (res?.error) {
+        toast.error(`Erro: ${res.error}`);
+        // Cannot cleanly revert optimistic status inside useTransition because it resets on form completion,
+        // but it will revert gracefully on the next SSR if the server rejected it. 
+      } else {
+        toast.success(!optimisticStatus ? 'Pagamento efetuado!' : 'Marcado como pendente');
+      }
     });
   };
 

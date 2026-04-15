@@ -3,8 +3,8 @@ import { GigWithProject, LineupWithMember, GoMember } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import { ArrowLeft, Clock, MapPin } from 'lucide-react';
 import Link from 'next/link';
-import { TogglePaymentButton } from './toggle-payment-button';
 import { AddLineupMember } from '@/components/add-lineup-member';
+import { LineupMemberCard } from '@/components/lineup-member-card';
 import { getUserRole } from '@/lib/auth';
 
 export const revalidate = 0;
@@ -66,7 +66,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     hour: '2-digit', minute: '2-digit' 
   });
 
-  const totalCost = lineup.reduce((acc, curr) => acc + curr.agreed_fee, 0);
+  const totalCost = lineup.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const netProfit = gigData.gross_value - totalCost;
 
   return (
@@ -121,7 +121,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           
           <div className="flex flex-col gap-1.5">
             <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Custo Escala Total</span>
-            <span className="text-xl md:text-2xl font-bold text-red-400">R$ {totalCost}</span>
+            <span className="text-xl md:text-2xl font-bold text-red-400">R$ {totalCost.toFixed(2)}</span>
           </div>
           
           <div className="hidden md:block w-px h-12 bg-zinc-800" />
@@ -129,7 +129,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
           <div className="flex flex-col gap-1.5 md:items-end">
             <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Lucro Líquido do Projeto</span>
-            <span className="text-2xl md:text-3xl font-black text-emerald-400 tracking-tight">R$ {netProfit}</span>
+            <span className="text-2xl md:text-3xl font-black text-emerald-400 tracking-tight">R$ {netProfit.toFixed(2)}</span>
           </div>
         </div>
       </section>
@@ -151,26 +151,17 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               Nenhuma escala montada para este evento ainda.
             </div>
           )}
-          {lineup.map((freela) => {
-            return (
-              <div 
-                key={freela.id} 
-                className="flex items-center justify-between bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-4 hover:bg-zinc-900 transition-colors"
-              >
-                <div className="flex flex-col gap-1 h-full justify-center">
-                  <span className="font-bold text-zinc-50 text-base">{freela.go_members?.name || 'Músico Desconhecido'}</span>
-                  <span className="text-xs font-medium text-zinc-500">{freela.go_members?.instrument || 'Instrumento'}</span>
-                </div>
-                
-                <div className="flex flex-col items-end gap-2 justify-center">
-                  <span className="font-semibold text-zinc-300">R$ {freela.agreed_fee}</span>
-                  <TogglePaymentButton lineupId={freela.id} currentStatus={freela.is_paid} role={role} />
-                </div>
-              </div>
-            );
-          })}
-          
-          {/* Add Musician Button (Client Component Modal) */}
+
+          {lineup.map((freela) => (
+            <LineupMemberCard
+              key={freela.id}
+              freela={freela}
+              gigId={id}
+              role={role}
+            />
+          ))}
+
+          {/* Add Musician Button — visible to admins only */}
           {role === 'admin' && <AddLineupMember gigId={id} members={members} />}
         </div>
       </section>

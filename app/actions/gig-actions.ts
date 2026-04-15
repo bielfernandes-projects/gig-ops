@@ -38,19 +38,19 @@ export async function addQuickGig(formData: FormData) {
 
 export async function addMemberToLineup(formData: FormData) {
   const gig_id = formData.get('gig_id') as string;
-  const musician_id = formData.get('musician_id') as string;
-  const feeStr = formData.get('agreed_fee') as string;
+  const member_id = formData.get('musician_id') as string; // from select name
+  const feeStr = formData.get('agreed_fee') as string; // from input name
 
-  if (!gig_id || !musician_id) {
+  if (!gig_id || !member_id) {
     return { error: 'Campos obrigatórios faltando.' };
   }
 
-  const agreed_fee = parseFloat(feeStr) || 0;
+  const fee_amount = parseFloat(feeStr) || 0;
 
   const { error } = await supabase
     .from('go_lineup')
     .insert([
-      { gig_id, musician_id, agreed_fee, is_paid: false }
+      { gig_id, member_id, fee_amount, status: 'pendente' }
     ]);
 
   if (error) {
@@ -62,10 +62,12 @@ export async function addMemberToLineup(formData: FormData) {
   return { success: true };
 }
 
-export async function togglePaymentStatus(lineupId: string, currentStatus: boolean) {
+export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolean) {
+  const newStatus = targetIsPaid ? 'pago' : 'pendente';
+  
   const { error } = await supabase
     .from('go_lineup')
-    .update({ is_paid: !currentStatus })
+    .update({ status: newStatus })
     .eq('id', lineupId);
 
   if (error) {
@@ -75,5 +77,45 @@ export async function togglePaymentStatus(lineupId: string, currentStatus: boole
 
   // Next.js App Router layout path dynamic revalidation rule
   revalidatePath('/gigs/[id]', 'page');
+  return { success: true };
+}
+
+export async function removeFromLineup(lineupId: string, gigId: string) {
+  const { error } = await supabase
+    .from('go_lineup')
+    .delete()
+    .eq('id', lineupId);
+
+  if (error) {
+    console.error('Error removing from lineup:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath(`/gigs/${gigId}`);
+  return { success: true };
+}
+
+export async function updateLineupFee(formData: FormData) {
+  const lineupId = formData.get('lineup_id') as string;
+  const gigId = formData.get('gig_id') as string;
+  const feeStr = formData.get('agreed_fee') as string;
+
+  if (!lineupId || !gigId) {
+    return { error: 'Dados inválidos.' };
+  }
+
+  const fee_amount = parseFloat(feeStr) || 0;
+
+  const { error } = await supabase
+    .from('go_lineup')
+    .update({ fee_amount })
+    .eq('id', lineupId);
+
+  if (error) {
+    console.error('Error updating lineup fee:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath(`/gigs/${gigId}`);
   return { success: true };
 }
