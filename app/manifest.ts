@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Minha Banda',
     short_name: 'Minha Banda',
-    description: 'Gestão ágil de agendas e cachês para bandleaders.',
+    description: 'Plataforma de gestão logística e financeira para a sua banda',
     start_url: '/',
     display: 'standalone',
     background_color: '#09090b', // zinc-950

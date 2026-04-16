@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Minha Banda',
-  description: 'Gestão ágil de agendas e cachês para bandleaders.',
+  description: 'Plataforma de gestão logística e financeira para a sua banda',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
