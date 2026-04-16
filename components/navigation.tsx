@@ -9,7 +9,7 @@ const navItems = [
   { name: 'Gigs', href: '/', icon: CalendarDays },
   { name: 'Projetos', href: '/projects', icon: FolderOpen },
   { name: 'Músicos', href: '/members', icon: Users },
-  { name: 'Ajustes', href: '/settings', icon: Settings },
+  { name: 'Perfil', href: '/profile', icon: Settings },
 ];
 
 export function Navigation({ isMobile }: { isMobile: boolean }) {

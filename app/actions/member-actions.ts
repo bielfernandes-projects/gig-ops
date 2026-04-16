@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 export async function addMember(formData: FormData) {
   const name = formData.get('name') as string;
   const instrument = formData.get('instrument') as string;
+  const emailRaw = formData.get('email') as string;
   let phone = formData.get('phone') as string;
 
   if (!name || !instrument) {
@@ -19,9 +20,11 @@ export async function addMember(formData: FormData) {
     phone = '';
   }
 
+  const email = emailRaw ? emailRaw.trim() : null;
+
   const { error } = await supabase
     .from('go_members')
-    .insert([{ name, instrument, phone: phone || null }]);
+    .insert([{ name, instrument, phone: phone || null, email }]);
 
   if (error) {
     console.error('Error inserting member:', error);
@@ -38,6 +41,7 @@ export async function updateMember(formData: FormData) {
   const id = formData.get('id') as string;
   const name = formData.get('name') as string;
   const instrument = formData.get('instrument') as string;
+  const emailRaw = formData.get('email') as string;
   let phone = formData.get('phone') as string;
 
   if (!id || !name || !instrument) {
@@ -50,9 +54,11 @@ export async function updateMember(formData: FormData) {
     phone = '';
   }
 
+  const email = emailRaw ? emailRaw.trim() : null;
+
   const { error } = await supabase
     .from('go_members')
-    .update({ name, instrument, phone: phone || null })
+    .update({ name, instrument, phone: phone || null, email })
     .eq('id', id);
 
   if (error) {

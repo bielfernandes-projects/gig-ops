@@ -99,6 +99,20 @@ export function AddNewMemberModal() {
                 />
               </div>
 
+               <div className="flex flex-col gap-1.5">
+                <label htmlFor="email" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest flex items-center justify-between">
+                  <span>E-mail do Músico (Opcional)</span>
+                </label>
+                <input 
+                  type="email" 
+                  id="email" 
+                  name="email" 
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
+                  placeholder="Ex: musico@banda.com"
+                />
+                <p className="text-[10px] text-zinc-500 font-medium">O e-mail deve ser o mesmo do login e Google Agenda para sincronização futura.</p>
+              </div>
+
               <button 
                 type="submit" 
                 disabled={isPending}

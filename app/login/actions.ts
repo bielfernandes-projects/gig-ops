@@ -25,9 +25,23 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
+  const inviteCode = formData.get('inviteCode') as string;
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  // Validate invite code
+  const { data: settingsData } = await supabase
+    .from('go_settings')
+    .select('invite_code')
+    .single();
+
+  if (!settingsData || settingsData.invite_code !== inviteCode) {
+    return { error: 'Código de convite inválido.' };
+  }
+
   const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+    email,
+    password,
   };
 
   const { error } = await supabase.auth.signUp(data);

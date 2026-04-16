@@ -9,6 +9,18 @@ export type GoMember = {
   name: string;
   instrument: string;
   phone: string | null;
+  email: string | null;
+};
+
+export type GoSettings = {
+  id: string;
+  invite_code: string | null;
+};
+
+export type GoProfile = {
+  id: string; // matches auth.users.id
+  role: string;
+  email: string;
 };
 
 export type GoGig = {
