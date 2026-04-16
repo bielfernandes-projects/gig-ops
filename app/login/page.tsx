@@ -47,7 +47,6 @@ export default function LoginPage() {
   };
 
   return (
-  return (
     <div className="min-h-[100dvh] flex flex-col justify-center overflow-hidden bg-zinc-950 px-4 relative max-w-md mx-auto w-full">
       <div className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 flex flex-col items-center">
         
