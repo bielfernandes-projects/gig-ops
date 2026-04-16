@@ -47,8 +47,8 @@ export default function LoginPage() {
           />
         </div>
         
-        <h1 className="text-2xl font-black text-zinc-50 mb-1 tracking-tight">Minha Banda</h1>
-        <p className="text-sm text-zinc-400 mb-8 font-medium">
+        <h1 className="text-2xl font-black text-zinc-50 mb-1 tracking-tight text-center">Minha Banda App</h1>
+        <p className="text-sm text-zinc-400 mb-8 font-medium text-center">
           {isLogin ? 'Bem-vindo ao Minha Banda. Faça login para gerenciar sua agenda.' : 'Cadastre-se na banda da qual foi convidado.'}
         </p>
 
