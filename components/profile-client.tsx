@@ -215,7 +215,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
           {calendarToken ? (
             <div className="flex flex-col gap-3">
               <p className="text-xs text-zinc-400">
-                Copie o link abaixo e adicione-o no seu Google Agenda (Configurações &gt; Adicionar agenda &gt; Do URL). Dessa forma, seus novos shows e mudanças de horário serão atualizados automaticamente.
+                Copie o link abaixo e adicione-o no seu Google Agenda (<strong>Configurações &gt; Adicionar agenda &gt; Do URL</strong>). Este processo deve ser feito pelo computador (Desktop) e não pelo aplicativo. Basta fazer uma vez e seus novos shows e mudanças de horário serão atualizados automaticamente.
               </p>
               
               <div className="flex flex-col md:flex-row gap-2 mt-1">

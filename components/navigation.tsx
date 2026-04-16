@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { CalendarDays, FolderOpen, Users, Settings } from 'lucide-react';
+import { CalendarDays, FolderOpen, Users, UserRound } from 'lucide-react';
 
 const navItems = [
   { name: 'Gigs', href: '/', icon: CalendarDays },
   { name: 'Projetos', href: '/projects', icon: FolderOpen },
   { name: 'Músicos', href: '/members', icon: Users },
-  { name: 'Perfil', href: '/profile', icon: Settings },
+  { name: 'Perfil', href: '/profile', icon: UserRound },
 ];
 
 export function Navigation({ isMobile }: { isMobile: boolean }) {
