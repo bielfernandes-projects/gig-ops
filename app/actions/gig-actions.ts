@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { sendPushToMember } from './push-actions';
 
 export async function addQuickGig(formData: FormData) {
   const title = formData.get('title') as string;
@@ -115,6 +116,18 @@ export async function addMemberToLineup(formData: FormData) {
   }
 
   revalidatePath(`/gigs/${gig_id}`);
+
+  // Fire push notification non-blocking (never breaks main flow)
+  try {
+    await sendPushToMember(member_id, {
+      title: 'Nova Gig Escalada! 🎸',
+      body: 'Você foi escalado para um novo show. Abra o app para ver os detalhes.',
+      url: `/gigs/${gig_id}`,
+    });
+  } catch (e) {
+    console.warn('Push notification failed silently:', e);
+  }
+
   return { success: true };
 }
 

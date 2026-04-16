@@ -5,6 +5,7 @@ import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar,
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { toast } from 'sonner';
 import { updatePassword, removeProfile } from '@/app/profile/actions';
+import { savePushSubscription } from '@/app/actions/push-actions';
 import { GigWithProject, GoLineup, GoProfile } from '@/lib/types';
 import { signout } from '@/app/login/actions';
 
@@ -23,6 +24,15 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
   const [filter, setFilter] = useState<'7days' | 'month' | 'all'>('month');
   const [originUrl, setOriginUrl] = useState('');
   const [isCopied, setIsCopied] = useState(false);
+  const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
+
+  useEffect(() => {
+    // Check initial notification permission status
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') setPushStatus('active');
+      else if (Notification.permission === 'denied') setPushStatus('denied');
+    }
+  }, []);
 
   useEffect(() => {
     setOriginUrl(window.location.origin);
@@ -254,28 +264,64 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
         <div className="border-t border-zinc-800/80 pt-6">
           <h4 className="text-sm font-bold text-zinc-300 mb-2 flex items-center gap-2">
             <Bell className="w-4 h-4 text-emerald-400" />
-            Web Push (BETA)
+            Notificações Push
           </h4>
           <p className="text-xs text-zinc-400 mb-4">
-            Em breve! Configure as permissões web do seu celular para receber alertas diretos de novos shows, atualizações de horário ou alterações no seu cachê sem precisar abrir o app.
+            {pushStatus === 'active'
+              ? 'Você já está inscrito. Receberá alertas quando for escalado para um show!'
+              : pushStatus === 'denied'
+              ? 'Permissão bloqueada pelo dispositivo. Ative nas configurações do navegador.'
+              : 'Ative para receber alertas automáticos quando o admin te escalar para um novo show.'}
           </p>
           
           <button 
+            disabled={pushStatus === 'active' || pushStatus === 'denied' || pushStatus === 'loading'}
             onClick={async () => {
-              if (typeof window !== 'undefined' && !('Notification' in window)) {
-                toast.error('Este navegador ou dispositivo não tem suporte nativo para Push Notifications.');
+              if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
+                toast.error('Este navegador não suporta Push Notifications.');
                 return;
               }
-              const permission = await Notification.requestPermission();
-              if (permission === 'granted') {
-                toast.success('Permissão habilitada! Em breve implementaremos as engrenagens centrais do push.');
-              } else {
-                toast.error('Permissão negada ou bloqueada nativamente.');
+              setPushStatus('loading');
+              try {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                  setPushStatus('denied');
+                  toast.error('Permissão negada pelo dispositivo.');
+                  return;
+                }
+                const reg = await navigator.serviceWorker.ready;
+                const existing = await reg.pushManager.getSubscription();
+                const sub = existing ?? await reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+                });
+                const subJson = sub.toJSON();
+                const userId = (await (await fetch('/api/me')).json())?.id;
+                // Fallback: try getting from profile card email (server-side we resolve this client-side)
+                const res = await savePushSubscription(userId || '', subJson);
+                if (res?.error) {
+                  toast.error('Erro ao salvar assinatura: ' + res.error);
+                  setPushStatus('idle');
+                } else {
+                  setPushStatus('active');
+                  toast.success('Notificações ativadas com sucesso! 🔔');
+                }
+              } catch (err) {
+                console.error(err);
+                toast.error('Falha ao ativar notificações.');
+                setPushStatus('idle');
               }
             }}
-            className="flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold px-4 py-2.5 rounded-lg text-sm transition-colors w-full md:w-auto"
+            className={`flex items-center justify-center gap-2 font-bold px-4 py-2.5 rounded-lg text-sm transition-colors w-full md:w-auto ${
+              pushStatus === 'active'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
+                : pushStatus === 'denied'
+                ? 'bg-red-500/10 text-red-400 border border-red-500/20 cursor-not-allowed'
+                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
+            }`}
           >
-            Configurar Permissão Dispositivo
+            <Bell className="w-4 h-4" />
+            {pushStatus === 'loading' ? 'Ativando...' : pushStatus === 'active' ? 'Notificações Ativas ✓' : pushStatus === 'denied' ? 'Permissão Bloqueada' : 'Ativar Notificações no Celular'}
           </button>
         </div>
       </section>
