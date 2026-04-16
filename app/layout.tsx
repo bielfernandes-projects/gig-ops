@@ -8,8 +8,12 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Minha Banda',
-  description: 'Plataforma de gestão logística e financeira para a sua banda',
+  description: 'Gestão Logística e Financeira Musical',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
