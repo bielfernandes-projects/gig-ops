@@ -19,7 +19,6 @@ export type GoGig = {
   start_time: string; // start time (timestamptz)
   end_time: string | null; // end time (timestamptz)
   gross_value: number;
-  paid: boolean;
   bring_sound: boolean;
   sound_cost: number;
   sound_person_id: string | null;

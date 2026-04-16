@@ -86,7 +86,6 @@ export default async function Home({
       start_time, 
       end_time, 
       gross_value, 
-      paid, 
       bring_sound, 
       sound_cost, 
       sound_person_id,

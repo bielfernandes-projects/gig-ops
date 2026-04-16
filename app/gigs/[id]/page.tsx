@@ -26,7 +26,6 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       start_time, 
       end_time, 
       gross_value, 
-      paid, 
       bring_sound, 
       sound_cost, 
       sound_person_id,
