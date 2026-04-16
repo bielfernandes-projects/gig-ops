@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { GigWithProject, LineupWithMember, GoMember, GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
-import { ArrowLeft, Clock, MapPin, Volume2, StickyNote } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Volume2, StickyNote, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { AddLineupMember } from '@/components/add-lineup-member';
 import { LineupMemberCard } from '@/components/lineup-member-card';
@@ -134,19 +134,25 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             {gigData.title}
           </h1>
 
-          {/* Meta Info Row */}
-          <div className="flex flex-col md:flex-row md:items-center gap-3 text-sm text-zinc-400 flex-wrap">
+          {/* Meta Info List */}
+          <div className="flex flex-col gap-3 text-sm text-zinc-400">
             {/* Date */}
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 stroke-[1.5]" />
-              <span className="capitalize">
-                {dateFormatted} 
-                <span className="md:inline hidden mx-1">·</span> 
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 stroke-[1.5] text-emerald-500/80" />
+              <span className="capitalize font-medium text-zinc-200">
+                {dateFormatted}
+              </span>
+            </div>
+
+            {/* Time */}
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 stroke-[1.5] text-zinc-500" />
+              <span className="text-zinc-300">
                 {timeFormatted}
                 {gigData.end_time && (
                   <>
                     {' '}– {new Date(gigData.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    <span className="ml-1.5 px-1.5 py-0.5 bg-zinc-800 text-[10px] font-bold text-zinc-300 rounded uppercase tracking-wider">
+                    <span className="ml-2 px-1.5 py-0.5 bg-zinc-800 text-[10px] font-bold text-zinc-400 rounded uppercase tracking-wider">
                       {(() => {
                         const diffMs = new Date(gigData.end_time).getTime() - new Date(gigData.start_time).getTime();
                         if (diffMs <= 0) return '';
@@ -164,26 +170,22 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             </div>
 
             {/* Location */}
-            <span className="hidden md:block text-zinc-700">•</span>
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 stroke-[1.5]" />
-              <span className="truncate">{gigData.location}</span>
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 stroke-[1.5] text-zinc-500" />
+              <span className="truncate text-zinc-300">{gigData.location}</span>
             </div>
 
             {/* Sound equipment info */}
             {gigData.bring_sound && (
-              <>
-                <span className="hidden md:block text-zinc-700">•</span>
-                <div className="flex items-center gap-2 text-amber-400">
-                  <Volume2 className="w-4 h-4 stroke-[1.5]" />
-                  <span className="font-medium">
-                    Levar som
-                    {soundPerson && (
-                      <span className="text-zinc-500 font-normal"> · {soundPerson.name}</span>
-                    )}
-                  </span>
-                </div>
-              </>
+              <div className="flex items-center gap-3 text-amber-400/90">
+                <Volume2 className="w-5 h-5 stroke-[1.5]" />
+                <span className="font-semibold">
+                  Levar som
+                  {soundPerson && (
+                    <span className="text-zinc-500 font-normal ml-2"> · {soundPerson.name}</span>
+                  )}
+                </span>
+              </div>
             )}
           </div>
         </div>
