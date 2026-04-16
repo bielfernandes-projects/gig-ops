@@ -12,7 +12,7 @@ self.addEventListener('push', function (event) {
   const options = {
     body: data.body || 'Você foi escalado para um novo show.',
     icon: '/icon-192x192.png',
-    badge: '/icon-192x192.png',
+    badge: '/badge-icon.png',
     vibrate: [100, 50, 100],
     data: { url: data.url || '/' },
   };
