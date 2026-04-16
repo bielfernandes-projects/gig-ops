@@ -166,7 +166,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value: number) => `R$ ${value.toFixed(2)}`} 
+                  formatter={(value: any) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : `R$ 0.00`} 
                   contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '0.5rem', fontSize: '0.875rem' }}
                   itemStyle={{ fontWeight: 'bold' }}
                 />
