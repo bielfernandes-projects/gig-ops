@@ -10,6 +10,7 @@ export async function addQuickGig(formData: FormData) {
   const start_time = formData.get('start_time') as string;
   const end_time = (formData.get('end_time') as string) || null;
   const grossValueStr = formData.get('gross_value') as string;
+  const notes = (formData.get('notes') as string) || null;
   
   if (!title || !project_id || !start_time) {
     return { error: 'Campos obrigatórios faltando.' };
@@ -28,6 +29,7 @@ export async function addQuickGig(formData: FormData) {
       location: 'A definir',
       bring_sound: false,
       sound_cost: 0,
+      notes,
     }]);
 
   if (error) {
@@ -51,6 +53,7 @@ export async function updateGig(formData: FormData) {
   const sound_cost = bring_sound ? (parseFloat(formData.get('sound_cost') as string) || 0) : 0;
   const rawSoundPerson = formData.get('sound_person_id') as string;
   const sound_person_id = bring_sound && rawSoundPerson ? rawSoundPerson : null;
+  const notes = (formData.get('notes') as string) || null;
 
   if (!id || !title || !project_id || !start_time) {
     return { error: 'Campos obrigatórios faltando.' };
@@ -58,7 +61,7 @@ export async function updateGig(formData: FormData) {
 
   const { error } = await supabase
     .from('go_gigs')
-    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id })
+    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes })
     .eq('id', id);
 
   if (error) {

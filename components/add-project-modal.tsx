@@ -8,11 +8,13 @@ import { toast } from 'sonner';
 export function AddProjectModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [color, setColor] = useState('#3b82f6');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
     const formData = new FormData(e.currentTarget);
+    formData.set('color_hex', color); // Ensure the latest state color is used
     
     const res = await addProject(formData);
     
@@ -22,6 +24,7 @@ export function AddProjectModal() {
     } else {
       setIsOpen(false);
       setIsPending(false);
+      setColor('#3b82f6'); // Reset
       toast.success('Projeto criado com sucesso!');
     }
   };
@@ -75,16 +78,32 @@ export function AddProjectModal() {
                 <label htmlFor="color_hex" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
                   Cor do Badge
                 </label>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="relative w-12 h-10 overflow-hidden rounded-md border border-zinc-700 shrink-0">
+                    <input 
+                      type="color" 
+                      id="color_hex_picker" 
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="absolute -inset-2 w-[calc(100%+16px)] h-[calc(100%+16px)] cursor-pointer bg-transparent border-0"
+                    />
+                  </div>
                   <input 
-                    type="color" 
+                    type="text" 
                     id="color_hex" 
                     name="color_hex" 
-                    defaultValue="#3b82f6"
-                    required 
-                    className="w-12 h-10 p-0 border-0 bg-transparent rounded-md cursor-pointer"
+                    value={color}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setColor(val);
+                    }}
+                    placeholder="#000000"
+                    className="flex-1 bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 font-mono focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   />
-                  <span className="text-sm text-zinc-500">Selecione uma cor para identificar o projeto</span>
+                  <div 
+                    className="w-4 h-4 rounded-full border border-white/20" 
+                    style={{ backgroundColor: color }}
+                  />
                 </div>
               </div>
 

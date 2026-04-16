@@ -139,6 +139,19 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
                 </div>
               </div>
 
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="notes" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                  Observações <span className="text-zinc-600 normal-case font-normal">(opcional)</span>
+                </label>
+                <textarea 
+                  id="notes" 
+                  name="notes" 
+                  rows={2}
+                  placeholder="Contratante, consumação..."
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none placeholder:text-zinc-700"
+                />
+              </div>
+
               <button 
                 type="submit" 
                 disabled={isPending}

@@ -22,6 +22,7 @@ export type GoGig = {
   bring_sound: boolean;
   sound_cost: number;
   sound_person_id: string | null;
+  notes: string | null;
 };
 
 export type GoLineup = {

@@ -9,12 +9,14 @@ import { toast } from 'sonner';
 export function ProjectCard({ project, role }: { project: GoProject; role: string }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [color, setColor] = useState(project.color_hex);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
     const formData = new FormData(e.currentTarget);
     formData.append('id', project.id);
+    formData.set('color_hex', color);
     
     const res = await updateProject(formData);
     
@@ -85,16 +87,29 @@ export function ProjectCard({ project, role }: { project: GoProject; role: strin
                 <label htmlFor={`edit-color-${project.id}`} className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
                   Cor do Badge
                 </label>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="relative w-12 h-10 overflow-hidden rounded-md border border-zinc-700 shrink-0">
+                    <input 
+                      type="color" 
+                      id={`edit-color-picker-${project.id}`}
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="absolute -inset-2 w-[calc(100%+16px)] h-[calc(100%+16px)] cursor-pointer bg-transparent border-0"
+                    />
+                  </div>
                   <input 
-                    type="color" 
+                    type="text" 
                     id={`edit-color-${project.id}`}
                     name="color_hex" 
-                    defaultValue={project.color_hex}
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
                     required 
-                    className="w-12 h-10 p-0 border-0 bg-transparent rounded-md cursor-pointer"
+                    className="flex-1 bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 font-mono focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   />
-                  <span className="text-sm text-zinc-500">Selecione uma cor para identificar o projeto</span>
+                  <div 
+                    className="w-4 h-4 rounded-full border border-white/20" 
+                    style={{ backgroundColor: color }}
+                  />
                 </div>
               </div>
 

@@ -5,6 +5,7 @@ import { CopyLogisticsButton } from '@/components/copy-logistics-button';
 import { GigWithProject, GoProject, GoLineup } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import Link from 'next/link';
+import { StickyNote } from 'lucide-react';
 import { getUserRole } from '@/lib/auth';
 import { Suspense } from 'react';
 
@@ -89,6 +90,7 @@ export default async function Home({
       bring_sound, 
       sound_cost, 
       sound_person_id,
+      notes,
       go_projects ( name, color_hex )
     `)
     .order('start_time', { ascending: true }) as { data: GigWithProject[] | null, error: PostgrestError | null };
@@ -231,13 +233,18 @@ function GigCard({ gig, lineupData }: { gig: GigWithProject; lineupData: GoLineu
       </div>
 
       {/* Content */}
-      <Link href={`/gigs/${gig.id}`} className="flex flex-col flex-1 p-4 min-w-0">
+      <Link href={`/gigs/${gig.id}`} className="flex flex-col flex-1 p-4 min-w-0 relative">
         {/* Project badge + title */}
-        <div className="flex items-center gap-2 mb-1 min-w-0">
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: projectColor }} />
-          <span className="text-[10px] font-bold tracking-widest uppercase truncate" style={{ color: projectColor }}>
-            {gig.go_projects?.name || '—'}
-          </span>
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: projectColor }} />
+            <span className="text-[10px] font-bold tracking-widest uppercase truncate" style={{ color: projectColor }}>
+              {gig.go_projects?.name || '—'}
+            </span>
+          </div>
+          {gig.notes && (
+            <StickyNote className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+          )}
         </div>
         <h2 className="text-base font-bold text-zinc-100 leading-snug break-words mb-2 line-clamp-2">
           {gig.title}

@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { GigWithProject, LineupWithMember, GoMember, GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
-import { ArrowLeft, Clock, MapPin, Volume2 } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Volume2, StickyNote } from 'lucide-react';
 import Link from 'next/link';
 import { AddLineupMember } from '@/components/add-lineup-member';
 import { LineupMemberCard } from '@/components/lineup-member-card';
@@ -29,6 +29,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       bring_sound, 
       sound_cost, 
       sound_person_id,
+      notes,
       go_projects ( * )
     `)
     .eq('id', id)
@@ -228,6 +229,21 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           <div className="md:hidden h-px w-full bg-zinc-800/60" />
         </div>
       </section>
+
+      {/* Notes Section */}
+      {gigData.notes && (
+        <section className="mb-10">
+          <div className="flex items-center gap-2 mb-4 px-1">
+            <StickyNote className="w-4 h-4 text-zinc-500" />
+            <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase">Observações</h2>
+          </div>
+          <div className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-5 md:p-6 shadow-sm">
+            <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-wrap">
+              {gigData.notes}
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Lineup Section */}
       <section>
