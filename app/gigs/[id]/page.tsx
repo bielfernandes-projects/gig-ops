@@ -124,16 +124,43 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             {gigData.title}
           </h1>
 
+          {/* Meta Info Row */}
           <div className="flex flex-col md:flex-row md:items-center gap-3 text-sm text-zinc-400 flex-wrap">
+            {/* Date */}
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 stroke-[1.5]" />
-              <span className="capitalize">{dateFormatted} às {timeFormatted}</span>
+              <span className="capitalize">
+                {dateFormatted} 
+                <span className="md:inline hidden mx-1">·</span> 
+                {timeFormatted}
+                {gigData.end_time && (
+                  <>
+                    {' '}– {new Date(gigData.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    <span className="ml-1.5 px-1.5 py-0.5 bg-zinc-800 text-[10px] font-bold text-zinc-300 rounded uppercase tracking-wider">
+                      {(() => {
+                        const diffMs = new Date(gigData.end_time).getTime() - new Date(gigData.date).getTime();
+                        if (diffMs <= 0) return '';
+                        const totalMins = Math.floor(diffMs / 60000);
+                        const h = Math.floor(totalMins / 60);
+                        const m = totalMins % 60;
+                        if (h > 0 && m > 0) return `${h}h${m}m`;
+                        if (h > 0) return `${h}h`;
+                        return `${m}m`;
+                      })()}
+                    </span>
+                  </>
+                )}
+              </span>
             </div>
+
+            {/* Location */}
             <span className="hidden md:block text-zinc-700">•</span>
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 stroke-[1.5]" />
               <span className="truncate">{gigData.location}</span>
             </div>
+
+            {/* Sound equipment info */}
             {gigData.bring_sound && (
               <>
                 <span className="hidden md:block text-zinc-700">•</span>

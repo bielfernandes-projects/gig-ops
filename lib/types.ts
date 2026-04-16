@@ -12,11 +12,12 @@ export type GoMember = {
 };
 
 export type GoGig = {
-  id: string; // uuid
-  project_id: string; // uuid (fk to go_projects)
+  id: string;
+  project_id: string;
   title: string;
   location: string;
-  date: string; // timestamptz
+  date: string; // start time (timestamptz)
+  end_time: string | null; // end time (timestamptz)
   gross_value: number;
   paid: boolean;
   bring_sound: boolean;

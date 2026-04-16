@@ -93,14 +93,27 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="date" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
-                  Data e Hora
+                  Início
                 </label>
                 <input 
                   type="datetime-local" 
                   id="date" 
                   name="date" 
                   required 
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all color-scheme-dark"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="end_time" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                  Término <span className="text-zinc-600 normal-case font-normal">(opcional)</span>
+                </label>
+                <input 
+                  type="datetime-local" 
+                  id="end_time" 
+                  name="end_time" 
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   style={{ colorScheme: 'dark' }}
                 />
               </div>

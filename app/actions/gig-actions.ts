@@ -8,6 +8,7 @@ export async function addQuickGig(formData: FormData) {
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
   const date = formData.get('date') as string;
+  const end_time = (formData.get('end_time') as string) || null;
   const grossValueStr = formData.get('gross_value') as string;
   
   if (!title || !project_id || !date) {
@@ -18,17 +19,16 @@ export async function addQuickGig(formData: FormData) {
 
   const { error } = await supabase
     .from('go_gigs')
-    .insert([
-      { 
-        title, 
-        project_id, 
-        date, 
-        gross_value,
-        location: 'A definir',
-        bring_sound: false,
-        sound_cost: 0,
-      }
-    ]);
+    .insert([{ 
+      title, 
+      project_id, 
+      date, 
+      end_time,
+      gross_value,
+      location: 'A definir',
+      bring_sound: false,
+      sound_cost: 0,
+    }]);
 
   if (error) {
     console.error('Error inserting gig:', error);
@@ -44,6 +44,7 @@ export async function updateGig(formData: FormData) {
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
   const date = formData.get('date') as string;
+  const end_time = (formData.get('end_time') as string) || null;
   const location = formData.get('location') as string;
   const gross_value = parseFloat(formData.get('gross_value') as string) || 0;
   const bring_sound = formData.get('bring_sound') === 'true';
@@ -57,7 +58,7 @@ export async function updateGig(formData: FormData) {
 
   const { error } = await supabase
     .from('go_gigs')
-    .update({ title, project_id, date, location, gross_value, bring_sound, sound_cost, sound_person_id })
+    .update({ title, project_id, date, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id })
     .eq('id', id);
 
   if (error) {
