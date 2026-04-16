@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar, Bell } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar, Bell, Copy, Check } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { toast } from 'sonner';
 import { updatePassword, removeProfile } from '@/app/profile/actions';
@@ -22,6 +22,7 @@ type Props = {
 export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId, calendarToken }: Props) {
   const [filter, setFilter] = useState<'7days' | 'month' | 'all'>('month');
   const [originUrl, setOriginUrl] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     setOriginUrl(window.location.origin);
@@ -214,17 +215,31 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
           {calendarToken ? (
             <div className="flex flex-col gap-3">
               <p className="text-xs text-zinc-400">
-                Baixe o arquivo da sua agenda e abra-o para adicionar todos os seus shows automaticamente ao Google Agenda ou Calendário do iOS.
+                Copie o link abaixo e adicione-o no seu Google Agenda (Configurações &gt; Adicionar agenda &gt; Do URL). Dessa forma, seus novos shows e mudanças de horário serão atualizados automaticamente.
               </p>
               
-              <div className="flex mt-1">
-                <a 
-                  href={originUrl ? `${originUrl}/api/calendar/${calendarToken}` : '#'}
-                  download="minha-banda-agenda.ics"
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition-colors text-center shadow-md w-full md:w-auto"
+              <div className="flex flex-col md:flex-row gap-2 mt-1">
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={originUrl ? `${originUrl}/api/calendar/${calendarToken}` : ''}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-xs text-zinc-400 font-mono focus:outline-none placeholder-zinc-800"
+                  placeholder="Carregando link..."
+                />
+                <button 
+                  onClick={() => {
+                    if (originUrl) {
+                      navigator.clipboard.writeText(`${originUrl}/api/calendar/${calendarToken}`);
+                      setIsCopied(true);
+                      toast.success('Link copiado!');
+                      setTimeout(() => setIsCopied(false), 3000);
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap shadow-md"
                 >
-                  Baixar Minha Agenda (.ics)
-                </a>
+                  {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {isCopied ? 'Copiado!' : 'Copiar Link'}
+                </button>
               </div>
             </div>
           ) : (
