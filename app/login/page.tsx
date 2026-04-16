@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4">
       <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center">
         
-        <div className="mb-6 relative w-20 h-20">
+        <div className="mb-6 relative w-40 h-40">
           <Image 
             src="/logo.svg" 
             alt="Minha Banda Logo" 
