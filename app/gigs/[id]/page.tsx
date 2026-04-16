@@ -77,7 +77,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
   const projectColor = gigData.go_projects?.color_hex || '#71717a';
 
-  const gigDate = new Date(gigData.date);
+  const gigDate = new Date(gigData.start_time);
   const dateFormatted = gigDate.toLocaleDateString('pt-BR', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
   });
@@ -138,7 +138,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                     {' '}– {new Date(gigData.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     <span className="ml-1.5 px-1.5 py-0.5 bg-zinc-800 text-[10px] font-bold text-zinc-300 rounded uppercase tracking-wider">
                       {(() => {
-                        const diffMs = new Date(gigData.end_time).getTime() - new Date(gigData.date).getTime();
+                        const diffMs = new Date(gigData.end_time).getTime() - new Date(gigData.start_time).getTime();
                         if (diffMs <= 0) return '';
                         const totalMins = Math.floor(diffMs / 60000);
                         const h = Math.floor(totalMins / 60);

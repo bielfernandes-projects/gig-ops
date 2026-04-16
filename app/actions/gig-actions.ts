@@ -7,11 +7,11 @@ import { redirect } from 'next/navigation';
 export async function addQuickGig(formData: FormData) {
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
-  const date = formData.get('date') as string;
+  const start_time = formData.get('start_time') as string;
   const end_time = (formData.get('end_time') as string) || null;
   const grossValueStr = formData.get('gross_value') as string;
   
-  if (!title || !project_id || !date) {
+  if (!title || !project_id || !start_time) {
     return { error: 'Campos obrigatórios faltando.' };
   }
 
@@ -22,7 +22,7 @@ export async function addQuickGig(formData: FormData) {
     .insert([{ 
       title, 
       project_id, 
-      date, 
+      start_time, 
       end_time,
       gross_value,
       location: 'A definir',
@@ -43,7 +43,7 @@ export async function updateGig(formData: FormData) {
   const id = formData.get('id') as string;
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
-  const date = formData.get('date') as string;
+  const start_time = formData.get('start_time') as string;
   const end_time = (formData.get('end_time') as string) || null;
   const location = formData.get('location') as string;
   const gross_value = parseFloat(formData.get('gross_value') as string) || 0;
@@ -52,13 +52,13 @@ export async function updateGig(formData: FormData) {
   const rawSoundPerson = formData.get('sound_person_id') as string;
   const sound_person_id = bring_sound && rawSoundPerson ? rawSoundPerson : null;
 
-  if (!id || !title || !project_id || !date) {
+  if (!id || !title || !project_id || !start_time) {
     return { error: 'Campos obrigatórios faltando.' };
   }
 
   const { error } = await supabase
     .from('go_gigs')
-    .update({ title, project_id, date, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id })
+    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id })
     .eq('id', id);
 
   if (error) {

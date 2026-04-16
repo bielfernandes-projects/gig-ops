@@ -16,7 +16,7 @@ export type GoGig = {
   project_id: string;
   title: string;
   location: string;
-  date: string; // start time (timestamptz)
+  start_time: string; // start time (timestamptz)
   end_time: string | null; // end time (timestamptz)
   gross_value: number;
   paid: boolean;

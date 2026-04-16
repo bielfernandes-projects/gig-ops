@@ -33,9 +33,9 @@ export function CopyLogisticsButton({ gig }: CopyLogisticsButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    const startTime = formatTime(gig.date);
+    const startTime = formatTime(gig.start_time);
     const endTime = gig.end_time ? formatTime(gig.end_time) : null;
-    const duration = gig.end_time ? formatDuration(gig.date, gig.end_time) : null;
+    const duration = gig.end_time ? formatDuration(gig.start_time, gig.end_time) : null;
 
     const timeStr = endTime
       ? `${startTime} às ${endTime}${duration ? ` (${duration})` : ''}`
@@ -43,7 +43,7 @@ export function CopyLogisticsButton({ gig }: CopyLogisticsButtonProps) {
 
     const lines = [
       `📌 *${gig.title}*`,
-      `📅 Data: ${formatDate(gig.date)}`,
+      `📅 Data: ${formatDate(gig.start_time)}`,
       `⏰ Hora: ${timeStr}`,
       `📍 Endereço: ${gig.location}`,
     ];

@@ -21,7 +21,7 @@ function filterGigs(gigs: GigWithProject[], tab: string): GigWithProject[] {
     end.setDate(end.getDate() + 7);
     end.setHours(23, 59, 59, 999);
     return gigs.filter((g) => {
-      const d = new Date(g.date);
+      const d = new Date(g.start_time);
       return d >= now && d <= end;
     });
   }
@@ -30,19 +30,19 @@ function filterGigs(gigs: GigWithProject[], tab: string): GigWithProject[] {
     const y = now.getFullYear();
     const m = now.getMonth();
     return gigs.filter((g) => {
-      const d = new Date(g.date);
+      const d = new Date(g.start_time);
       return d.getFullYear() === y && d.getMonth() === m;
     });
   }
 
   // 'all' — all future gigs
-  return gigs.filter((g) => new Date(g.date) >= now);
+  return gigs.filter((g) => new Date(g.start_time) >= now);
 }
 
 function groupByMonth(gigs: GigWithProject[]): [string, GigWithProject[]][] {
   const map = new Map<string, GigWithProject[]>();
   for (const gig of gigs) {
-    const d = new Date(gig.date);
+    const d = new Date(gig.start_time);
     const key = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     const capitalized = key.charAt(0).toUpperCase() + key.slice(1);
     if (!map.has(capitalized)) map.set(capitalized, []);
@@ -79,7 +79,7 @@ export default async function Home({
   const { data: gigsData, error } = await supabase
     .from('go_gigs')
     .select(`*, go_projects ( name, color_hex )`)
-    .order('date', { ascending: true }) as { data: GigWithProject[] | null, error: PostgrestError | null };
+    .order('start_time', { ascending: true }) as { data: GigWithProject[] | null, error: PostgrestError | null };
 
   const { data: projectsData } = await supabase
     .from('go_projects')
@@ -195,13 +195,13 @@ function GigCard({ gig, lineupData }: { gig: GigWithProject; lineupData: GoLineu
 
   const projectColor = gig.go_projects?.color_hex || '#71717a';
 
-  const gigDate = new Date(gig.date);
+  const gigDate = new Date(gig.start_time);
   const day = gigDate.getDate().toString().padStart(2, '0');
   const weekday = gigDate.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').toUpperCase();
 
-  const startStr = formatTime(gig.date);
+  const startStr = formatTime(gig.start_time);
   const endStr = gig.end_time ? formatTime(gig.end_time) : null;
-  const duration = gig.end_time ? formatDuration(gig.date, gig.end_time) : null;
+  const duration = gig.end_time ? formatDuration(gig.start_time, gig.end_time) : null;
 
   const timeDisplay = endStr
     ? `${startStr} – ${endStr}${duration ? ` (${duration})` : ''}`

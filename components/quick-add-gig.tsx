@@ -98,7 +98,7 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
                 <input 
                   type="datetime-local" 
                   id="date" 
-                  name="date" 
+                  name="start_time" 
                   required 
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   style={{ colorScheme: 'dark' }}
