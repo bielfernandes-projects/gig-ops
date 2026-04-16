@@ -39,19 +39,21 @@ export async function signup(formData: FormData) {
     return { error: 'Código de convite inválido.' };
   }
 
-  const data = {
+  const origin = formData.get('origin') as string || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+  const { error } = await supabase.auth.signUp({
     email,
     password,
-  };
-
-  const { error } = await supabase.auth.signUp(data);
+    options: {
+      emailRedirectTo: `${origin}/login`
+    }
+  });
 
   if (error) {
     return { error: error.message };
   }
 
-  revalidatePath('/', 'layout');
-  redirect('/');
+  return { success: true };
 }
 
 export async function signout() {

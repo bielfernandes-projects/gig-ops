@@ -240,11 +240,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
             </div>
           </div>
 
-          <div className="border-t border-zinc-800/80 pt-6">
-            <button disabled className="w-full py-4 px-6 bg-amber-500/10 border border-amber-500/20 text-amber-500 font-bold rounded-xl flex items-center justify-center gap-2 opacity-60 cursor-not-allowed">
-              ✨ Gerenciar Minha Banda <span className="uppercase text-[10px] tracking-wider ml-1">(Premium)</span>
-            </button>
-          </div>
+
         </section>
       )}
 
