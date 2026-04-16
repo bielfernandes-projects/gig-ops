@@ -6,7 +6,7 @@ import { GigWithProject, GoProject, GoLineup } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { StickyNote } from 'lucide-react';
-import { getUserRole } from '@/lib/auth';
+import { getUserRole, getUserEmail } from '@/lib/auth';
 import { Suspense } from 'react';
 
 export const revalidate = 0;
@@ -76,6 +76,17 @@ export default async function Home({
 }) {
   const { tab = '7days' } = await searchParams;
   const role = await getUserRole();
+  const email = await getUserEmail();
+
+  let userMemberId: string | null = null;
+  if (email && role !== 'admin') {
+    const { data: memberData } = await supabase
+      .from('go_members')
+      .select('id')
+      .eq('email', email)
+      .single();
+    userMemberId = memberData?.id || null;
+  }
 
   const { data: gigsData, error } = await supabase
     .from('go_gigs')
@@ -114,9 +125,14 @@ export default async function Home({
   // Dynamic profit calculation based on filtered selection
   const netProfit = filtered.reduce((acc, gig) => {
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
-    const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
-    return acc + (gig.gross_value - lineupFees - soundCost);
+    if (role === 'admin') {
+      const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
+      const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
+      return acc + (gig.gross_value - lineupFees - soundCost);
+    } else {
+      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+      return acc + (myLineup ? myLineup.fee_amount : 0);
+    }
   }, 0);
 
   return (
@@ -130,8 +146,10 @@ export default async function Home({
         {/* Stats strip */}
         <div className="flex gap-3 overflow-x-auto pb-3 snap-x hide-scrollbar mb-6">
           <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 block mb-1">Lucro Estimado</span>
-            <span className={`text-xl font-black ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 block mb-1">
+              {role === 'admin' ? 'Lucro Estimado' : 'Meu Cachê'}
+            </span>
+            <span className={`text-xl font-black ${netProfit >= 0 ? 'text-emerald-400' : 'text-zinc-400'}`}>
               R$ {netProfit.toFixed(2)}
             </span>
           </div>
@@ -190,7 +208,7 @@ export default async function Home({
                 {monthGigs.map((gig) => {
                   const lineupData = lineups.filter((l) => l.gig_id === gig.id);
                   return (
-                    <GigCard key={gig.id} gig={gig} lineupData={lineupData} />
+                    <GigCard key={gig.id} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} />
                   );
                 })}
               </div>
@@ -206,10 +224,23 @@ export default async function Home({
 
 // ─── GigCard ────────────────────────────────────────────────────────────────
 
-function GigCard({ gig, lineupData }: { gig: GigWithProject; lineupData: GoLineup[] }) {
+function GigCard({ gig, lineupData, role, userMemberId }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null }) {
   const lineupFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
-  const estimatedProfit = gig.gross_value - lineupFees - soundCost;
+  
+  let estimatedProfit = 0;
+  let isNotScheduled = false;
+
+  if (role === 'admin') {
+    estimatedProfit = gig.gross_value - lineupFees - soundCost;
+  } else {
+    const myLineup = lineupData.find(l => l.member_id === userMemberId);
+    if (myLineup) {
+      estimatedProfit = myLineup.fee_amount;
+    } else {
+      isNotScheduled = true;
+    }
+  }
 
   const projectColor = gig.go_projects?.color_hex || '#71717a';
 
@@ -265,11 +296,17 @@ function GigCard({ gig, lineupData }: { gig: GigWithProject; lineupData: GoLineu
         {/* Financial row */}
         <div className="mt-auto flex items-center justify-between pt-2.5 border-t border-zinc-800/60">
           <span className="text-xs text-zinc-500 font-medium">R$ {gig.gross_value.toFixed(2)}</span>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
-            estimatedProfit >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'
-          }`}>
-            ~ R$ {estimatedProfit.toFixed(2)}
-          </span>
+          {!isNotScheduled ? (
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
+              estimatedProfit >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'
+            }`}>
+              ~ R$ {estimatedProfit.toFixed(2)}
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md text-zinc-500 bg-zinc-800/50 uppercase tracking-widest">
+              Não Escalado
+            </span>
+          )}
         </div>
       </Link>
 

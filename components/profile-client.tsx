@@ -15,9 +15,10 @@ type Props = {
   profiles: GoProfile[];
   gigs: GigWithProject[];
   lineups: GoLineup[];
+  userMemberId: string | null;
 };
 
-export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups }: Props) {
+export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId }: Props) {
   const [filter, setFilter] = useState<'7days' | 'month' | 'all'>('month');
 
   // Logic to filter gigs
@@ -43,9 +44,16 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
 
   filteredGigs.forEach(gig => {
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
-    const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
-    const profit = gig.gross_value - lineupFees - soundCost;
+    
+    let profit = 0;
+    if (role === 'admin') {
+      const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
+      const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
+      profit = gig.gross_value - lineupFees - soundCost;
+    } else {
+      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+      if (myLineup) profit = myLineup.fee_amount;
+    }
 
     const projName = gig.go_projects?.name || 'Sem Projeto';
     const projColor = gig.go_projects?.color_hex || '#71717a';
@@ -137,7 +145,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
       {/* ─── SECTION B: DASHBOARD FINANCEIRO ─── */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6">
         <h3 className="text-zinc-100 font-bold mb-4 flex items-center justify-between">
-          <span>Lucro por Projeto</span>
+          <span>{role === 'admin' ? 'Lucro por Projeto' : 'Meu Cachê por Projeto'}</span>
         </h3>
 
         {/* Filters */}

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { AddLineupMember } from '@/components/add-lineup-member';
 import { LineupMemberCard } from '@/components/lineup-member-card';
 import { EditGigModal } from '@/components/edit-gig-modal';
-import { getUserRole } from '@/lib/auth';
+import { getUserRole, getUserEmail } from '@/lib/auth';
 
 export const revalidate = 0;
 
@@ -14,6 +14,17 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const resolvedParams = await params;
   const id = resolvedParams.id;
   const role = await getUserRole();
+  const email = await getUserEmail();
+
+  let userMemberId: string | null = null;
+  if (email && role !== 'admin') {
+    const { data: memberData } = await supabase
+      .from('go_members')
+      .select('id')
+      .eq('email', email)
+      .single();
+    userMemberId = memberData?.id || null;
+  }
 
   // Fetch Gig with Project Join (no FK hint — avoids schema cache issues)
   const { data: gigData, error: gigError } = await supabase
@@ -99,6 +110,18 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const soundCost = gigData.bring_sound ? (gigData.sound_cost ?? 0) : 0;
   const totalCost = lineupCost + soundCost;
   const netProfit = gigData.gross_value - totalCost;
+
+  let viewerFee = 0;
+  let viewerNotScheduled = false;
+
+  if (role === 'viewer') {
+    const myLineup = lineup.find(l => l.member_id === userMemberId);
+    if (myLineup) {
+      viewerFee = myLineup.fee_amount;
+    } else {
+      viewerNotScheduled = true;
+    }
+  }
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative pb-32">
@@ -201,12 +224,15 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               <span className="text-xl md:text-2xl font-bold text-zinc-50">R$ {gigData.gross_value.toFixed(2)}</span>
             </div>
 
-            <div className="hidden md:block w-px h-12 bg-zinc-800" />
-
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Músicos (Escala)</span>
-              <span className="text-xl md:text-2xl font-bold text-red-400">− R$ {lineupCost.toFixed(2)}</span>
-            </div>
+            {role === 'admin' && (
+              <>
+                <div className="hidden md:block w-px h-12 bg-zinc-800" />
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Músicos (Escala)</span>
+                  <span className="text-xl md:text-2xl font-bold text-red-400">− R$ {lineupCost.toFixed(2)}</span>
+                </div>
+              </>
+            )}
 
             {gigData.bring_sound && (
               <>
@@ -220,12 +246,27 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
             <div className="hidden md:block w-px h-12 bg-zinc-800" />
 
-            <div className="flex flex-col gap-1.5 md:items-end">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Lucro Líquido</span>
-              <span className={`text-2xl md:text-3xl font-black tracking-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                R$ {netProfit.toFixed(2)}
-              </span>
-            </div>
+            {role === 'admin' ? (
+              <div className="flex flex-col gap-1.5 md:items-end">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Lucro Líquido</span>
+                <span className={`text-2xl md:text-3xl font-black tracking-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  R$ {netProfit.toFixed(2)}
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5 md:items-end">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Meu Cachê</span>
+                {!viewerNotScheduled ? (
+                  <span className="text-2xl md:text-3xl font-black tracking-tight text-emerald-400">
+                    R$ {viewerFee.toFixed(2)}
+                  </span>
+                ) : (
+                  <span className="text-lg md:text-xl font-black tracking-tight text-zinc-500 uppercase mt-1 md:mt-2">
+                    Não Escalado
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="md:hidden h-px w-full bg-zinc-800/60" />
@@ -233,7 +274,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       </section>
 
       {/* Notes Section */}
-      {gigData.notes && (
+      {gigData.notes && role === 'admin' && (
         <section className="mb-10">
           <div className="flex items-center gap-2 mb-4 px-1">
             <StickyNote className="w-4 h-4 text-zinc-500" />

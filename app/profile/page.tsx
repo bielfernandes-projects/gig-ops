@@ -10,6 +10,17 @@ export default async function ProfilePage() {
   const role = await getUserRole();
   const email = await getUserEmail();
 
+  // Fetch user member id for viewers
+  let userMemberId: string | null = null;
+  if (email && role !== 'admin') {
+    const { data: memberData } = await supabase
+      .from('go_members')
+      .select('id')
+      .eq('email', email)
+      .single();
+    userMemberId = memberData?.id || null;
+  }
+
   // 1. Fetch settings (invite code)
   let inviteCode = null;
   if (role === 'admin') {
@@ -58,6 +69,7 @@ export default async function ProfilePage() {
       profiles={profiles}
       gigs={gigs}
       lineups={lineups}
+      userMemberId={userMemberId}
     />
   );
 }

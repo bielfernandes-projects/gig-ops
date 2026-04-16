@@ -67,20 +67,19 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
         </div>
 
         {/* Right: Fee + Toggle + Actions */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex flex-col items-end gap-1.5">
-            <span className="font-semibold text-zinc-300 tabular-nums">
-              R$ {freela.fee_amount.toFixed(2)}
-            </span>
-            <TogglePaymentButton
-              lineupId={freela.id}
-              currentStatus={freela.status === 'pago'}
-              role={role}
-            />
-          </div>
+        {role === 'admin' && (
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-col items-end gap-1.5">
+              <span className="font-semibold text-zinc-300 tabular-nums">
+                R$ {freela.fee_amount.toFixed(2)}
+              </span>
+              <TogglePaymentButton
+                lineupId={freela.id}
+                currentStatus={freela.status === 'pago'}
+                role={role}
+              />
+            </div>
 
-          {/* Admin-only action buttons */}
-          {role === 'admin' && (
             <div className="flex flex-col gap-1.5 border-l border-zinc-800 pl-3">
               <button
                 onClick={() => setIsEditing(true)}
@@ -97,8 +96,8 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Fee Modal */}
