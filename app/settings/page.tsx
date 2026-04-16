@@ -33,7 +33,7 @@ export default async function SettingsPage() {
               : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
           }`}>
             {role === 'admin' ? (
-              <><ShieldCheck className="w-3.5 h-3.5" /> GigOps Admin</>
+              <><ShieldCheck className="w-3.5 h-3.5" /> Admin Minha Banda</>
             ) : (
               <><ShieldAlert className="w-3.5 h-3.5" /> Visualizador</>
             )}

@@ -41,7 +41,7 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
   return (
     <div className="flex flex-col w-full h-full">
       <div className="p-6">
-        <h1 className="text-xl font-bold tracking-tight text-zinc-100">GigOps</h1>
+        <h1 className="text-xl font-bold tracking-tight text-zinc-100">Minha Banda</h1>
       </div>
       <nav className="flex-1 px-4 space-y-2 mt-4">
         {navItems.map((item) => {

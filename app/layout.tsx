@@ -7,13 +7,13 @@ import { Toaster } from 'sonner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'GigOps',
+  title: 'Minha Banda',
   description: 'Gestão ágil de agendas e cachês para bandleaders.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'GigOps',
+    title: 'Minha Banda',
   },
   formatDetection: {
     telephone: false,

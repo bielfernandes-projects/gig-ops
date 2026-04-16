@@ -34,7 +34,7 @@ export default function LoginPage() {
           <Lock className="w-6 h-6 text-zinc-300" />
         </div>
         
-        <h1 className="text-2xl font-black text-zinc-50 mb-1 tracking-tight">GigOps</h1>
+        <h1 className="text-2xl font-black text-zinc-50 mb-1 tracking-tight">Minha Banda</h1>
         <p className="text-sm text-zinc-400 mb-8 font-medium">
           {isLogin ? 'Faça login para gerenciar sua agenda.' : 'Crie sua conta de liderança.'}
         </p>
