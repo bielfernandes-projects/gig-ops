@@ -111,9 +111,13 @@ export default async function Home({
   const filtered = filterGigs(allGigs, tab);
   const grouped = groupByMonth(filtered);
 
-  const totalGross = allGigs.reduce((acc, g) => acc + g.gross_value, 0);
-  const totalCost = lineups.reduce((acc, l) => acc + l.fee_amount, 0);
-  const netProfit = totalGross - totalCost;
+  // Dynamic profit calculation based on filtered selection
+  const netProfit = filtered.reduce((acc, gig) => {
+    const gigLineups = lineups.filter(l => l.gig_id === gig.id);
+    const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
+    const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
+    return acc + (gig.gross_value - lineupFees - soundCost);
+  }, 0);
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
