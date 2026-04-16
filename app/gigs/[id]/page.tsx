@@ -19,7 +19,17 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const { data: gigData, error: gigError } = await supabase
     .from('go_gigs')
     .select(`
-      *,
+      id, 
+      project_id, 
+      title, 
+      location, 
+      start_time, 
+      end_time, 
+      gross_value, 
+      paid, 
+      bring_sound, 
+      sound_cost, 
+      sound_person_id,
       go_projects ( * )
     `)
     .eq('id', id)

@@ -78,7 +78,20 @@ export default async function Home({
 
   const { data: gigsData, error } = await supabase
     .from('go_gigs')
-    .select(`*, go_projects ( name, color_hex )`)
+    .select(`
+      id, 
+      project_id, 
+      title, 
+      location, 
+      start_time, 
+      end_time, 
+      gross_value, 
+      paid, 
+      bring_sound, 
+      sound_cost, 
+      sound_person_id,
+      go_projects ( name, color_hex )
+    `)
     .order('start_time', { ascending: true }) as { data: GigWithProject[] | null, error: PostgrestError | null };
 
   const { data: projectsData } = await supabase
