@@ -14,14 +14,13 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const resolvedParams = await params;
   const id = resolvedParams.id;
   const role = await getUserRole();
-  
-  // Fetch Gig with Project Join + sound person join
+
+  // Fetch Gig with Project Join (no FK hint — avoids schema cache issues)
   const { data: gigData, error: gigError } = await supabase
     .from('go_gigs')
     .select(`
       *,
-      go_projects ( * ),
-      sound_person:go_members!go_gigs_sound_person_id_fkey ( name, instrument )
+      go_projects ( * )
     `)
     .eq('id', id)
     .single() as { data: GigWithProject | null, error: PostgrestError | null };
@@ -49,7 +48,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     `)
     .eq('gig_id', id) as { data: LineupWithMember[] | null, error: PostgrestError | null };
 
-  // Fetch all available members for the add-lineup form
+  // Fetch all available members (for lineup + edit-gig form)
   const { data: membersData } = await supabase
     .from('go_members')
     .select('*')
@@ -61,6 +60,17 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     .select('*')
     .order('name', { ascending: true }) as { data: GoProject[] | null };
 
+  // Fetch sound person separately (avoids FK hint / schema cache fragility)
+  let soundPerson: { name: string; instrument: string } | null = null;
+  if (gigData.sound_person_id) {
+    const { data } = await supabase
+      .from('go_members')
+      .select('name, instrument')
+      .eq('id', gigData.sound_person_id)
+      .single();
+    soundPerson = data;
+  }
+
   const lineup = lineupData || [];
   const members = membersData || [];
   const projects = projectsData || [];
@@ -68,11 +78,11 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const projectColor = gigData.go_projects?.color_hex || '#71717a';
 
   const gigDate = new Date(gigData.date);
-  const dateFormatted = gigDate.toLocaleDateString('pt-BR', { 
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' 
+  const dateFormatted = gigDate.toLocaleDateString('pt-BR', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
   });
-  const timeFormatted = gigDate.toLocaleTimeString('pt-BR', { 
-    hour: '2-digit', minute: '2-digit' 
+  const timeFormatted = gigDate.toLocaleTimeString('pt-BR', {
+    hour: '2-digit', minute: '2-digit'
   });
 
   const lineupCost = lineup.reduce((acc, curr) => acc + curr.fee_amount, 0);
@@ -85,8 +95,8 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       {/* Top Header */}
       <header className="mb-8">
         <div className="flex items-center justify-between mb-6">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-50 transition-colors group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -98,19 +108,22 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             <EditGigModal gig={gigData} projects={projects} members={members} />
           )}
         </div>
-        
+
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2 inline-flex" style={{ backgroundColor: `${projectColor}15`, padding: '4px 10px', borderRadius: '6px', border: '1px solid #27272a', width: 'fit-content' }}>
+          <div
+            className="flex items-center gap-2 inline-flex"
+            style={{ backgroundColor: `${projectColor}15`, padding: '4px 10px', borderRadius: '6px', border: '1px solid #27272a', width: 'fit-content' }}
+          >
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: projectColor }} aria-hidden="true" />
             <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: projectColor }}>
               {gigData.go_projects?.name || 'Projeto Desconhecido'}
             </span>
           </div>
-          
+
           <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
             {gigData.title}
           </h1>
-          
+
           <div className="flex flex-col md:flex-row md:items-center gap-3 text-sm text-zinc-400 flex-wrap">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 stroke-[1.5]" />
@@ -128,8 +141,8 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                   <Volume2 className="w-4 h-4 stroke-[1.5]" />
                   <span className="font-medium">
                     Levar som
-                    {gigData.sound_person && (
-                      <span className="text-zinc-500 font-normal"> · {gigData.sound_person.name}</span>
+                    {soundPerson && (
+                      <span className="text-zinc-500 font-normal"> · {soundPerson.name}</span>
                     )}
                   </span>
                 </div>
@@ -148,7 +161,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Cachê Bruto</span>
               <span className="text-xl md:text-2xl font-bold text-zinc-50">R$ {gigData.gross_value.toFixed(2)}</span>
             </div>
-            
+
             <div className="hidden md:block w-px h-12 bg-zinc-800" />
 
             <div className="flex flex-col gap-1.5">
@@ -165,7 +178,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                 </div>
               </>
             )}
-            
+
             <div className="hidden md:block w-px h-12 bg-zinc-800" />
 
             <div className="flex flex-col gap-1.5 md:items-end">
@@ -176,7 +189,6 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             </div>
           </div>
 
-          {/* Dividers for mobile */}
           <div className="md:hidden h-px w-full bg-zinc-800/60" />
         </div>
       </section>
@@ -184,14 +196,14 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       {/* Lineup Section */}
       <section>
         <div className="flex items-end justify-between mb-4 px-1">
-           <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase flex items-center gap-2">
+          <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase flex items-center gap-2">
             Escala de Músicos
           </h2>
           <span className="text-xs font-bold px-2 py-1 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg">
             {lineup.length} Confirmados
           </span>
         </div>
-        
+
         <div className="flex flex-col gap-3">
           {lineup.length === 0 && (
             <div className="p-8 text-center text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">

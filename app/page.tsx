@@ -91,8 +91,9 @@ export default async function Home() {
 }
 
 function GigCard({ gig, lineupData }: { gig: GigWithProject; lineupData: GoLineup[] }) {
-  const totalFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
-  const estimatedProfit = gig.gross_value - totalFees;
+  const lineupFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
+  const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
+  const estimatedProfit = gig.gross_value - lineupFees - soundCost;
   
   const projectColor = gig.go_projects?.color_hex || '#71717a';
   
@@ -135,12 +136,16 @@ function GigCard({ gig, lineupData }: { gig: GigWithProject; lineupData: GoLineu
         <div className="mt-auto flex items-center justify-between pt-3 border-t border-zinc-800/60">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-0.5">Bruto</span>
-            <span className="text-sm font-medium text-zinc-400">R$ {gig.gross_value}</span>
+            <span className="text-sm font-medium text-zinc-400">R$ {gig.gross_value.toFixed(2)}</span>
           </div>
           <div className="flex flex-col items-end">
             <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-0.5">Lucro Estimado</span>
-            <span className="text-sm font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md">
-              R$ {estimatedProfit}
+            <span className={`text-sm font-bold px-2 py-0.5 rounded-md ${
+              estimatedProfit >= 0
+                ? 'text-emerald-400 bg-emerald-400/10'
+                : 'text-red-400 bg-red-400/10'
+            }`}>
+              R$ {estimatedProfit.toFixed(2)}
             </span>
           </div>
         </div>

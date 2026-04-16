@@ -38,10 +38,6 @@ export type GigWithProject = GoGig & {
     name: string;
     color_hex: string;
   } | null;
-  sound_person: {
-    name: string;
-    instrument: string;
-  } | null;
 };
 
 export type LineupWithMember = GoLineup & {
