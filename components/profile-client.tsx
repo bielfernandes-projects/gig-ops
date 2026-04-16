@@ -10,7 +10,7 @@ import { signout } from '@/app/login/actions';
 
 type Props = {
   role: string | null;
-  email: string | null;
+  email: string | null | undefined;
   inviteCode: string | null;
   profiles: GoProfile[];
   gigs: GigWithProject[];

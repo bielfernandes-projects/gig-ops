@@ -53,7 +53,7 @@ export default async function ProfilePage() {
   return (
     <ProfileClient 
       role={role}
-      email={email}
+      email={email ?? null}
       inviteCode={inviteCode}
       profiles={profiles}
       gigs={gigs}
