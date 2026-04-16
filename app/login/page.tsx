@@ -27,7 +27,7 @@ export default function LoginPage() {
     if (res?.error) {
       setErrorMsg(res.error);
       setIsLoading(false);
-    } else if (!isLogin && res?.success) {
+    } else if (!isLogin && res && 'success' in res && res.success) {
       setSuccessMsg(true);
       setIsLoading(false);
     }
