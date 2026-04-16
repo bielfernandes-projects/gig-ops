@@ -15,6 +15,8 @@ const navItems = [
 export function Navigation({ isMobile }: { isMobile: boolean }) {
   const pathname = usePathname();
 
+  if (pathname === '/login') return null;
+
   if (isMobile) {
     return (
       <nav className="flex justify-around items-center h-16 px-2">
