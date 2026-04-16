@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Lock } from 'lucide-react';
+import Image from 'next/image';
 import { login, signup } from './actions';
 
 export default function LoginPage() {
@@ -30,8 +30,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4">
       <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center">
         
-        <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center mb-6">
-          <Lock className="w-6 h-6 text-zinc-300" />
+        <div className="mb-6 relative w-20 h-20">
+          <Image 
+            src="/logo.svg" 
+            alt="Minha Banda Logo" 
+            fill
+            className="invert brightness-200"
+            priority
+          />
         </div>
         
         <h1 className="text-2xl font-black text-zinc-50 mb-1 tracking-tight">Minha Banda</h1>

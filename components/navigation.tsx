@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { CalendarDays, FolderOpen, Users, Settings } from 'lucide-react';
 
 const navItems = [
@@ -40,7 +41,15 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
   // Desktop Component
   return (
     <div className="flex flex-col w-full h-full">
-      <div className="p-6">
+      <div className="p-6 flex items-center gap-3">
+        <div className="relative w-8 h-8">
+          <Image 
+            src="/logo.svg" 
+            alt="Logo" 
+            fill
+            className="invert brightness-200"
+          />
+        </div>
         <h1 className="text-xl font-bold tracking-tight text-zinc-100">Minha Banda</h1>
       </div>
       <nav className="flex-1 px-4 space-y-2 mt-4">
