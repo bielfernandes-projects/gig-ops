@@ -214,34 +214,17 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
           {calendarToken ? (
             <div className="flex flex-col gap-3">
               <p className="text-xs text-zinc-400">
-                Adicione os {role === 'admin' ? 'shows da banda' : 'seus shows'} automaticamente ao <strong>Google Agenda</strong>, <strong>Apple Calendar</strong> ou <strong>Outlook</strong>.
+                Baixe o arquivo da sua agenda e abra-o para adicionar todos os seus shows automaticamente ao Google Agenda ou Calendário do iOS.
               </p>
               
-              <div className="flex flex-col md:flex-row gap-2">
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={originUrl ? `${originUrl}/api/calendar/${calendarToken}` : ''}
-                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-400 font-mono focus:outline-none placeholder-zinc-800"
-                  placeholder="Carregando link..."
-                />
-                <button 
-                  onClick={() => {
-                    if (originUrl) {
-                      navigator.clipboard.writeText(`${originUrl}/api/calendar/${calendarToken}`);
-                      toast.success('Link copiado! Siga o tutorial abaixo.');
-                    }
-                  }}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+              <div className="flex mt-1">
+                <a 
+                  href={originUrl ? `${originUrl}/api/calendar/${calendarToken}` : '#'}
+                  download="minha-banda-agenda.ics"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition-colors text-center shadow-md w-full md:w-auto"
                 >
-                  Copiar Link
-                </button>
-              </div>
-
-              <div className="bg-zinc-950/50 border border-zinc-800/50 p-3 rounded-lg mt-1">
-                <p className="text-[11px] text-zinc-500 font-medium">
-                  <strong>O que fazer com o link?</strong> No seu Google Agenda Desktop, no canto esquerdo, clique em <strong className="text-zinc-400">Configurações &gt; Adicionar agenda &gt; De URL</strong> e cole o link gerado acima. A sincronização automática do Google é feita nos próprios servidores deles periodicamente.
-                </p>
+                  Baixar Minha Agenda (.ics)
+                </a>
               </div>
             </div>
           ) : (

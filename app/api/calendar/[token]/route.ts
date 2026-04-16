@@ -108,18 +108,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
 
     const projectName = Array.isArray(gig.go_projects) 
       ? gig.go_projects[0]?.name 
-      : (gig.go_projects as { name: string } | null)?.name;
-
-    const titlePrefix = projectName ? `[${projectName}] ` : '';
-    // Project Prefix + Title (eg. "[DNP] Casamento de Ana")
-    const fullTitle = `${titlePrefix}${gig.title}`;
+    const titleSuffix = projectName ? ` [${projectName}]` : '';
+    // Title + Project Suffix (eg. "Casamento de Ana [DNP]")
+    const fullTitle = `${gig.title}${titleSuffix}`;
 
     return {
       title: fullTitle,
       start: startObj,
       end: endObj,
       location: gig.location && gig.location !== 'A definir' ? gig.location : undefined,
-      description: isAdmin && gig.notes ? gig.notes : undefined, // Viewer does not see Notes
       startInputType: 'utc',
       startOutputType: 'utc',
     };
