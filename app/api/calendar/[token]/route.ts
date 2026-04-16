@@ -108,6 +108,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
 
     const projectName = Array.isArray(gig.go_projects) 
       ? gig.go_projects[0]?.name 
+      : (gig.go_projects as { name: string } | null)?.name;
+
     const titleSuffix = projectName ? ` [${projectName}]` : '';
     // Title + Project Suffix (eg. "Casamento de Ana [DNP]")
     const fullTitle = `${gig.title}${titleSuffix}`;
