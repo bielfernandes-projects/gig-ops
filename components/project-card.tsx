@@ -5,6 +5,7 @@ import { GoProject } from '@/lib/types';
 import { X, Loader2 } from 'lucide-react';
 import { updateProject } from '@/app/actions/project-actions';
 import { toast } from 'sonner';
+import { HexColorPicker } from 'react-colorful';
 
 export function ProjectCard({ project, role }: { project: GoProject; role: string }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -83,40 +84,45 @@ export function ProjectCard({ project, role }: { project: GoProject; role: strin
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor={`edit-color-${project.id}`} className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+              <div className="flex flex-col gap-3">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
                   Cor do Badge
                 </label>
-                <div className="flex items-center gap-2">
-                  <div className="relative w-12 h-10 overflow-hidden rounded-md border border-zinc-700 shrink-0">
-                    <input 
-                      type="color" 
-                      id={`edit-color-picker-${project.id}`}
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      className="absolute -inset-2 w-[calc(100%+16px)] h-[calc(100%+16px)] cursor-pointer bg-transparent border-0"
+                
+                <div className="flex flex-col gap-4 items-center">
+                  <div className="custom-color-picker w-full">
+                    <HexColorPicker 
+                      color={color} 
+                      onChange={setColor} 
+                      style={{ width: '100%', height: '160px' }}
                     />
                   </div>
-                  <input 
-                    type="text" 
-                    id={`edit-color-${project.id}`}
-                    name="color_hex" 
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    required 
-                    className="flex-1 bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 font-mono focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
-                  />
-                  <div 
-                    className="w-4 h-4 rounded-full border border-white/20" 
-                    style={{ backgroundColor: color }}
-                  />
+
+                  <div className="flex items-center gap-3 w-full">
+                    <div 
+                      className="w-10 h-10 rounded-lg border border-white/10 shrink-0 shadow-inner" 
+                      style={{ backgroundColor: color }}
+                    />
+                    <div className="relative flex-1">
+                      <input 
+                        type="text" 
+                        id={`edit-color-${project.id}`}
+                        name="color_hex" 
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                        required 
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 font-mono focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-600 uppercase">HEX</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <button 
                 type="submit" 
                 disabled={isPending}
-                className="mt-2 w-full flex items-center justify-center gap-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold py-2.5 rounded-md transition-colors active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed select-none"
+                className="mt-4 w-full flex items-center justify-center gap-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold py-2.5 rounded-md transition-colors active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed select-none"
               >
                 {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Salvar Alterações'}
               </button>
