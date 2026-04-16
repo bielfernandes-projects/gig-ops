@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { toast } from 'sonner';
 import { updatePassword, removeProfile } from '@/app/profile/actions';
@@ -16,10 +16,16 @@ type Props = {
   gigs: GigWithProject[];
   lineups: GoLineup[];
   userMemberId: string | null;
+  calendarToken: string | null;
 };
 
-export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId }: Props) {
+export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId, calendarToken }: Props) {
   const [filter, setFilter] = useState<'7days' | 'month' | 'all'>('month');
+  const [originUrl, setOriginUrl] = useState('');
+
+  useEffect(() => {
+    setOriginUrl(window.location.origin);
+  }, []);
 
   // Logic to filter gigs
   const now = new Date();
@@ -194,7 +200,89 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
         )}
       </section>
 
-      {/* ─── SECTION C: GESTÃO DA BANDA (ADMIN) ─── */}
+      {/* ─── SECTION: AGENDA E NOTIFICAÇÕES ─── */}
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6 flex flex-col gap-6">
+        <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
+          <Calendar className="w-5 h-5 text-indigo-400" />
+          <h3 className="text-zinc-100 font-bold">Agenda & Notificações</h3>
+        </div>
+
+        <div>
+          <h4 className="text-sm font-bold text-zinc-300 mb-2">
+            {role === 'admin' ? 'Agenda Global (iCal)' : 'Minha Agenda (iCal)'}
+          </h4>
+          {calendarToken ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-zinc-400">
+                Adicione os {role === 'admin' ? 'shows da banda' : 'seus shows'} automaticamente ao <strong>Google Agenda</strong>, <strong>Apple Calendar</strong> ou <strong>Outlook</strong>.
+              </p>
+              
+              <div className="flex flex-col md:flex-row gap-2">
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={originUrl ? `${originUrl}/api/calendar/${calendarToken}` : ''}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-400 font-mono focus:outline-none placeholder-zinc-800"
+                  placeholder="Carregando link..."
+                />
+                <button 
+                  onClick={() => {
+                    if (originUrl) {
+                      navigator.clipboard.writeText(`${originUrl}/api/calendar/${calendarToken}`);
+                      toast.success('Link copiado! Siga o tutorial abaixo.');
+                    }
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+                >
+                  Copiar Link
+                </button>
+              </div>
+
+              <div className="bg-zinc-950/50 border border-zinc-800/50 p-3 rounded-lg mt-1">
+                <p className="text-[11px] text-zinc-500 font-medium">
+                  <strong>O que fazer com o link?</strong> No seu Google Agenda Desktop, no canto esquerdo, clique em <strong className="text-zinc-400">Configurações &gt; Adicionar agenda &gt; De URL</strong> e cole o link gerado acima. A sincronização automática do Google é feita nos próprios servidores deles periodicamente.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-red-500 font-medium bg-red-400/10 p-3 rounded-lg border border-red-400/20">
+              {role === 'admin' 
+                ? 'Nenhum token gerado para a banda. Solicite a migração de banco.' 
+                : 'Não localizamos seu token na tabela de músicos. Peça ao administrador.'}
+            </p>
+          )}
+        </div>
+
+        <div className="border-t border-zinc-800/80 pt-6">
+          <h4 className="text-sm font-bold text-zinc-300 mb-2 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-emerald-400" />
+            Web Push (BETA)
+          </h4>
+          <p className="text-xs text-zinc-400 mb-4">
+            Em breve! Configure as permissões web do seu celular para receber alertas diretos de novos shows, atualizações de horário ou alterações no seu cachê sem precisar abrir o app.
+          </p>
+          
+          <button 
+            onClick={async () => {
+              if (typeof window !== 'undefined' && !('Notification' in window)) {
+                toast.error('Este navegador ou dispositivo não tem suporte nativo para Push Notifications.');
+                return;
+              }
+              const permission = await Notification.requestPermission();
+              if (permission === 'granted') {
+                toast.success('Permissão habilitada! Em breve implementaremos as engrenagens centrais do push.');
+              } else {
+                toast.error('Permissão negada ou bloqueada nativamente.');
+              }
+            }}
+            className="flex items-center justify-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold px-4 py-2.5 rounded-lg text-sm transition-colors w-full md:w-auto"
+          >
+            Configurar Permissão Dispositivo
+          </button>
+        </div>
+      </section>
+
+      {/* ─── SECTION: GESTÃO DA BANDA (ADMIN) ─── */}
       {role === 'admin' && (
         <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6 flex flex-col gap-6">
           <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">

@@ -12,23 +12,27 @@ export default async function ProfilePage() {
 
   // Fetch user member id for viewers
   let userMemberId: string | null = null;
+  let memberCalendarToken: string | null = null;
   if (email && role !== 'admin') {
     const { data: memberData } = await supabase
       .from('go_members')
-      .select('id')
+      .select('id, calendar_token')
       .eq('email', email)
       .single();
     userMemberId = memberData?.id || null;
+    memberCalendarToken = memberData?.calendar_token || null;
   }
 
   // 1. Fetch settings (invite code)
   let inviteCode = null;
+  let adminCalendarToken = null;
   if (role === 'admin') {
     const { data: settingsData } = await supabase
       .from('go_settings')
-      .select('invite_code')
+      .select('invite_code, calendar_token')
       .single() as { data: GoSettings | null };
     inviteCode = settingsData?.invite_code || null;
+    adminCalendarToken = settingsData?.calendar_token || null;
   }
 
   // 2. Fetch profiles if admin
@@ -70,6 +74,7 @@ export default async function ProfilePage() {
       gigs={gigs}
       lineups={lineups}
       userMemberId={userMemberId}
+      calendarToken={role === 'admin' ? adminCalendarToken : memberCalendarToken}
     />
   );
 }

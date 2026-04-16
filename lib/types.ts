@@ -10,11 +10,13 @@ export type GoMember = {
   instrument: string;
   phone: string | null;
   email: string | null;
+  calendar_token: string | null;
 };
 
 export type GoSettings = {
   id: string;
   invite_code: string | null;
+  calendar_token: string | null;
 };
 
 export type GoProfile = {
