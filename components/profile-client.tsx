@@ -283,6 +283,13 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
               }
               setPushStatus('loading');
               try {
+                if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+                  toast.error('Erro de configuração: Chave VAPID não encontrada.');
+                  setPushStatus('idle');
+                  return;
+                }
+                // Register service worker if not already registered
+                await navigator.serviceWorker.register('/sw.js');
                 const permission = await Notification.requestPermission();
                 if (permission !== 'granted') {
                   setPushStatus('denied');
