@@ -140,17 +140,8 @@ export default async function Home({
     if (new Date(gig.start_time) < now2) return acc;
     
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    if (role === 'admin') {
-      const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
-      const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
-      const bandProfit = gig.gross_value - lineupFees - soundCost;
-      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
-      const myFee = myLineup ? myLineup.fee_amount : 0;
-      return acc + (bandProfit + myFee);
-    } else {
-      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
-      return acc + (myLineup ? myLineup.fee_amount : 0);
-    }
+    const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+    return acc + (myLineup ? myLineup.fee_amount : 0);
   }, 0);
 
   // Pending gigs: past gigs with unpaid musicians or unpaid sound equipment (admin only)
@@ -285,18 +276,11 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
   let estimatedProfit = 0;
   let isNotScheduled = false;
 
-  if (role === 'admin') {
-    const bandProfit = gig.gross_value - lineupFees - soundCost;
-    const myLineup = lineupData.find(l => l.member_id === userMemberId);
-    const myFee = myLineup ? myLineup.fee_amount : 0;
-    estimatedProfit = bandProfit + myFee;
+  const myLineup = lineupData.find(l => l.member_id === userMemberId);
+  if (myLineup) {
+    estimatedProfit = myLineup.fee_amount;
   } else {
-    const myLineup = lineupData.find(l => l.member_id === userMemberId);
-    if (myLineup) {
-      estimatedProfit = myLineup.fee_amount;
-    } else {
-      isNotScheduled = true;
-    }
+    isNotScheduled = true;
   }
 
   const isGigPronta = (gig.gross_value > 0) && (Math.abs(gig.gross_value - (lineupFees + soundCost)) < 0.01);

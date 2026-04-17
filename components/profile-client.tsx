@@ -65,27 +65,11 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
 
   filteredGigs.forEach(gig => {
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
+    const myLineup = gigLineups.find(l => l.member_id === userMemberId);
     
     let profit = 0;
-    if (role === 'admin') {
-      // Admin: Only count profit if all musicians AND the sound equipment are marked as 'pago'
-      const allMusiciansPaid = gigLineups.every(l => l.status === 'pago');
-      const soundPaid = !gig.bring_sound || (gig.sound_cost ?? 0) === 0 || gig.is_sound_paid;
-      
-      if (allMusiciansPaid && soundPaid) {
-        const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
-        const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
-        const bandProfit = gig.gross_value - lineupFees - soundCost;
-        const myLineup = gigLineups.find(l => l.member_id === userMemberId);
-        const myFee = myLineup ? myLineup.fee_amount : 0;
-        profit = bandProfit + myFee;
-      }
-    } else {
-      // Musician: Only count fee if their specific status is 'pago'
-      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
-      if (myLineup && myLineup.status === 'pago') {
-        profit = myLineup.fee_amount;
-      }
+    if (myLineup && myLineup.status === 'pago') {
+      profit = myLineup.fee_amount;
     }
 
     const projName = gig.go_projects?.name || 'Sem Projeto';
