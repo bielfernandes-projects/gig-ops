@@ -77,10 +77,9 @@ export function DateTimePicker({ name, label, defaultValue, required }: DateTime
     today.getMonth() === viewMonth &&
     today.getFullYear() === viewYear;
 
-  // Build the hidden value: YYYY-MM-DDTHH:mm
-  const pad = (n: number | string) => String(n).padStart(2, '0');
+  // Build the hidden value: ISO String (Standard for DB)
   const hiddenValue = selectedDate
-    ? `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth() + 1)}-${pad(selectedDate.getDate())}T${pad(hour)}:${pad(minute)}`
+    ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), Number(hour), Number(minute)).toISOString()
     : '';
 
   // Selected weekday display

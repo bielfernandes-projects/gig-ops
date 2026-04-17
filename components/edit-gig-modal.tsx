@@ -13,17 +13,18 @@ interface EditGigModalProps {
   members: GoMember[];
 }
 
-// Format datetime-local string from DB timestamp
-// The DB stores local time as ISO with timezone info. We extract the local representation.
 function toDatetimeLocal(isoString: string): string {
-  // If the string already looks like a datetime-local (no Z/offset), use it directly
-  if (!isoString.includes('Z') && !isoString.includes('+')) {
-    return isoString.slice(0, 16); // YYYY-MM-DDTHH:mm
-  }
-  // Otherwise, create a Date and extract local components
   const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '';
+  
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const year = d.getFullYear();
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 export function EditGigModal({ gig, projects, members }: EditGigModalProps) {

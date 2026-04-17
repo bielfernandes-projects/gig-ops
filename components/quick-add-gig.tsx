@@ -39,14 +39,14 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
           <div 
             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             onClick={() => !isPending && setIsOpen(false)}
             aria-hidden="true"
           />
           
-          <div className="relative w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-6">
+          <div className="relative w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-6 my-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold tracking-tight text-zinc-100">Novo Show</h2>
               <button 
