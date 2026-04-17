@@ -33,6 +33,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
   const [isPendingSave, setIsPendingSave] = useState(false);
   const [isPendingDelete, setIsPendingDelete] = useState(false);
   const [bringSound, setBringSound] = useState(gig.bring_sound ?? false);
+  const [isSoundPaid, setIsSoundPaid] = useState(gig.is_sound_paid ?? false);
 
   // Hide global navigation when modal is open
   useEffect(() => {
@@ -50,6 +51,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
     const formData = new FormData(e.currentTarget);
     formData.set('id', gig.id);
     formData.set('bring_sound', String(bringSound));
+    formData.set('is_sound_paid', String(isSoundPaid));
 
     const res = await updateGig(formData);
 
@@ -265,6 +267,25 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    {/* Sound Payment Status */}
+                    <div className="mt-2 flex items-center justify-between bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-amber-500/80 uppercase tracking-wider">Status Financeiro</span>
+                        <span className="text-sm font-semibold text-zinc-300">Som Pago?</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsSoundPaid(!isSoundPaid)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                          isSoundPaid ? 'bg-emerald-500' : 'bg-zinc-700'
+                        }`}
+                      >
+                        <span className={`inline-block size-3 transform rounded-full bg-white transition-transform ${
+                          isSoundPaid ? 'translate-x-5' : 'translate-x-1'
+                        }`} />
+                      </button>
                     </div>
                   </div>
                 )}

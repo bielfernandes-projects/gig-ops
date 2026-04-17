@@ -64,9 +64,11 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
     
     let profit = 0;
     if (role === 'admin') {
-      // Admin: Only count profit if all musicians in the lineup are marked as 'pago'
-      const allPaid = gigLineups.every(l => l.status === 'pago');
-      if (allPaid) {
+      // Admin: Only count profit if all musicians AND the sound equipment are marked as 'pago'
+      const allMusiciansPaid = gigLineups.every(l => l.status === 'pago');
+      const soundPaid = !gig.bring_sound || gig.sound_cost === 0 || gig.is_sound_paid;
+      
+      if (allMusiciansPaid && soundPaid) {
         const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
         const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
         profit = gig.gross_value - lineupFees - soundCost;

@@ -138,13 +138,16 @@ export default async function Home({
     }
   }, 0);
 
-  // Pending gigs: past gigs with at least one unpaid lineup member (admin only)
+  // Pending gigs: past gigs with unpaid musicians or unpaid sound equipment (admin only)
   const pendingGigs = role === 'admin' ? allGigs.filter(gig => {
     const gigDate = new Date(gig.start_time);
     if (gigDate >= now2) return false; // Only past gigs
+    
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    if (gigLineups.length === 0) return false; // No lineup, no pending
-    return gigLineups.some(l => l.status !== 'pago');
+    const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
+    const soundUnpaid = gig.bring_sound && gig.sound_cost > 0 && !gig.is_sound_paid;
+    
+    return anyMusicianUnpaid || soundUnpaid;
   }) : [];
 
   return (

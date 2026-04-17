@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { AddLineupMember } from '@/components/add-lineup-member';
 import { LineupMemberCard } from '@/components/lineup-member-card';
 import { EditGigModal } from '@/components/edit-gig-modal';
+import { ToggleSoundPaymentButton } from './toggle-sound-payment-button';
 import { getUserRole, getUserEmail } from '@/lib/auth';
 
 export const revalidate = 0;
@@ -319,6 +320,47 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           {role === 'admin' && <AddLineupMember gigId={id} members={members} />}
         </div>
       </section>
+
+      {/* Equipment/Sound Section */}
+      {gigData.bring_sound && gigData.sound_cost > 0 && (
+        <section className="mt-10">
+          <div className="flex items-end justify-between mb-4 px-1">
+            <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase flex items-center gap-2">
+              Equipamento / Som
+            </h2>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-4 hover:bg-zinc-900 transition-colors group">
+              {/* Left: Name & Role */}
+              <div className="flex flex-col gap-1 h-full justify-center min-w-0 flex-1 mr-3">
+                <span className="font-bold text-zinc-50 text-base truncate">
+                  {soundPerson?.name || 'Equipamento de Som'}
+                </span>
+                <span className="text-xs font-medium text-amber-500/70 uppercase tracking-wider">
+                  Fornecedor de Som
+                </span>
+              </div>
+
+              {/* Right: Cost + Toggle */}
+              {role === 'admin' && (
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="font-semibold text-amber-400 tabular-nums">
+                      R$ {gigData.sound_cost.toFixed(2)}
+                    </span>
+                    <ToggleSoundPaymentButton
+                      gigId={id}
+                      currentStatus={gigData.is_sound_paid}
+                      role={role}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

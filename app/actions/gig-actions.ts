@@ -31,6 +31,7 @@ export async function addQuickGig(formData: FormData) {
       bring_sound: false,
       sound_cost: 0,
       notes,
+      is_sound_paid: false,
     }]);
 
   if (error) {
@@ -55,6 +56,7 @@ export async function updateGig(formData: FormData) {
   const rawSoundPerson = formData.get('sound_person_id') as string;
   const sound_person_id = bring_sound && rawSoundPerson ? rawSoundPerson : null;
   const notes = (formData.get('notes') as string) || null;
+  const is_sound_paid = formData.get('is_sound_paid') === 'true';
 
   if (!id || !title || !project_id || !start_time) {
     return { error: 'Campos obrigatórios faltando.' };
@@ -62,7 +64,7 @@ export async function updateGig(formData: FormData) {
 
   const { error } = await supabase
     .from('go_gigs')
-    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes })
+    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes, is_sound_paid })
     .eq('id', id);
 
   if (error) {
@@ -186,5 +188,21 @@ export async function updateLineupFee(formData: FormData) {
   }
 
   revalidatePath(`/gigs/${gigId}`);
+  return { success: true };
+}
+
+export async function toggleSoundPayment(gigId: string, targetIsPaid: boolean) {
+  const { error } = await supabase
+    .from('go_gigs')
+    .update({ is_sound_paid: targetIsPaid })
+    .eq('id', gigId);
+
+  if (error) {
+    console.error('Error updating sound payment status:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath(`/gigs/${gigId}`);
+  revalidatePath('/');
   return { success: true };
 }
