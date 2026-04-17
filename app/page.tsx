@@ -13,7 +13,7 @@ export const revalidate = 0;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function filterGigs(gigs: GigWithProject[], tab: string): GigWithProject[] {
+function filterGigs(gigs: GigWithProject[], tab: string, from?: string, to?: string): GigWithProject[] {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
@@ -33,6 +33,17 @@ function filterGigs(gigs: GigWithProject[], tab: string): GigWithProject[] {
     return gigs.filter((g) => {
       const d = new Date(g.start_time);
       return d.getFullYear() === y && d.getMonth() === m;
+    });
+  }
+
+  if (tab === 'custom' && from && to) {
+    const start = new Date(from);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(to);
+    end.setHours(23, 59, 59, 999);
+    return gigs.filter((g) => {
+      const d = new Date(g.start_time);
+      return d >= start && d <= end;
     });
   }
 
@@ -72,14 +83,14 @@ function formatDuration(startIso: string, endIso: string): string {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; from?: string; to?: string }>;
 }) {
-  const { tab = '7days' } = await searchParams;
+  const { tab = '7days', from, to } = await searchParams;
   const role = await getUserRole();
   const email = await getUserEmail();
 
   let userMemberId: string | null = null;
-  if (email && role !== 'admin') {
+  if (email) {
     const { data: memberData } = await supabase
       .from('go_members')
       .select('id')
@@ -102,6 +113,7 @@ export default async function Home({
       sound_cost, 
       sound_person_id,
       notes,
+      is_sound_paid,
       go_projects ( name, color_hex )
     `)
     .order('start_time', { ascending: true }) as { data: GigWithProject[] | null, error: PostgrestError | null };
@@ -131,7 +143,10 @@ export default async function Home({
     if (role === 'admin') {
       const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
       const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
-      return acc + (gig.gross_value - lineupFees - soundCost);
+      const bandProfit = gig.gross_value - lineupFees - soundCost;
+      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+      const myFee = myLineup ? myLineup.fee_amount : 0;
+      return acc + (bandProfit + myFee);
     } else {
       const myLineup = gigLineups.find(l => l.member_id === userMemberId);
       return acc + (myLineup ? myLineup.fee_amount : 0);
@@ -145,7 +160,7 @@ export default async function Home({
     
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
     const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
-    const soundUnpaid = gig.bring_sound && gig.sound_cost > 0 && !gig.is_sound_paid;
+    const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
     
     return anyMusicianUnpaid || soundUnpaid;
   }) : [];
@@ -271,7 +286,10 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
   let isNotScheduled = false;
 
   if (role === 'admin') {
-    estimatedProfit = gig.gross_value - lineupFees - soundCost;
+    const bandProfit = gig.gross_value - lineupFees - soundCost;
+    const myLineup = lineupData.find(l => l.member_id === userMemberId);
+    const myFee = myLineup ? myLineup.fee_amount : 0;
+    estimatedProfit = bandProfit + myFee;
   } else {
     const myLineup = lineupData.find(l => l.member_id === userMemberId);
     if (myLineup) {
@@ -280,6 +298,8 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
       isNotScheduled = true;
     }
   }
+
+  const isGigPronta = (gig.gross_value > 0) && (Math.abs(gig.gross_value - (lineupFees + soundCost)) < 0.01);
 
   const projectColor = gig.go_projects?.color_hex || '#71717a';
 
@@ -315,6 +335,11 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
             <span className="text-[10px] font-bold tracking-widest uppercase truncate" style={{ color: projectColor }}>
               {gig.go_projects?.name || '—'}
             </span>
+            {isGigPronta && (
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500 uppercase tracking-tighter">
+                Gig Pronta
+              </span>
+            )}
           </div>
           {gig.notes && (
             <StickyNote className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
@@ -339,7 +364,7 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
             <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
               estimatedProfit >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'
             }`}>
-              ~ R$ {estimatedProfit.toFixed(2)}
+              R$ {estimatedProfit.toFixed(2)}
             </span>
           ) : (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-md text-zinc-500 bg-zinc-800/50 uppercase tracking-widest">

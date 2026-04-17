@@ -21,7 +21,9 @@ type Props = {
 };
 
 export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId, calendarToken }: Props) {
-  const [filter, setFilter] = useState<'7days' | 'month' | 'all'>('month');
+  const [filter, setFilter] = useState<'month' | 'all' | 'custom'>('month');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [originUrl, setOriginUrl] = useState('');
   const [isCopied, setIsCopied] = useState(false);
   const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
@@ -44,16 +46,18 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
 
   const filteredGigs = gigs.filter(g => {
     const d = new Date(g.start_time);
-    if (filter === '7days') {
-      const end = new Date(now);
-      end.setDate(end.getDate() + 7);
-      end.setHours(23, 59, 59, 999);
-      return d >= now && d <= end;
-    }
     if (filter === 'month') {
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     }
-    return true; // all
+    if (filter === 'all') return true;
+    if (filter === 'custom' && startDate && endDate) {
+      const s = new Date(startDate);
+      s.setHours(0, 0, 0, 0);
+      const e = new Date(endDate);
+      e.setHours(23, 59, 59, 999);
+      return d >= s && d <= e;
+    }
+    return false;
   });
 
   // Calculate profit per project
@@ -66,12 +70,15 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
     if (role === 'admin') {
       // Admin: Only count profit if all musicians AND the sound equipment are marked as 'pago'
       const allMusiciansPaid = gigLineups.every(l => l.status === 'pago');
-      const soundPaid = !gig.bring_sound || gig.sound_cost === 0 || gig.is_sound_paid;
+      const soundPaid = !gig.bring_sound || (gig.sound_cost ?? 0) === 0 || gig.is_sound_paid;
       
       if (allMusiciansPaid && soundPaid) {
         const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
         const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
-        profit = gig.gross_value - lineupFees - soundCost;
+        const bandProfit = gig.gross_value - lineupFees - soundCost;
+        const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+        const myFee = myLineup ? myLineup.fee_amount : 0;
+        profit = bandProfit + myFee;
       }
     } else {
       // Musician: Only count fee if their specific status is 'pago'
@@ -142,10 +149,35 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
         </h3>
 
         {/* Filters */}
-        <div className="flex w-full bg-zinc-950 rounded-lg p-1 border border-zinc-800 mb-8">
-          <button onClick={() => setFilter('7days')} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-colors ${filter === '7days' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>7 Dias</button>
-          <button onClick={() => setFilter('month')} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-colors ${filter === 'month' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Mês</button>
-          <button onClick={() => setFilter('all')} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-colors ${filter === 'all' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Total</button>
+        <div className="flex flex-col gap-3 mb-8">
+          <div className="flex w-full bg-zinc-950 rounded-xl p-1 border border-zinc-800">
+            <button onClick={() => setFilter('month')} className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors ${filter === 'month' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Mês</button>
+            <button onClick={() => setFilter('all')} className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors ${filter === 'all' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Total</button>
+            <button onClick={() => setFilter('custom')} className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors ${filter === 'custom' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Personalizado</button>
+          </div>
+
+          {filter === 'custom' && (
+            <div className="flex gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex-1 flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-1">De</label>
+                <input 
+                  type="date" 
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-400 focus:outline-none focus:border-zinc-700 transition-colors"
+                />
+              </div>
+              <div className="flex-1 flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-1">Até</label>
+                <input 
+                  type="date" 
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-400 focus:outline-none focus:border-zinc-700 transition-colors"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {chartData.length > 0 ? (

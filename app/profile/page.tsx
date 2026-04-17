@@ -10,10 +10,10 @@ export default async function ProfilePage() {
   const role = await getUserRole();
   const email = await getUserEmail();
 
-  // Fetch user member id for viewers
+  // Fetch user member id for admins and viewers
   let userMemberId: string | null = null;
   let memberCalendarToken: string | null = null;
-  if (email && role !== 'admin') {
+  if (email) {
     const { data: memberData } = await supabase
       .from('go_members')
       .select('id, calendar_token')
