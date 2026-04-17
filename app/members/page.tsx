@@ -3,19 +3,23 @@ import { GoMember } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import { AddNewMemberModal } from '@/components/add-new-member-modal';
 import { MembersSearch } from '@/components/members-search';
-import { getUserRole } from '@/lib/auth';
+import { getUserInfo } from '@/lib/auth';
 
 export const revalidate = 0;
 
 export default async function MembersPage() {
-  const role = await getUserRole();
+  // Parallel: auth + data fetching run simultaneously
+  const [userInfo, membersResult] = await Promise.all([
+    getUserInfo(),
+    supabase
+      .from('go_members')
+      .select('*')
+      .order('name', { ascending: true }) as unknown as Promise<{ data: GoMember[] | null, error: PostgrestError | null }>,
+  ]);
 
-  const { data: membersData, error } = await supabase
-    .from('go_members')
-    .select('*')
-    .order('name', { ascending: true }) as { data: GoMember[] | null, error: PostgrestError | null };
-
-  const members = membersData || [];
+  const role = userInfo.role;
+  const members = membersResult.data || [];
+  const error = membersResult.error;
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">

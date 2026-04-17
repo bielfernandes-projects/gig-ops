@@ -7,27 +7,18 @@ import { AddLineupMember } from '@/components/add-lineup-member';
 import { LineupMemberCard } from '@/components/lineup-member-card';
 import { EditGigModal } from '@/components/edit-gig-modal';
 import { ToggleSoundPaymentButton } from './toggle-sound-payment-button';
-import { getUserRole, getUserEmail } from '@/lib/auth';
+import { getUserInfo } from '@/lib/auth';
 
 export const revalidate = 0;
 
 export default async function GigDetails({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const id = resolvedParams.id;
-  const role = await getUserRole();
-  const email = await getUserEmail();
 
-  let userMemberId: string | null = null;
-  if (email && role !== 'admin') {
-    const { data: memberData } = await supabase
-      .from('go_members')
-      .select('id')
-      .eq('email', email)
-      .single();
-    userMemberId = memberData?.id || null;
-  }
+  // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
+  const { role, memberId: userMemberId } = await getUserInfo();
 
-  // Fetch Gig with Project Join (no FK hint — avoids schema cache issues)
+  // Fetch Gig with Project Join (must happen first — we need the gig data)
   const { data: gigData, error: gigError } = await supabase
     .from('go_gigs')
     .select(`
@@ -61,41 +52,33 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     );
   }
 
-  // Fetch Lineup with Members Join
-  const { data: lineupData } = await supabase
-    .from('go_lineup')
-    .select(`
-      *,
-      go_members ( name, instrument )
-    `)
-    .eq('gig_id', id) as { data: LineupWithMember[] | null, error: PostgrestError | null };
-
-  // Fetch all available members (for lineup + edit-gig form)
-  const { data: membersData } = await supabase
-    .from('go_members')
-    .select('*')
-    .order('name', { ascending: true }) as { data: GoMember[] | null };
-
-  // Fetch projects for the edit-gig form
-  const { data: projectsData } = await supabase
-    .from('go_projects')
-    .select('*')
-    .order('name', { ascending: true }) as { data: GoProject[] | null };
-
-  // Fetch sound person separately (avoids FK hint / schema cache fragility)
-  let soundPerson: { name: string; instrument: string } | null = null;
-  if (gigData.sound_person_id) {
-    const { data } = await supabase
+  // Parallel data fetching — lineup, members, projects, and sound person all at once
+  const [lineupResult, membersResult, projectsResult, soundPersonResult] = await Promise.all([
+    supabase
+      .from('go_lineup')
+      .select(`*, go_members ( name, instrument )`)
+      .eq('gig_id', id) as unknown as Promise<{ data: LineupWithMember[] | null }>,
+    supabase
       .from('go_members')
-      .select('name, instrument')
-      .eq('id', gigData.sound_person_id)
-      .single();
-    soundPerson = data;
-  }
+      .select('*')
+      .order('name', { ascending: true }) as unknown as Promise<{ data: GoMember[] | null }>,
+    supabase
+      .from('go_projects')
+      .select('*')
+      .order('name', { ascending: true }) as unknown as Promise<{ data: GoProject[] | null }>,
+    gigData.sound_person_id
+      ? supabase
+          .from('go_members')
+          .select('name, instrument')
+          .eq('id', gigData.sound_person_id)
+          .single() as unknown as Promise<{ data: { name: string; instrument: string } | null }>
+      : Promise.resolve({ data: null }),
+  ]);
 
-  const lineup = lineupData || [];
-  const members = membersData || [];
-  const projects = projectsData || [];
+  const lineup = lineupResult.data || [];
+  const members = membersResult.data || [];
+  const projects = projectsResult.data || [];
+  const soundPerson = soundPersonResult.data;
 
   const projectColor = gigData.go_projects?.color_hex || '#71717a';
 

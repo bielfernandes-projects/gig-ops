@@ -3,19 +3,23 @@ import { GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import { AddProjectModal } from '@/components/add-project-modal';
 import { ProjectCard } from '@/components/project-card';
-import { getUserRole } from '@/lib/auth';
+import { getUserInfo } from '@/lib/auth';
 
 export const revalidate = 0;
 
 export default async function ProjectsPage() {
-  const role = await getUserRole();
+  // Parallel: auth + data fetching run simultaneously
+  const [userInfo, projectsResult] = await Promise.all([
+    getUserInfo(),
+    supabase
+      .from('go_projects')
+      .select('*')
+      .order('name', { ascending: true }) as unknown as Promise<{ data: GoProject[] | null, error: PostgrestError | null }>,
+  ]);
 
-  const { data: projectsData, error } = await supabase
-    .from('go_projects')
-    .select('*')
-    .order('name', { ascending: true }) as { data: GoProject[] | null, error: PostgrestError | null };
-
-  const projects = projectsData || [];
+  const role = userInfo.role;
+  const projects = projectsResult.data || [];
+  const error = projectsResult.error;
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">

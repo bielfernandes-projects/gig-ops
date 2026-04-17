@@ -6,7 +6,7 @@ import { GigWithProject, GoProject, GoLineup } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { StickyNote, AlertTriangle } from 'lucide-react';
-import { getUserRole, getUserEmail } from '@/lib/auth';
+import { getUserInfo } from '@/lib/auth';
 import { Suspense } from 'react';
 
 export const revalidate = 0;
@@ -86,50 +86,33 @@ export default async function Home({
   searchParams: Promise<{ tab?: string; from?: string; to?: string }>;
 }) {
   const { tab = '7days', from, to } = await searchParams;
-  const role = await getUserRole();
-  const email = await getUserEmail();
 
-  let userMemberId: string | null = null;
-  if (email) {
-    const { data: memberData } = await supabase
-      .from('go_members')
-      .select('id')
-      .eq('email', email)
-      .single();
-    userMemberId = memberData?.id || null;
-  }
+  // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
+  const { role, memberId: userMemberId } = await getUserInfo();
 
-  const { data: gigsData, error } = await supabase
-    .from('go_gigs')
-    .select(`
-      id, 
-      project_id, 
-      title, 
-      location, 
-      start_time, 
-      end_time, 
-      gross_value, 
-      bring_sound, 
-      sound_cost, 
-      sound_person_id,
-      notes,
-      is_sound_paid,
-      go_projects ( name, color_hex )
-    `)
-    .order('start_time', { ascending: true }) as { data: GigWithProject[] | null, error: PostgrestError | null };
+  // Parallel data fetching — all 3 queries run simultaneously
+  const [gigsResult, projectsResult, lineupsResult] = await Promise.all([
+    supabase
+      .from('go_gigs')
+      .select(`
+        id, project_id, title, location, start_time, end_time, gross_value, 
+        bring_sound, sound_cost, sound_person_id, notes, is_sound_paid,
+        go_projects ( name, color_hex )
+      `)
+      .order('start_time', { ascending: true }) as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
+    supabase
+      .from('go_projects')
+      .select('*')
+      .order('name', { ascending: true }) as unknown as Promise<{ data: GoProject[] | null }>,
+    supabase
+      .from('go_lineup')
+      .select('*') as unknown as Promise<{ data: GoLineup[] | null }>,
+  ]);
 
-  const { data: projectsData } = await supabase
-    .from('go_projects')
-    .select('*')
-    .order('name', { ascending: true }) as { data: GoProject[] | null };
-
-  const { data: lineupsData } = await supabase
-    .from('go_lineup')
-    .select('*') as { data: GoLineup[] | null };
-
-  const allGigs = gigsData || [];
-  const projects = projectsData || [];
-  const lineups = lineupsData || [];
+  const allGigs = gigsResult.data || [];
+  const error = gigsResult.error;
+  const projects = projectsResult.data || [];
+  const lineups = lineupsResult.data || [];
 
   const visibleGigs = (role === 'admin') 
     ? allGigs 
