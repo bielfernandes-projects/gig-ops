@@ -241,10 +241,11 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                           type="number"
                           id="gig-sound-cost"
                           name="sound_cost"
-                          defaultValue={gig.sound_cost ?? 0}
+                          defaultValue={gig.sound_cost || undefined}
+                          placeholder="0.00"
                           step="0.01"
                           inputMode="decimal"
-                          className="w-full bg-zinc-950 border border-zinc-700 rounded-md pl-9 pr-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
+                          className="w-full bg-zinc-950 border border-zinc-700 rounded-md pl-9 pr-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all placeholder:text-zinc-600"
                         />
                       </div>
                     </div>

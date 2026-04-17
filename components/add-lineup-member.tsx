@@ -90,11 +90,11 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
                     type="number" 
                     id="agreed_fee" 
                     name="agreed_fee" 
-                    defaultValue={0} 
+                    placeholder="0.00"
                     step="0.01"
                     inputMode="decimal"
                     required 
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-md pl-9 pr-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-md pl-9 pr-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600"
                   />
                 </div>
               </div>
