@@ -131,7 +131,11 @@ export default async function Home({
   const projects = projectsData || [];
   const lineups = lineupsData || [];
 
-  const filtered = filterGigs(allGigs, tab);
+  const visibleGigs = (role === 'admin') 
+    ? allGigs 
+    : allGigs.filter(gig => lineups.some(l => l.gig_id === gig.id && l.member_id === userMemberId));
+
+  const filtered = filterGigs(visibleGigs, tab, from, to);
   const grouped = groupByMonth(filtered);
 
   // Dynamic profit calculation based on filtered selection: strictly upcoming gigs only

@@ -99,6 +99,29 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
   const projectColor = gigData.go_projects?.color_hex || '#71717a';
 
+  if (role !== 'admin') {
+    const isInLineup = lineup.some(l => l.member_id === userMemberId);
+    if (!isInLineup) {
+      return (
+        <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-20 text-center">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 md:p-12 shadow-xl">
+            <h2 className="text-2xl font-black text-zinc-100 mb-4">Acesso Negado</h2>
+            <p className="text-zinc-400 text-sm mb-8 max-w-sm mx-auto">
+              Você não está escalado para este show e não tem permissão para visualizar estes detalhes.
+            </p>
+            <Link 
+              href="/" 
+              className="inline-flex items-center justify-center gap-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold px-6 py-3 rounded-xl text-sm transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar para Timeline
+            </Link>
+          </div>
+        </div>
+      );
+    }
+  }
+
   const gigDate = new Date(gigData.start_time);
   const dateFormatted = gigDate.toLocaleDateString('pt-BR', {
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo'
