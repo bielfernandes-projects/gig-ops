@@ -84,7 +84,7 @@ export function DateTimePicker({ name, label, defaultValue, required }: DateTime
 
   // Selected weekday display
   const selectedWeekday = selectedDate
-    ? selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })
+    ? selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
     : null;
 
   return (
@@ -129,7 +129,8 @@ export function DateTimePicker({ name, label, defaultValue, required }: DateTime
 
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1;
-            const dayOfWeek = new Date(viewYear, viewMonth, day).getDay();
+            const d = new Date(viewYear, viewMonth, day);
+            const dayOfWeek = d.getDay();
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
             return (
@@ -160,7 +161,7 @@ export function DateTimePicker({ name, label, defaultValue, required }: DateTime
             <span className="text-xs font-bold text-emerald-400 capitalize">{selectedWeekday}</span>
             <span className="text-xs text-zinc-500 mx-1">•</span>
             <span className="text-xs text-zinc-400">
-              {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+              {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
             </span>
           </div>
         )}

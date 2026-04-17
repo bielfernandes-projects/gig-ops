@@ -44,7 +44,7 @@ function groupByMonth(gigs: GigWithProject[]): [string, GigWithProject[]][] {
   const map = new Map<string, GigWithProject[]>();
   for (const gig of gigs) {
     const d = new Date(gig.start_time);
-    const key = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const key = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
     const capitalized = key.charAt(0).toUpperCase() + key.slice(1);
     if (!map.has(capitalized)) map.set(capitalized, []);
     map.get(capitalized)!.push(gig);
@@ -53,7 +53,7 @@ function groupByMonth(gigs: GigWithProject[]): [string, GigWithProject[]][] {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 }
 
 function formatDuration(startIso: string, endIso: string): string {
@@ -282,7 +282,7 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
 
   const gigDate = new Date(gig.start_time);
   const day = gigDate.getDate().toString().padStart(2, '0');
-  const weekday = gigDate.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').toUpperCase();
+  const weekday = gigDate.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '').toUpperCase();
 
   const startStr = formatTime(gig.start_time);
   const endStr = gig.end_time ? formatTime(gig.end_time) : null;

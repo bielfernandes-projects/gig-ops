@@ -100,10 +100,10 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
   const gigDate = new Date(gigData.start_time);
   const dateFormatted = gigDate.toLocaleDateString('pt-BR', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo'
   });
   const timeFormatted = gigDate.toLocaleTimeString('pt-BR', {
-    hour: '2-digit', minute: '2-digit'
+    hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo'
   });
 
   const lineupCost = lineup.reduce((acc, curr) => acc + curr.fee_amount, 0);
@@ -174,7 +174,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                 {timeFormatted}
                 {gigData.end_time && (
                   <>
-                    {' '}– {new Date(gigData.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    {' '}– {new Date(gigData.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}
                     <span className="ml-2 px-1.5 py-0.5 bg-zinc-800 text-[10px] font-bold text-zinc-400 rounded uppercase tracking-wider">
                       {(() => {
                         const diffMs = new Date(gigData.end_time).getTime() - new Date(gigData.start_time).getTime();
