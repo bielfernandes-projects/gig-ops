@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, Loader2, Trash2, Settings, Volume2, VolumeX } from 'lucide-react';
+import { DateTimePicker } from './date-time-picker';
 import { updateGig, deleteGig } from '@/app/actions/gig-actions';
 import { GigWithProject, GoProject, GoMember } from '@/lib/types';
 import { toast } from 'sonner';
@@ -13,9 +14,14 @@ interface EditGigModalProps {
 }
 
 // Format datetime-local string from DB timestamp
+// The DB stores local time as ISO with timezone info. We extract the local representation.
 function toDatetimeLocal(isoString: string): string {
+  // If the string already looks like a datetime-local (no Z/offset), use it directly
+  if (!isoString.includes('Z') && !isoString.includes('+')) {
+    return isoString.slice(0, 16); // YYYY-MM-DDTHH:mm
+  }
+  // Otherwise, create a Date and extract local components
   const d = new Date(isoString);
-  // Format: YYYY-MM-DDTHH:mm
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
@@ -127,35 +133,19 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
               </div>
 
               {/* Date / Start */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="gig-date" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
-                  Início
-                </label>
-                <input
-                  type="datetime-local"
-                  id="gig-date"
-                  name="start_time"
-                  defaultValue={toDatetimeLocal(gig.start_time)}
-                  required
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
-                  style={{ colorScheme: 'dark' }}
-                />
-              </div>
+              <DateTimePicker
+                name="start_time"
+                label="Início"
+                defaultValue={toDatetimeLocal(gig.start_time)}
+                required
+              />
 
               {/* End time */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="gig-end-time" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
-                  Término <span className="text-zinc-600 normal-case font-normal">(opcional)</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  id="gig-end-time"
-                  name="end_time"
-                  defaultValue={gig.end_time ? toDatetimeLocal(gig.end_time) : ''}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
-                  style={{ colorScheme: 'dark' }}
-                />
-              </div>
+              <DateTimePicker
+                name="end_time"
+                label="Término (opcional)"
+                defaultValue={gig.end_time ? toDatetimeLocal(gig.end_time) : ''}
+              />
 
               {/* Location */}
               <div className="flex flex-col gap-1.5">

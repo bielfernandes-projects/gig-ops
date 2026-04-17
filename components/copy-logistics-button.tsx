@@ -48,12 +48,6 @@ export function CopyLogisticsButton({ gig }: CopyLogisticsButtonProps) {
       `📍 Endereço: ${gig.location}`,
     ];
 
-    if (gig.notes) {
-      lines.push('');
-      lines.push(`📝 *Observações:*`);
-      lines.push(gig.notes);
-    }
-
     const text = lines.join('\n');
 
     try {

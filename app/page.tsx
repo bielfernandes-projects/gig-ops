@@ -5,7 +5,7 @@ import { CopyLogisticsButton } from '@/components/copy-logistics-button';
 import { GigWithProject, GoProject, GoLineup } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import Link from 'next/link';
-import { StickyNote } from 'lucide-react';
+import { StickyNote, AlertTriangle } from 'lucide-react';
 import { getUserRole, getUserEmail } from '@/lib/auth';
 import { Suspense } from 'react';
 
@@ -36,8 +36,8 @@ function filterGigs(gigs: GigWithProject[], tab: string): GigWithProject[] {
     });
   }
 
-  // 'all' — all future gigs
-  return gigs.filter((g) => new Date(g.start_time) >= now);
+  // 'all' — all gigs (past + future)
+  return gigs;
 }
 
 function groupByMonth(gigs: GigWithProject[]): [string, GigWithProject[]][] {
@@ -135,6 +135,16 @@ export default async function Home({
     }
   }, 0);
 
+  // Pending gigs: past gigs with at least one unpaid lineup member (admin only)
+  const now2 = new Date();
+  const pendingGigs = role === 'admin' ? allGigs.filter(gig => {
+    const gigDate = new Date(gig.start_time);
+    if (gigDate >= now2) return false; // Only past gigs
+    const gigLineups = lineups.filter(l => l.gig_id === gig.id);
+    if (gigLineups.length === 0) return false; // No lineup, no pending
+    return gigLineups.some(l => l.status !== 'pago');
+  }) : [];
+
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
       {/* Header */}
@@ -207,8 +217,11 @@ export default async function Home({
               <div className="flex flex-col gap-3">
                 {monthGigs.map((gig) => {
                   const lineupData = lineups.filter((l) => l.gig_id === gig.id);
+                  const gigDate = new Date(gig.start_time);
+                  const isPast = gigDate < now2;
+                  const isFullyPaid = isPast && lineupData.length > 0 && lineupData.every(l => l.status === 'pago');
                   return (
-                    <GigCard key={gig.id} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} />
+                    <GigCard key={gig.id} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} isPastFullyPaid={tab === 'all' && isFullyPaid} />
                   );
                 })}
               </div>
@@ -218,13 +231,34 @@ export default async function Home({
       </main>
 
       {role === 'admin' && <QuickAddGig projects={projects} />}
+
+      {/* Pending Gigs Section */}
+      {pendingGigs.length > 0 && (
+        <section className="mt-8 pb-32">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <span className="text-[11px] font-black tracking-[0.2em] uppercase text-amber-500">
+              Pendentes ({pendingGigs.length})
+            </span>
+            <div className="flex-1 h-px bg-amber-500/20" />
+          </div>
+          <div className="flex flex-col gap-3">
+            {pendingGigs.map((gig) => {
+              const lineupData = lineups.filter((l) => l.gig_id === gig.id);
+              return (
+                <GigCard key={`pending-${gig.id}`} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} isPastFullyPaid={false} />
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
 // ─── GigCard ────────────────────────────────────────────────────────────────
 
-function GigCard({ gig, lineupData, role, userMemberId }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null }) {
+function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null, isPastFullyPaid?: boolean }) {
   const lineupFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
   
@@ -257,7 +291,7 @@ function GigCard({ gig, lineupData, role, userMemberId }: { gig: GigWithProject;
     : startStr;
 
   return (
-    <div className="flex w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm group hover:border-zinc-700 transition-colors">
+    <div className={`flex w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm group hover:border-zinc-700 transition-colors ${isPastFullyPaid ? 'opacity-40 grayscale' : ''}`}>
       {/* Date column */}
       <div
         className="flex flex-col items-center justify-center px-4 py-5 bg-zinc-950 border-r border-zinc-800 min-w-[64px] shrink-0"
@@ -281,7 +315,7 @@ function GigCard({ gig, lineupData, role, userMemberId }: { gig: GigWithProject;
             <StickyNote className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
           )}
         </div>
-        <h2 className="text-base font-bold text-zinc-100 leading-snug break-words mb-2 line-clamp-2">
+        <h2 className={`text-base font-bold text-zinc-100 leading-snug break-words mb-2 line-clamp-2 ${isPastFullyPaid ? 'line-through' : ''}`}>
           {gig.title}
         </h2>
 
