@@ -133,39 +133,6 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
           </div>
         </div>
         
-        {/* Update Password Form */}
-        <form 
-          action={async (formData) => {
-            const res = await updatePassword(formData);
-            if (res.error) toast.error(res.error);
-            else {
-              toast.success('Senha atualizada com sucesso!');
-              (document.getElementById('pwd-form') as HTMLFormElement).reset();
-            }
-          }}
-          id="pwd-form"
-          className="p-6 flex flex-col gap-4 border-b border-zinc-800/80"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <KeyRound className="w-4 h-4 text-zinc-400" />
-            <h3 className="text-sm font-bold text-zinc-300">Alterar Senha</h3>
-          </div>
-          
-          <div className="flex flex-col gap-3 md:flex-row">
-            <input type="password" name="password" required placeholder="Nova senha" minLength={6} className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
-            <input type="password" name="confirmPassword" required placeholder="Confirmar nova senha" minLength={6} className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
-            <button type="submit" className="bg-zinc-100 hover:bg-white text-zinc-900 font-bold px-6 py-2.5 rounded-lg text-sm transition-transform active:scale-95 whitespace-nowrap">Atualizar</button>
-          </div>
-        </form>
-
-        {/* Logout */}
-        <div className="p-4">
-          <form action={signout}>
-            <button type="submit" className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold rounded-xl transition-colors">
-              <LogOut className="w-4 h-4" /> Sair da Conta
-            </button>
-          </form>
-        </div>
       </section>
 
       {/* ─── SECTION B: DASHBOARD FINANCEIRO ─── */}
@@ -399,6 +366,43 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
 
         </section>
       )}
+
+      {/* ─── SECTION: SEGURANÇA E ACESSO ─── */}
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+        {/* Update Password Form */}
+        <form 
+          action={async (formData) => {
+            const res = await updatePassword(formData);
+            if (res.error) toast.error(res.error);
+            else {
+              toast.success('Senha atualizada com sucesso!');
+              (document.getElementById('pwd-form') as HTMLFormElement).reset();
+            }
+          }}
+          id="pwd-form"
+          className="p-6 flex flex-col gap-4 border-b border-zinc-800/80"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <KeyRound className="w-4 h-4 text-zinc-400" />
+            <h3 className="text-sm font-bold text-zinc-300">Alterar Senha</h3>
+          </div>
+          
+          <div className="flex flex-col gap-3 md:flex-row">
+            <input type="password" name="password" required placeholder="Nova senha" minLength={6} className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
+            <input type="password" name="confirmPassword" required placeholder="Confirmar nova senha" minLength={6} className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
+            <button type="submit" className="bg-zinc-100 hover:bg-white text-zinc-900 font-bold px-6 py-2.5 rounded-lg text-sm transition-transform active:scale-95 whitespace-nowrap">Atualizar</button>
+          </div>
+        </form>
+
+        {/* Logout */}
+        <div className="p-4">
+          <form action={signout}>
+            <button type="submit" className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold rounded-xl transition-colors">
+              <LogOut className="w-4 h-4" /> Sair da Conta
+            </button>
+          </form>
+        </div>
+      </section>
 
     </div>
   );
