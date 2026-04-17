@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { DateTimePicker } from './date-time-picker';
 import { addQuickGig } from '@/app/actions/gig-actions';
@@ -10,6 +10,16 @@ import { toast } from 'sonner';
 export function QuickAddGig({ projects }: { projects: GoProject[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+
+  // Hide global navigation when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.documentElement.classList.add('modal-open');
+    } else {
+      document.documentElement.classList.remove('modal-open');
+    }
+    return () => document.documentElement.classList.remove('modal-open');
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

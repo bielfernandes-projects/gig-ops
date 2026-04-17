@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2, Trash2, Settings, Volume2, VolumeX } from 'lucide-react';
 import { DateTimePicker } from './date-time-picker';
 import { updateGig, deleteGig } from '@/app/actions/gig-actions';
@@ -33,6 +33,16 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
   const [isPendingSave, setIsPendingSave] = useState(false);
   const [isPendingDelete, setIsPendingDelete] = useState(false);
   const [bringSound, setBringSound] = useState(gig.bring_sound ?? false);
+
+  // Hide global navigation when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.documentElement.classList.add('modal-open');
+    } else {
+      document.documentElement.classList.remove('modal-open');
+    }
+    return () => document.documentElement.classList.remove('modal-open');
+  }, [isOpen]);
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

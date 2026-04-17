@@ -50,7 +50,7 @@ export default function RootLayout({
         </main>
 
         {/* Mobile Bottom Navigation (hidden on desktop) */}
-        <div className="md:hidden fixed bottom-0 left-0 w-full bg-zinc-950/90 backdrop-blur-md border-t border-zinc-800/80 z-50 pb-safe">
+        <div className="mobile-nav md:hidden fixed bottom-0 left-0 w-full bg-zinc-950/90 backdrop-blur-md border-t border-zinc-800/80 z-50 pb-safe">
           <Navigation isMobile={true} />
         </div>
 

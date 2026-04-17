@@ -27,4 +27,9 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
+
+  /* Hide bottom nav when a modal is open to free up screen space */
+  :root.modal-open .mobile-nav {
+    display: none;
+  }
 }
