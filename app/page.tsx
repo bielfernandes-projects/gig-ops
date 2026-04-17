@@ -122,8 +122,11 @@ export default async function Home({
   const filtered = filterGigs(allGigs, tab);
   const grouped = groupByMonth(filtered);
 
-  // Dynamic profit calculation based on filtered selection
+  // Dynamic profit calculation based on filtered selection: strictly upcoming gigs only
+  const now2 = new Date();
   const netProfit = filtered.reduce((acc, gig) => {
+    if (new Date(gig.start_time) < now2) return acc;
+    
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
     if (role === 'admin') {
       const lineupFees = gigLineups.reduce((sum, l) => sum + l.fee_amount, 0);
@@ -136,7 +139,6 @@ export default async function Home({
   }, 0);
 
   // Pending gigs: past gigs with at least one unpaid lineup member (admin only)
-  const now2 = new Date();
   const pendingGigs = role === 'admin' ? allGigs.filter(gig => {
     const gigDate = new Date(gig.start_time);
     if (gigDate >= now2) return false; // Only past gigs
