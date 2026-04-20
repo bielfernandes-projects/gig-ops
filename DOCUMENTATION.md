@@ -48,7 +48,10 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 ### 5.1. Gestão de Agenda e Escala
 * **Criação de Gigs:** Admins definem data via componente de Calendário interativo e selecionam horários e local.
 * **Escala de Músicos:** Admins selecionam membros do banco de talentos, definindo o cachê de cada um para aquele evento específico.
-* **Cópia Rápida:** Botão na Home que extrai Título, Data, Horário e Local para a área de transferência, omitindo as observações privadas.
+* **Cópia Rápida de Logística:** Botão na Home que extrai Título, Data, Horário e Local para a área de transferência, omitindo as observações privadas.
+* **Duplicação de Gigs:** Funcionalidade que permite clonar todos os dados de uma Gig existente (Logística, Custos de Som, Observações, etc.) para um novo evento, agilizando turnês e shows recorrentes.
+* **Cancelamento com Notificação:** A exclusão de um show exige o preenchimento de um motivo obrigatório, que é disparado via Push Notification para toda a lineup escalada.
+* **Cópia de E-mail para Gestão:** Na aba Perfil (Gestão de Banda), admins podem copiar o e-mail de novos músicos registrados para facilitar a atualização de seus dados no banco de talentos.
 
 ### 5.2. Motor Financeiro e Pendências
 * **Cálculo de Lucro Líquido:** O sistema calcula em tempo real o lucro do evento: `Lucro = Cachê Bruto - Custo do Som - Soma(Cachês da Lineup)`.
@@ -67,6 +70,8 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 
 ### 5.4. Notificações Push (Web Push)
 * **Gatilho de Escala:** Quando o Admin salva a escala, o servidor dispara uma notificação via biblioteca `web-push` (VAPID) diretamente para o dispositivo cadastrado do músico.
+* **Gatilho de Cancelamento:** Ao cancelar um show com justificativa, todos os músicos impactados recebem o motivo em real-time.
+* **Aviso de Novo Cadastro:** Admins são notificados sempre que um novo usuário entra na plataforma utilizando o código de convite da banda.
 
 ---
 
