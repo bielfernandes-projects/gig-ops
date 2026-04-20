@@ -77,14 +77,36 @@ export async function updateGig(formData: FormData) {
   return { success: true };
 }
 
-export async function deleteGig(gigId: string) {
-  // Delete lineup entries first (FK cascade may handle this, but safer to be explicit)
+export async function cancelGig(gigId: string, reason: string) {
+  // 1. Fetch gig title + all lineup members in parallel
+  const [gigResult, lineupResult] = await Promise.all([
+    supabase.from('go_gigs').select('title').eq('id', gigId).single(),
+    supabase.from('go_lineup').select('member_id').eq('gig_id', gigId),
+  ]);
+
+  const gigTitle = gigResult.data?.title || 'Show';
+  const memberIds = (lineupResult.data || []).map(l => l.member_id);
+
+  // 2. Send push notifications to all lineup members (fire & forget)
+  if (memberIds.length > 0) {
+    try {
+      await Promise.allSettled(
+        memberIds.map(memberId =>
+          sendPushToMember(memberId, {
+            title: `Gig Cancelada: ${gigTitle}`,
+            body: `Motivo: ${reason}`,
+          })
+        )
+      );
+    } catch (e) {
+      console.warn('Push notifications failed silently during cancellation:', e);
+    }
+  }
+
+  // 3. Delete lineup entries first, then the gig
   await supabase.from('go_lineup').delete().eq('gig_id', gigId);
 
-  const { error } = await supabase
-    .from('go_gigs')
-    .delete()
-    .eq('id', gigId);
+  const { error } = await supabase.from('go_gigs').delete().eq('id', gigId);
 
   if (error) {
     console.error('Error deleting gig:', error);

@@ -1,15 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, X, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, X, Loader2, Copy } from 'lucide-react';
 import { DateTimePicker } from './date-time-picker';
 import { addQuickGig } from '@/app/actions/gig-actions';
-import { GoProject } from '@/lib/types';
+import { GoGig, GoProject } from '@/lib/types';
 import { toast } from 'sonner';
 
-export function QuickAddGig({ projects }: { projects: GoProject[] }) {
+export function QuickAddGig({ projects, cloneData }: { projects: GoProject[]; cloneData?: Partial<GoGig> | null }) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const isClone = !!cloneData;
+
+  // Auto-open when cloneData is provided and clear the URL param
+  useEffect(() => {
+    if (cloneData) {
+      setIsOpen(true);
+      // Clean the URL so refresh doesn't re-trigger the clone
+      const url = new URL(window.location.href);
+      url.searchParams.delete('cloneId');
+      window.history.replaceState({}, '', url.toString());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Hide global navigation when modal is open
   useEffect(() => {
@@ -35,7 +50,9 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
     } else {
       setIsOpen(false);
       setIsPending(false);
-      toast.success('Gig agendada com sucesso!');
+      toast.success(isClone ? 'Gig duplicada com sucesso!' : 'Gig agendada com sucesso!');
+      // If we came from a clone, go back to clean URL
+      if (isClone) router.push('/');
     }
   };
 
@@ -44,6 +61,7 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
       <button 
         onClick={() => setIsOpen(true)}
         className="fixed bottom-[88px] md:bottom-10 right-4 md:right-10 z-40 flex items-center justify-center w-14 h-14 bg-zinc-100 text-zinc-900 rounded-full hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl select-none"
+        title="Nova Gig"
       >
         <Plus className="w-6 h-6 stroke-[2.5]" />
       </button>
@@ -58,7 +76,12 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
           
           <div className="relative w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-6 my-auto">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold tracking-tight text-zinc-100">Novo Show</h2>
+              <div className="flex items-center gap-2">
+                {isClone && <Copy className="w-4 h-4 text-emerald-400" />}
+                <h2 className="text-xl font-bold tracking-tight text-zinc-100">
+                  {isClone ? 'Duplicar Gig' : 'Novo Show'}
+                </h2>
+              </div>
               <button 
                 onClick={() => !isPending && setIsOpen(false)}
                 disabled={isPending}
@@ -78,7 +101,8 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
                   id="title" 
                   name="title" 
                   required 
-                  autoFocus
+                  autoFocus={!isClone}
+                  defaultValue={cloneData?.title ?? ''}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
                   placeholder="Ex: Show Sesc Paulista"
                 />
@@ -92,7 +116,7 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
                   id="project_id" 
                   name="project_id" 
                   required
-                  defaultValue=""
+                  defaultValue={cloneData?.project_id ?? ''}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none"
                 >
                   <option value="" disabled>Selecione o Projeto</option>
@@ -129,6 +153,7 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
                     placeholder="0.00"
                     step="0.01"
                     required 
+                    defaultValue={cloneData?.gross_value ?? ''}
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-md pl-9 pr-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   />
                 </div>
@@ -143,6 +168,7 @@ export function QuickAddGig({ projects }: { projects: GoProject[] }) {
                   name="notes" 
                   rows={2}
                   placeholder="Contratante, consumação..."
+                  defaultValue={cloneData?.notes ?? ''}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none placeholder:text-zinc-700"
                 />
               </div>

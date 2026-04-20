@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Trash2, Settings, Volume2, VolumeX } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { X, Loader2, Trash2, Settings, Volume2, VolumeX, Copy } from 'lucide-react';
 import { DateTimePicker } from './date-time-picker';
-import { updateGig, deleteGig } from '@/app/actions/gig-actions';
+import { updateGig, cancelGig } from '@/app/actions/gig-actions';
 import { GigWithProject, GoProject, GoMember } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -28,12 +29,14 @@ function toDatetimeLocal(isoString: string): string {
 }
 
 export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirmDelete, setIsConfirmDelete] = useState(false);
   const [isPendingSave, setIsPendingSave] = useState(false);
   const [isPendingDelete, setIsPendingDelete] = useState(false);
   const [bringSound, setBringSound] = useState(gig.bring_sound ?? false);
   const [isSoundPaid, setIsSoundPaid] = useState(gig.is_sound_paid ?? false);
+  const [cancelReason, setCancelReason] = useState('');
 
   // Hide global navigation when modal is open
   useEffect(() => {
@@ -66,12 +69,21 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
   };
 
   const handleDelete = async () => {
+    if (!cancelReason.trim()) {
+      toast.error('Por favor, informe o motivo do cancelamento.');
+      return;
+    }
     setIsPendingDelete(true);
     try {
-      await deleteGig(gig.id); // redirects to / on success
+      await cancelGig(gig.id, cancelReason.trim()); // redirects to / on success
     } catch {
       // redirect() throws — this is normal Next.js behavior
     }
+  };
+
+  const handleDuplicate = () => {
+    setIsOpen(false);
+    router.push(`/?cloneId=${gig.id}`);
   };
 
   return (
@@ -316,6 +328,16 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                 {isPendingSave ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Salvar Alterações'}
               </button>
 
+              {/* Duplicate Button */}
+              <button
+                type="button"
+                onClick={handleDuplicate}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md border border-zinc-700 text-zinc-300 hover:bg-zinc-800 font-semibold transition-colors select-none"
+              >
+                <Copy className="w-4 h-4" />
+                Duplicar Gig
+              </button>
+
               {/* Divider */}
               <div className="flex items-center gap-3 my-1">
                 <div className="flex-1 h-px bg-zinc-800" />
@@ -337,7 +359,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
+      {/* Cancel Gig Modal — requires reason */}
       {isConfirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -346,30 +368,42 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
             aria-hidden="true"
           />
           <div className="relative w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-6">
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-                <Trash2 className="w-7 h-7 text-red-400" />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-red-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-zinc-100">Motivo do Cancelamento?</h2>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    <span className="font-semibold text-zinc-200">{gig.title}</span> será excluída e os músicos escalados serão notificados.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-zinc-100">Excluir esta Gig?</h2>
-                <p className="text-sm text-zinc-400 mt-2">
-                  <span className="font-semibold text-zinc-200">{gig.title}</span> será excluída permanentemente junto com toda a sua escala de músicos. Esta ação não pode ser desfeita.
-                </p>
-              </div>
-              <div className="flex gap-3 w-full mt-2">
+
+              <textarea
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                placeholder="Ex: Contratante cancelou o evento..."
+                rows={3}
+                disabled={isPendingDelete}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/40 transition-all resize-none placeholder:text-zinc-600 disabled:opacity-50"
+              />
+
+              <div className="flex gap-3">
                 <button
-                  onClick={() => setIsConfirmDelete(false)}
+                  onClick={() => { setIsConfirmDelete(false); setCancelReason(''); }}
                   disabled={isPendingDelete}
                   className="flex-1 py-2.5 rounded-md border border-zinc-700 text-zinc-300 font-semibold hover:bg-zinc-900 transition-colors disabled:opacity-50 select-none"
                 >
-                  Cancelar
+                  Voltar
                 </button>
                 <button
                   onClick={handleDelete}
-                  disabled={isPendingDelete}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md bg-red-600 hover:bg-red-500 text-white font-bold transition-colors disabled:opacity-70 disabled:cursor-not-allowed select-none"
+                  disabled={isPendingDelete || !cancelReason.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md bg-red-600 hover:bg-red-500 text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed select-none"
                 >
-                  {isPendingDelete ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sim, Excluir'}
+                  {isPendingDelete ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Cancelamento'}
                 </button>
               </div>
             </div>

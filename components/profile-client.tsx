@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar, Bell, Copy, Check } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar, Bell, Copy, Check, Clipboard, ClipboardCheck } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { toast } from 'sonner';
 import { updatePassword, removeProfile } from '@/app/profile/actions';
@@ -19,6 +19,53 @@ type Props = {
   userMemberId: string | null;
   calendarToken: string | null;
 };
+
+// Sub-component: isolated copy state per user row
+function ProfileEmailRow({ profile, onRemove }: { profile: GoProfile; onRemove: () => void }) {
+  const [emailCopied, setEmailCopied] = useState(false);
+
+  const handleCopyEmail = async () => {
+    if (!profile.email) return;
+    await navigator.clipboard.writeText(profile.email);
+    setEmailCopied(true);
+    toast.success('E-mail copiado!');
+    setTimeout(() => setEmailCopied(false), 2500);
+  };
+
+  return (
+    <div className="flex items-center justify-between bg-zinc-950 border border-zinc-800 p-3 rounded-lg">
+      <div className="flex flex-col min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-zinc-200 truncate max-w-[180px]">{profile.email}</span>
+          <button
+            onClick={handleCopyEmail}
+            title="Copiar e-mail"
+            className="p-1 rounded text-zinc-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors shrink-0"
+          >
+            {emailCopied
+              ? <ClipboardCheck className="w-3.5 h-3.5 text-emerald-400" />
+              : <Clipboard className="w-3.5 h-3.5" />
+            }
+          </button>
+        </div>
+        <span className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${
+          profile.role === 'admin' ? 'text-amber-500' : 'text-zinc-500'
+        }`}>
+          {profile.role}
+        </span>
+      </div>
+      {profile.role !== 'admin' && (
+        <button
+          onClick={onRemove}
+          className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-md transition-colors shrink-0 ml-2"
+          title="Remover usuário"
+        >
+          <UserMinus className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId, calendarToken }: Props) {
   const [filter, setFilter] = useState<'month' | 'all' | 'custom'>('month');
@@ -349,31 +396,20 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
 
           <div className="border-t border-zinc-800/80 pt-6">
             <h4 className="text-sm font-bold text-zinc-300 mb-4">Usuários do App</h4>
+            <p className="text-xs text-zinc-500 mb-3">Clique no ícone de cópia para copiar o e-mail do músico e adicioná-lo ao seu perfil.</p>
             <div className="flex flex-col gap-3">
               {profiles.map(p => (
-                <div key={p.id} className="flex items-center justify-between bg-zinc-950 border border-zinc-800 p-3 rounded-lg">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-zinc-200 truncate max-w-[200px]">{p.email}</span>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${p.role === 'admin' ? 'text-amber-500' : 'text-zinc-500'}`}>
-                      {p.role}
-                    </span>
-                  </div>
-                  {p.role !== 'admin' && (
-                    <button 
-                      onClick={async () => {
-                        if (confirm('Tem certeza que deseja remover este usuário (apenas do perfil público)?')) {
-                          const res = await removeProfile(p.id);
-                          if (res.error) toast.error(res.error);
-                          else toast.success('Usuário removido da banda.');
-                        }
-                      }}
-                      className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-md transition-colors"
-                      title="Remover usuário"
-                    >
-                      <UserMinus className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                <ProfileEmailRow
+                  key={p.id}
+                  profile={p}
+                  onRemove={async () => {
+                    if (confirm('Tem certeza que deseja remover este usuário (apenas do perfil público)?')) {
+                      const res = await removeProfile(p.id);
+                      if (res.error) toast.error(res.error);
+                      else toast.success('Usuário removido da banda.');
+                    }
+                  }}
+                />
               ))}
               {profiles.length === 0 && <span className="text-xs text-zinc-500 font-medium">Nenhum perfil encontrado.</span>}
             </div>

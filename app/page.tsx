@@ -83,15 +83,15 @@ function formatDuration(startIso: string, endIso: string): string {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ tab?: string; from?: string; to?: string; cloneId?: string }>;
 }) {
-  const { tab = '7days', from, to } = await searchParams;
+  const { tab = '7days', from, to, cloneId } = await searchParams;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const { role, memberId: userMemberId } = await getUserInfo();
 
-  // Parallel data fetching — all 3 queries run simultaneously
-  const [gigsResult, projectsResult, lineupsResult] = await Promise.all([
+  // Parallel data fetching — all queries run simultaneously
+  const [gigsResult, projectsResult, lineupsResult, cloneResult] = await Promise.all([
     supabase
       .from('go_gigs')
       .select(`
@@ -107,12 +107,20 @@ export default async function Home({
     supabase
       .from('go_lineup')
       .select('*') as unknown as Promise<{ data: GoLineup[] | null }>,
+    cloneId
+      ? supabase
+          .from('go_gigs')
+          .select('id, project_id, title, location, gross_value, bring_sound, sound_cost, sound_person_id, notes')
+          .eq('id', cloneId)
+          .single() as unknown as Promise<{ data: Partial<GigWithProject> | null }>
+      : Promise.resolve({ data: null }),
   ]);
 
   const allGigs = gigsResult.data || [];
   const error = gigsResult.error;
   const projects = projectsResult.data || [];
   const lineups = lineupsResult.data || [];
+  const cloneData = cloneResult.data ?? null;
 
   const visibleGigs = (role === 'admin') 
     ? allGigs 
@@ -228,7 +236,7 @@ export default async function Home({
         )}
       </main>
 
-      {role === 'admin' && <QuickAddGig projects={projects} />}
+      {role === 'admin' && <QuickAddGig projects={projects} cloneData={cloneData} />}
 
       {/* Pending Gigs Section */}
       {pendingGigs.length > 0 && (

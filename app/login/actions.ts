@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { sendPushToAdmins } from '@/app/actions/push-actions';
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -51,6 +52,16 @@ export async function signup(formData: FormData) {
 
   if (error) {
     return { error: error.message };
+  }
+
+  // Notify admins of new registration (fire & forget — never blocks signup)
+  try {
+    await sendPushToAdmins({
+      title: 'Novo Músico Registado! 🎸',
+      body: 'Um novo membro acabou de se registar na plataforma.',
+    });
+  } catch (e) {
+    console.warn('Admin push notification failed silently after signup:', e);
   }
 
   return { success: true };

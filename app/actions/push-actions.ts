@@ -84,3 +84,47 @@ export async function sendPushToMember(memberId: string, payload: { title: strin
     console.error('Error in sendPushToMember:', err);
   }
 }
+/** Send a push notification to all active admins */
+export async function sendPushToAdmins(payload: { title: string; body: string; url?: string }) {
+  try {
+    // 1. Get all admin profiles
+    const { data: adminProfiles } = await supabaseAdmin
+      .from('go_profiles')
+      .select('id')
+      .eq('role', 'admin');
+
+    if (!adminProfiles || adminProfiles.length === 0) return;
+
+    // 2. For each admin, fetch their subscriptions and send in parallel
+    const payloadStr = JSON.stringify(payload);
+
+    await Promise.allSettled(
+      adminProfiles.map(async (admin) => {
+        const { data: subscriptions } = await supabaseAdmin
+          .from('go_push_subscriptions')
+          .select('subscription_json')
+          .eq('user_id', admin.id);
+
+        if (!subscriptions || subscriptions.length === 0) return;
+
+        await Promise.allSettled(
+          subscriptions.map(async (row) => {
+            try {
+              const sub = JSON.parse(row.subscription_json) as webpush.PushSubscription;
+              await webpush.sendNotification(sub, payloadStr);
+            } catch (err) {
+              console.warn('Admin push subscription expired, removing:', err);
+              await supabaseAdmin
+                .from('go_push_subscriptions')
+                .delete()
+                .eq('subscription_json', row.subscription_json);
+            }
+          })
+        );
+      })
+    );
+  } catch (err) {
+    // Never throw — push must not block the signup flow
+    console.error('Error in sendPushToAdmins:', err);
+  }
+}
