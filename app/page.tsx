@@ -9,31 +9,29 @@ import { StickyNote, AlertTriangle } from 'lucide-react';
 import { getUserInfo } from '@/lib/auth';
 import { Suspense } from 'react';
 
-export const revalidate = 0;
+// Cache de projetos por 5 minutos (raro mudança)
+export const revalidate = 300;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function filterGigs(gigs: GigWithProject[], tab: string, from?: string, to?: string): GigWithProject[] {
+function getDateRange(tab: string, from?: string, to?: string): { start: string; end: string } {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
   if (tab === '7days') {
+    const start = new Date(now).toISOString();
     const end = new Date(now);
     end.setDate(end.getDate() + 7);
     end.setHours(23, 59, 59, 999);
-    return gigs.filter((g) => {
-      const d = new Date(g.start_time);
-      return d >= now && d <= end;
-    });
+    return { start, end: end.toISOString() };
   }
 
   if (tab === 'month') {
     const y = now.getFullYear();
     const m = now.getMonth();
-    return gigs.filter((g) => {
-      const d = new Date(g.start_time);
-      return d.getFullYear() === y && d.getMonth() === m;
-    });
+    const start = new Date(y, m, 1).toISOString();
+    const end = new Date(y, m + 1, 0, 23, 59, 59, 999).toISOString();
+    return { start, end };
   }
 
   if (tab === 'custom' && from && to) {
@@ -41,14 +39,15 @@ function filterGigs(gigs: GigWithProject[], tab: string, from?: string, to?: str
     start.setHours(0, 0, 0, 0);
     const end = new Date(to);
     end.setHours(23, 59, 59, 999);
-    return gigs.filter((g) => {
-      const d = new Date(g.start_time);
-      return d >= start && d <= end;
-    });
+    return { start: start.toISOString(), end: end.toISOString() };
   }
 
-  // 'all' — all gigs (past + future)
-  return gigs;
+  // 'all' — busca últimos 6 meses + próximos 12 meses para evitar carregar histórico infinito
+  const startAll = new Date(now);
+  startAll.setMonth(startAll.getMonth() - 6);
+  const endAll = new Date(now);
+  endAll.setMonth(endAll.getMonth() + 12);
+  return { start: startAll.toISOString(), end: endAll.toISOString() };
 }
 
 function groupByMonth(gigs: GigWithProject[]): [string, GigWithProject[]][] {
@@ -90,6 +89,9 @@ export default async function Home({
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const { role, memberId: userMemberId } = await getUserInfo();
 
+  // Calculate date range for query optimization (avoids loading all history)
+  const dateRange = getDateRange(tab, from, to);
+
   // Parallel data fetching — all queries run simultaneously
   const [gigsResult, projectsResult, lineupsResult, cloneResult] = await Promise.all([
     supabase
@@ -99,6 +101,8 @@ export default async function Home({
         bring_sound, sound_cost, sound_person_id, notes, is_sound_paid,
         go_projects ( name, color_hex )
       `)
+      .gte('start_time', dateRange?.start ?? '')
+      .lte('start_time', dateRange?.end ?? '')
       .order('start_time', { ascending: true }) as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
     supabase
       .from('go_projects')
@@ -122,11 +126,13 @@ export default async function Home({
   const lineups = lineupsResult.data || [];
   const cloneData = cloneResult.data ?? null;
 
+  // Get only relevant gigs for the user (admin sees all, viewer sees only their gigs)
   const visibleGigs = (role === 'admin') 
     ? allGigs 
     : allGigs.filter(gig => lineups.some(l => l.gig_id === gig.id && l.member_id === userMemberId));
 
-  const filtered = filterGigs(visibleGigs, tab, from, to);
+  // No need for client-side filterGigs() anymore — query already returns date-filtered data
+  const filtered = visibleGigs;
   const grouped = groupByMonth(filtered);
 
   // Dynamic profit calculation based on filtered selection: strictly upcoming gigs only
@@ -222,14 +228,14 @@ export default async function Home({
 
               <div className="flex flex-col gap-3">
                 {monthGigs.map((gig) => {
-                  const lineupData = lineups.filter((l) => l.gig_id === gig.id);
-                  const gigDate = new Date(gig.start_time);
-                  const isPast = gigDate < now2;
-                  const isFullyPaid = isPast && lineupData.length > 0 && lineupData.every(l => l.status === 'pago');
-                  return (
-                    <GigCard key={gig.id} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} isPastFullyPaid={tab === 'all' && isFullyPaid} />
-                  );
-                })}
+                   const lineupData = lineups.filter((l) => l.gig_id === gig.id);
+                   const gigDate = new Date(gig.start_time);
+                   const isPast = gigDate < now2;
+                   const isFullyPaid = isPast && lineupData.length > 0 && lineupData.every(l => l.status === 'pago');
+                   return (
+                     <GigCard key={gig.id} gig={gig} lineupData={lineupData} userMemberId={userMemberId} isPastFullyPaid={tab === 'all' && isFullyPaid} />
+                   );
+                 })}
               </div>
             </section>
           ))
@@ -250,11 +256,11 @@ export default async function Home({
           </div>
           <div className="flex flex-col gap-3">
             {pendingGigs.map((gig) => {
-              const lineupData = lineups.filter((l) => l.gig_id === gig.id);
-              return (
-                <GigCard key={`pending-${gig.id}`} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} isPastFullyPaid={false} />
-              );
-            })}
+               const lineupData = lineups.filter((l) => l.gig_id === gig.id);
+               return (
+                 <GigCard key={`pending-${gig.id}`} gig={gig} lineupData={lineupData} userMemberId={userMemberId} isPastFullyPaid={false} />
+               );
+             })}
           </div>
         </section>
       )}
@@ -264,7 +270,7 @@ export default async function Home({
 
 // ─── GigCard ────────────────────────────────────────────────────────────────
 
-function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null, isPastFullyPaid?: boolean }) {
+function GigCard({ gig, lineupData, userMemberId, isPastFullyPaid = false }: { gig: GigWithProject; lineupData: GoLineup[], userMemberId: string | null, isPastFullyPaid?: boolean }) {
   const lineupFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
   

@@ -9,7 +9,8 @@ import { EditGigModal } from '@/components/edit-gig-modal';
 import { ToggleSoundPaymentButton } from './toggle-sound-payment-button';
 import { getUserInfo } from '@/lib/auth';
 
-export const revalidate = 0;
+// Cache de 5 minutos para página de detalhes (lineup e pagamentos não mudam a cada segundo)
+export const revalidate = 300;
 
 export default async function GigDetails({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;

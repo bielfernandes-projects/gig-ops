@@ -1,4 +1,4 @@
-# 📘 Documentação Oficial: Minha Banda (GigOps)
+# 📘 Documentação Oficial: Minha Banda
 
 ## 1. Visão Geral do Produto
 O **Minha Banda** é um SaaS (Software as a Service) Mobile-First construído em formato PWA (Progressive Web App). Seu objetivo é centralizar a logística, a agenda e a gestão financeira de bandas e projetos musicais, eliminando a dependência de grupos de WhatsApp e planilhas de Excel.
