@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { GigWithProject, LineupWithMember, GoMember, GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import { ArrowLeft, Clock, MapPin, Volume2, StickyNote, Calendar } from 'lucide-react';
@@ -17,10 +17,11 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const id = resolvedParams.id;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId } = await getUserInfo();
+  const { role, memberId: userMemberId, userId } = await getUserInfo();
+  const supabaseServer = await createClient();
 
   // Fetch Gig with Project Join (must happen first — we need the gig data)
-  const { data: gigData, error: gigError } = await supabase
+  let gigQuery = supabaseServer
     .from('go_gigs')
     .select(`
       id, 
@@ -36,7 +37,14 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       notes,
       go_projects ( * )
     `)
-    .eq('id', id)
+    .eq('id', id);
+  
+  // NOVO: Verificar se o gig pertence ao admin
+  if (role === 'admin' && userId) {
+    gigQuery = gigQuery.eq('admin_id', userId) as any;
+  }
+  
+  const { data: gigData, error: gigError } = await gigQuery
     .single() as { data: GigWithProject | null, error: PostgrestError | null };
 
   if (gigError || !gigData) {
@@ -55,20 +63,38 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
   // Parallel data fetching — lineup, members, projects, and sound person all at once
   const [lineupResult, membersResult, projectsResult, soundPersonResult] = await Promise.all([
-    supabase
-      .from('go_lineup')
-      .select(`*, go_members ( name, instrument )`)
-      .eq('gig_id', id) as unknown as Promise<{ data: LineupWithMember[] | null }>,
-    supabase
+    (() => {
+      let query = supabaseServer
+        .from('go_lineup')
+        .select(`*, go_members ( name, instrument )`)
+        .eq('gig_id', id);
+      
+      // NOVO: Filtrar lineup por admin_id via join se for admin
+      if (role === 'admin' && userId) {
+        query = query.eq('go_gigs.admin_id', userId) as any;
+      }
+      
+      return query as unknown as Promise<{ data: LineupWithMember[] | null }>;
+    })(),
+    supabaseServer
       .from('go_members')
       .select('*')
       .order('name', { ascending: true }) as unknown as Promise<{ data: GoMember[] | null }>,
-    supabase
-      .from('go_projects')
-      .select('*')
-      .order('name', { ascending: true }) as unknown as Promise<{ data: GoProject[] | null }>,
+    (() => {
+      let query = supabaseServer
+        .from('go_projects')
+        .select('*')
+        .order('name', { ascending: true });
+      
+      // NOVO: Filtrar projects por admin_id se for admin
+      if (role === 'admin' && userId) {
+        query = query.eq('admin_id', userId);
+      }
+      
+      return query as unknown as Promise<{ data: GoProject[] | null }>;
+    })(),
     gigData.sound_person_id
-      ? supabase
+      ? supabaseServer
           .from('go_members')
           .select('name, instrument')
           .eq('id', gigData.sound_person_id)

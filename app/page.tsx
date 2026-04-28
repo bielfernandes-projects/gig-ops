@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { QuickAddGig } from '@/components/quick-add-gig';
 import { FilterTabs } from '@/components/filter-tabs';
 import { CopyLogisticsButton } from '@/components/copy-logistics-button';
@@ -87,32 +87,53 @@ export default async function Home({
   const { tab = '7days', from, to, cloneId } = await searchParams;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId } = await getUserInfo();
+  const { role, memberId: userMemberId, userId } = await getUserInfo();
 
   // Calculate date range for query optimization (avoids loading all history)
   const dateRange = getDateRange(tab, from, to);
 
+  // Create server client for admin_id filtering
+  const supabaseServer = await createClient();
+
   // Parallel data fetching — all queries run simultaneously
   const [gigsResult, projectsResult, lineupsResult, cloneResult] = await Promise.all([
-    supabase
-      .from('go_gigs')
-      .select(`
-        id, project_id, title, location, start_time, end_time, gross_value, 
-        bring_sound, sound_cost, sound_person_id, notes, is_sound_paid,
-        go_projects ( name, color_hex )
-      `)
-      .gte('start_time', dateRange?.start ?? '')
-      .lte('start_time', dateRange?.end ?? '')
-      .order('start_time', { ascending: true }) as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
-    supabase
-      .from('go_projects')
-      .select('*')
-      .order('name', { ascending: true }) as unknown as Promise<{ data: GoProject[] | null }>,
-    supabase
+    (() => {
+      let query = supabaseServer
+        .from('go_gigs')
+        .select(`
+          id, project_id, title, location, start_time, end_time, gross_value, 
+          bring_sound, sound_cost, sound_person_id, notes, is_sound_paid,
+          go_projects ( name, color_hex )
+        `)
+        .gte('start_time', dateRange?.start ?? '')
+        .lte('start_time', dateRange?.end ?? '')
+        .order('start_time', { ascending: true });
+      
+      // NOVO: Filtrar por admin_id se for admin
+      if (role === 'admin' && userId) {
+        query = query.eq('admin_id', userId);
+      }
+      
+      return query as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>;
+    })(),
+    (() => {
+      let query = supabaseServer
+        .from('go_projects')
+        .select('*')
+        .order('name', { ascending: true });
+      
+      // NOVO: Filtrar por admin_id se for admin
+      if (role === 'admin' && userId) {
+        query = query.eq('admin_id', userId);
+      }
+      
+      return query as unknown as Promise<{ data: GoProject[] | null }>;
+    })(),
+    supabaseServer
       .from('go_lineup')
       .select('*') as unknown as Promise<{ data: GoLineup[] | null }>,
     cloneId
-      ? supabase
+      ? supabaseServer
           .from('go_gigs')
           .select('id, project_id, title, location, gross_value, bring_sound, sound_cost, sound_person_id, notes')
           .eq('id', cloneId)

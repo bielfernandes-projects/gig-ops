@@ -6,6 +6,7 @@ export type UserInfo = {
   role: UserRole;
   email: string | undefined;
   memberId: string | null;
+  userId: string | null; // NOVO: ID do usuário no Supabase Auth (para multi-tenancy)
 };
 
 /**
@@ -17,7 +18,7 @@ export async function getUserInfo(): Promise<UserInfo> {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return { role: 'viewer', email: undefined, memberId: null };
+  if (!user) return { role: 'viewer', email: undefined, memberId: null, userId: null };
 
   const email = user.email;
 
@@ -40,7 +41,7 @@ export async function getUserInfo(): Promise<UserInfo> {
   const role = (profileResult.data?.role as UserRole) || 'viewer';
   const memberId = memberResult.data?.id || null;
 
-  return { role, email, memberId };
+  return { role, email, memberId, userId: user.id };
 }
 
 // Keep backwards-compatible exports for any code that still imports them individually

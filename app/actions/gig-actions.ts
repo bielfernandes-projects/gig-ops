@@ -1,11 +1,15 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { sendPushToMember } from './push-actions';
+import { getUserInfo } from '@/lib/auth';
 
 export async function addQuickGig(formData: FormData) {
+  const supabase = await createClient();
+  const { role, userId } = await getUserInfo();
+  
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
   const start_time = formData.get('start_time') as string;
@@ -18,21 +22,28 @@ export async function addQuickGig(formData: FormData) {
   }
 
   const gross_value = parseFloat(grossValueStr) || 0;
-
+  
+  const insertData: any = { 
+    title, 
+    project_id, 
+    start_time, 
+    end_time,
+    gross_value,
+    location: 'A definir',
+    bring_sound: false,
+    sound_cost: 0,
+    notes,
+    is_sound_paid: false,
+  };
+  
+  // NOVO: Salvar admin_id se for admin
+  if (role === 'admin' && userId) {
+    insertData.admin_id = userId;
+  }
+  
   const { error } = await supabase
     .from('go_gigs')
-    .insert([{ 
-      title, 
-      project_id, 
-      start_time, 
-      end_time,
-      gross_value,
-      location: 'A definir',
-      bring_sound: false,
-      sound_cost: 0,
-      notes,
-      is_sound_paid: false,
-    }]);
+    .insert([insertData]);
 
   if (error) {
     console.error('Error inserting gig:', error);
@@ -44,6 +55,9 @@ export async function addQuickGig(formData: FormData) {
 }
 
 export async function updateGig(formData: FormData) {
+  const supabase = await createClient();
+  const { role, userId } = await getUserInfo();
+  
   const id = formData.get('id') as string;
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
@@ -62,10 +76,13 @@ export async function updateGig(formData: FormData) {
     return { error: 'Campos obrigatórios faltando.' };
   }
 
-  const { error } = await supabase
-    .from('go_gigs')
-    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes, is_sound_paid })
-    .eq('id', id);
+  // NOVO: Verificar se o gig pertence ao admin
+  let query = supabase.from('go_gigs').update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes, is_sound_paid }).eq('id', id);
+  if (role === 'admin' && userId) {
+    query = query.eq('admin_id', userId);
+  }
+
+  const { error } = await query;
 
   if (error) {
     console.error('Error updating gig:', error);
@@ -78,6 +95,17 @@ export async function updateGig(formData: FormData) {
 }
 
 export async function cancelGig(gigId: string, reason: string) {
+  const supabase = await createClient();
+  const { role, userId } = await getUserInfo();
+
+  // NOVO: Verificar se o gig pertence ao admin
+  if (role === 'admin' && userId) {
+    const { data } = await supabase.from('go_gigs').select('admin_id').eq('id', gigId).single();
+    if (data?.admin_id !== userId) {
+      return { error: 'Acesso negado: este gig não pertence a você.' };
+    }
+  }
+
   // 1. Fetch gig title + all lineup members in parallel
   const [gigResult, lineupResult] = await Promise.all([
     supabase.from('go_gigs').select('title').eq('id', gigId).single(),
@@ -106,7 +134,11 @@ export async function cancelGig(gigId: string, reason: string) {
   // 3. Delete lineup entries first, then the gig
   await supabase.from('go_lineup').delete().eq('gig_id', gigId);
 
-  const { error } = await supabase.from('go_gigs').delete().eq('id', gigId);
+  let deleteQuery = supabase.from('go_gigs').delete().eq('id', gigId);
+  if (role === 'admin' && userId) {
+    deleteQuery = deleteQuery.eq('admin_id', userId);
+  }
+  const { error } = await deleteQuery;
 
   if (error) {
     console.error('Error deleting gig:', error);
@@ -156,6 +188,23 @@ export async function addMemberToLineup(formData: FormData) {
 }
 
 export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolean) {
+  const supabase = await createClient();
+  const { role, userId } = await getUserInfo();
+
+  // NOVO: Verificar se a lineup pertence a um gig do admin
+  if (role === 'admin' && userId) {
+    const { data: lineupData } = await supabase
+      .from('go_lineup')
+      .select('gig_id, go_gigs!inner(admin_id)')
+      .eq('id', lineupId)
+      .single();
+    
+    const gigAdminId = (lineupData as any)?.go_gigs?.admin_id;
+    if (gigAdminId !== userId) {
+      return { error: 'Acesso negado: este registro não pertence a você.' };
+    }
+  }
+
   const newStatus = targetIsPaid ? 'pago' : 'pendente';
   
   const { error } = await supabase
@@ -174,6 +223,23 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
 }
 
 export async function removeFromLineup(lineupId: string, gigId: string) {
+  const supabase = await createClient();
+  const { role, userId } = await getUserInfo();
+
+  // NOVO: Verificar se a lineup pertence a um gig do admin
+  if (role === 'admin' && userId) {
+    const { data: lineupData } = await supabase
+      .from('go_lineup')
+      .select('gig_id, go_gigs!inner(admin_id)')
+      .eq('id', lineupId)
+      .single();
+    
+    const gigAdminId = (lineupData as any)?.go_gigs?.admin_id;
+    if (gigAdminId !== userId) {
+      return { error: 'Acesso negado: este registro não pertence a você.' };
+    }
+  }
+
   const { error } = await supabase
     .from('go_lineup')
     .delete()
@@ -189,12 +255,29 @@ export async function removeFromLineup(lineupId: string, gigId: string) {
 }
 
 export async function updateLineupFee(formData: FormData) {
+  const supabase = await createClient();
+  const { role, userId } = await getUserInfo();
+
   const lineupId = formData.get('lineup_id') as string;
   const gigId = formData.get('gig_id') as string;
   const feeStr = formData.get('agreed_fee') as string;
 
   if (!lineupId || !gigId) {
     return { error: 'Dados inválidos.' };
+  }
+
+  // NOVO: Verificar se a lineup pertence a um gig do admin
+  if (role === 'admin' && userId) {
+    const { data: lineupData } = await supabase
+      .from('go_lineup')
+      .select('gig_id, go_gigs!inner(admin_id)')
+      .eq('id', lineupId)
+      .single();
+    
+    const gigAdminId = (lineupData as any)?.go_gigs?.admin_id;
+    if (gigAdminId !== userId) {
+      return { error: 'Acesso negado: este registro não pertence a você.' };
+    }
   }
 
   const fee_amount = parseFloat(feeStr) || 0;
@@ -214,10 +297,23 @@ export async function updateLineupFee(formData: FormData) {
 }
 
 export async function toggleSoundPayment(gigId: string, targetIsPaid: boolean) {
-  const { error } = await supabase
-    .from('go_gigs')
-    .update({ is_sound_paid: targetIsPaid })
-    .eq('id', gigId);
+  const supabase = await createClient();
+  const { role, userId } = await getUserInfo();
+
+  // Verificar se o gig pertence ao admin
+  if (role === 'admin' && userId) {
+    const { data } = await supabase.from('go_gigs').select('admin_id').eq('id', gigId).single();
+    if (data?.admin_id !== userId) {
+      return { error: 'Acesso negado: este gig não pertence a você.' };
+    }
+  }
+
+  let query = supabase.from('go_gigs').update({ is_sound_paid: targetIsPaid }).eq('id', gigId);
+  if (role === 'admin' && userId) {
+    query = query.eq('admin_id', userId);
+  }
+
+  const { error } = await query;
 
   if (error) {
     console.error('Error updating sound payment status:', error);
