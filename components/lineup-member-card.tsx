@@ -47,7 +47,7 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
       setIsPendingDelete(false);
       setIsConfirmDelete(false);
     } else {
-      toast.success(`${freela.go_members?.name || 'Músico'} removido da escala.`);
+      toast.success(`${freela.go_members?.name || freela.custom_name || 'Músico'} removido da escala.`);
       setIsConfirmDelete(false);
       setIsPendingDelete(false);
     }
@@ -59,10 +59,10 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
         {/* Left: Name & Instrument */}
         <div className="flex flex-col gap-1 h-full justify-center min-w-0 flex-1 mr-3">
           <span className="font-bold text-zinc-50 text-base truncate">
-            {freela.go_members?.name || 'Músico Desconhecido'}
+            {freela.go_members?.name || freela.custom_name || 'Músico Desconhecido'}
           </span>
           <span className="text-xs font-medium text-zinc-500">
-            {freela.go_members?.instrument || 'Instrumento'}
+            {freela.go_members?.instrument || freela.custom_instrument || 'Instrumento'}
           </span>
         </div>
 
@@ -113,7 +113,7 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
               <div>
                 <h2 className="text-xl font-bold tracking-tight text-zinc-100">Editar Cachê</h2>
                 <p className="text-sm text-zinc-500 mt-0.5">
-                  {freela.go_members?.name} — {freela.go_members?.instrument}
+                  {freela.go_members?.name || freela.custom_name} — {freela.go_members?.instrument || freela.custom_instrument}
                 </p>
               </div>
               <button
@@ -176,7 +176,7 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
               <div>
                 <h2 className="text-xl font-bold text-zinc-100">Remover da Escala?</h2>
                 <p className="text-sm text-zinc-400 mt-1">
-                  <span className="font-semibold text-zinc-200">{freela.go_members?.name}</span> será removido desta gig. Esta ação não pode ser desfeita.
+                  <span className="font-semibold text-zinc-200">{freela.go_members?.name || freela.custom_name}</span> será removido desta gig. Esta ação não pode ser desfeita.
                 </p>
               </div>
               <div className="flex gap-3 w-full mt-2">

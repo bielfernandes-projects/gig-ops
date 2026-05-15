@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 export function AddLineupMember({ gigId, members }: { gigId: string, members: GoMember[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [search, setSearch] = useState('');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,9 +25,13 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
     } else {
       setIsOpen(false);
       setIsPending(false);
+      setSearch('');
       toast.success('Músico escalado com sucesso!');
     }
   };
+
+  const matchedMember = members.find((m) => m.name.toLowerCase() === search.trim().toLowerCase());
+  const isCustom = search.trim().length > 0 && !matchedMember;
 
   return (
     <>
@@ -60,23 +65,45 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="musician_id" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="musician_name" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
                   Músico / Instrumento
                 </label>
-                <select 
-                  id="musician_id" 
-                  name="musician_id" 
+                <input 
+                  id="musician_name" 
+                  name="musician_name" 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  list="members-list"
+                  placeholder="Nome do músico..."
                   required
                   autoFocus
-                  defaultValue=""
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none"
-                >
-                  <option value="" disabled>Selecione um Profissional</option>
+                  autoComplete="off"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                />
+                <datalist id="members-list">
                   {members.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.instrument})</option>
+                    <option key={m.id} value={m.name}>{m.instrument}</option>
                   ))}
-                </select>
+                </datalist>
+                <input type="hidden" name="musician_id" value={matchedMember ? matchedMember.id : ''} />
               </div>
+
+              {isCustom && (
+                <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label htmlFor="custom_instrument" className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">
+                    Instrumento / Função
+                  </label>
+                  <input 
+                    type="text" 
+                    id="custom_instrument" 
+                    name="custom_instrument" 
+                    placeholder="Ex: Baixo, Fotografia, etc..."
+                    required 
+                    className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2 text-sm text-emerald-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-emerald-500/30"
+                  />
+                  <p className="text-[10px] text-zinc-500 font-medium">Membro avulso. Será adicionado apenas a este show.</p>
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="agreed_fee" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">

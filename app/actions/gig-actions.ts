@@ -119,19 +119,27 @@ export async function cancelGig(gigId: string, reason: string) {
 
 export async function addMemberToLineup(formData: FormData) {
   const gig_id = formData.get('gig_id') as string;
-  const member_id = formData.get('musician_id') as string; // from select name
+  let member_id = formData.get('musician_id') as string | null; // from hidden input
   const feeStr = formData.get('agreed_fee') as string; // from input name
+  const custom_name = formData.get('musician_name') as string;
+  const custom_instrument = formData.get('custom_instrument') as string;
 
-  if (!gig_id || !member_id) {
+  if (!gig_id || (!member_id && !custom_name)) {
     return { error: 'Campos obrigatórios faltando.' };
   }
+
+  if (!member_id) member_id = null;
 
   const fee_amount = parseFloat(feeStr) || 0;
 
   const { error } = await supabase
     .from('go_lineup')
     .insert([
-      { gig_id, member_id, fee_amount, status: 'pendente' }
+      { 
+        gig_id, member_id, fee_amount, status: 'pendente',
+        custom_name: member_id ? null : custom_name,
+        custom_instrument: member_id ? null : custom_instrument
+      }
     ]);
 
   if (error) {
@@ -142,14 +150,16 @@ export async function addMemberToLineup(formData: FormData) {
   revalidatePath(`/gigs/${gig_id}`);
 
   // Fire push notification non-blocking (never breaks main flow)
-  try {
-    await sendPushToMember(member_id, {
-      title: 'Nova Gig Escalada! 🎸',
-      body: 'Você foi escalado para um novo show. Abra o app para ver os detalhes.',
-      url: `/gigs/${gig_id}`,
-    });
-  } catch (e) {
-    console.warn('Push notification failed silently:', e);
+  if (member_id) {
+    try {
+      await sendPushToMember(member_id, {
+        title: 'Nova Gig Escalada! 🎸',
+        body: 'Você foi escalado para um novo show. Abra o app para ver os detalhes.',
+        url: `/gigs/${gig_id}`,
+      });
+    } catch (e) {
+      console.warn('Push notification failed silently:', e);
+    }
   }
 
   return { success: true };
@@ -158,6 +168,17 @@ export async function addMemberToLineup(formData: FormData) {
 export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolean) {
   const newStatus = targetIsPaid ? 'pago' : 'pendente';
   
+  // Grab lineup info to know who to notify and the gig title
+  const { data: lineupData } = await supabase
+    .from('go_lineup')
+    .select(`
+      member_id,
+      gig_id,
+      go_gigs ( title )
+    `)
+    .eq('id', lineupId)
+    .single();
+
   const { error } = await supabase
     .from('go_lineup')
     .update({ status: newStatus })
@@ -166,6 +187,21 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
   if (error) {
     console.error('Error updating payment status:', error);
     return { error: error.message };
+  }
+
+  // Push Notification on Payment!
+  if (targetIsPaid && lineupData?.member_id) {
+    const gigTitle = (lineupData.go_gigs as any)?.title || 'um show';
+    
+    try {
+      await sendPushToMember(lineupData.member_id, {
+        title: 'Cachê na conta! 💸',
+        body: `Seu pagamento do show ${gigTitle} foi confirmado no Minha Banda.`,
+        url: `/gigs/${lineupData.gig_id}`,
+      });
+    } catch (e) {
+      console.warn('Push notification failed silently on payment:', e);
+    }
   }
 
   // Next.js App Router layout path dynamic revalidation rule
