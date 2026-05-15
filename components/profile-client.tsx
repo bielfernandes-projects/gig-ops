@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar, Bell, Copy, Check, Clipboard, ClipboardCheck } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { toast } from 'sonner';
 import { updatePassword, removeProfile } from '@/app/profile/actions';
 import { savePushSubscription } from '@/app/actions/push-actions';
@@ -68,9 +67,6 @@ function ProfileEmailRow({ profile, onRemove }: { profile: GoProfile; onRemove: 
 }
 
 export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId, calendarToken }: Props) {
-  const [filter, setFilter] = useState<'month' | 'all' | 'custom'>('month');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [originUrl, setOriginUrl] = useState('');
   const [isCopied, setIsCopied] = useState(false);
   const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
@@ -86,57 +82,6 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
   useEffect(() => {
     setOriginUrl(window.location.origin);
   }, []);
-
-  // Logic to filter gigs
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-
-  const filteredGigs = gigs.filter(g => {
-    const d = new Date(g.start_time);
-    if (filter === 'month') {
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-    }
-    if (filter === 'all') return true;
-    if (filter === 'custom' && startDate && endDate) {
-      const s = new Date(startDate);
-      s.setHours(0, 0, 0, 0);
-      const e = new Date(endDate);
-      e.setHours(23, 59, 59, 999);
-      return d >= s && d <= e;
-    }
-    return false;
-  });
-
-  // Calculate profit per project
-  const projectProfits: Record<string, { value: number; color: string }> = {};
-
-  filteredGigs.forEach(gig => {
-    const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    const myLineup = gigLineups.find(l => l.member_id === userMemberId);
-    
-    let profit = 0;
-    if (myLineup && myLineup.status === 'pago') {
-      profit = myLineup.fee_amount;
-    }
-
-    const projName = gig.go_projects?.name || 'Sem Projeto';
-    const projColor = gig.go_projects?.color_hex || '#71717a';
-
-    if (!projectProfits[projName]) {
-      projectProfits[projName] = { value: 0, color: projColor };
-    }
-    projectProfits[projName].value += profit;
-  });
-
-  const chartData = Object.entries(projectProfits)
-    .filter(([_, data]) => data.value > 0)
-    .map(([name, data]) => ({
-      name,
-      value: data.value,
-      color: data.color
-    }));
-
-  const totalProfit = chartData.reduce((acc, curr) => acc + curr.value, 0);
 
   return (
     <div className="flex-1 w-full max-w-2xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
@@ -171,83 +116,6 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
           </div>
         </div>
         
-      </section>
-
-      {/* ─── SECTION B: DASHBOARD FINANCEIRO ─── */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6">
-        <h3 className="text-zinc-100 font-bold mb-4 flex items-center justify-between">
-          <span>{role === 'admin' ? 'Lucro por Projeto' : 'Meu Cachê por Projeto'}</span>
-        </h3>
-
-        {/* Filters */}
-        <div className="flex flex-col gap-3 mb-8">
-          <div className="flex w-full bg-zinc-950 rounded-xl p-1 border border-zinc-800">
-            <button onClick={() => setFilter('month')} className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors ${filter === 'month' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Mês</button>
-            <button onClick={() => setFilter('all')} className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors ${filter === 'all' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Total</button>
-            <button onClick={() => setFilter('custom')} className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors ${filter === 'custom' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Personalizado</button>
-          </div>
-
-          {filter === 'custom' && (
-            <div className="flex gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex-1 flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-1">De</label>
-                <input 
-                  type="date" 
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-400 focus:outline-none focus:border-zinc-700 transition-colors"
-                />
-              </div>
-              <div className="flex-1 flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-1">Até</label>
-                <input 
-                  type="date" 
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-400 focus:outline-none focus:border-zinc-700 transition-colors"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {chartData.length > 0 ? (
-          <div className="w-full relative min-h-[300px]">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: any) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : `R$ 0.00`} 
-                  contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '0.5rem', fontSize: '0.875rem' }}
-                  itemStyle={{ fontWeight: 'bold' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-              </PieChart>
-            </ResponsiveContainer>
-            
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-[-24px]">
-              <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">Total</span>
-              <span className="text-zinc-100 font-bold text-lg leading-none mt-1">R$ {totalProfit.toFixed(0)}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="w-full py-16 flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/50">
-            <p className="text-zinc-500 text-sm font-medium">Nenhum lucro registrado neste período.</p>
-          </div>
-        )}
       </section>
 
       {/* ─── SECTION: AGENDA E NOTIFICAÇÕES ─── */}

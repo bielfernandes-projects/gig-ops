@@ -139,17 +139,22 @@ export default async function Home({
     return acc + (myLineup ? myLineup.fee_amount : 0);
   }, 0);
 
-  // Pending gigs: past gigs with unpaid musicians or unpaid sound equipment (admin only)
-  const pendingGigs = role === 'admin' ? allGigs.filter(gig => {
+  // Pending gigs: past gigs with unpaid musicians or unpaid sound equipment
+  const pendingGigs = visibleGigs.filter(gig => {
     const gigDate = new Date(gig.start_time);
     if (gigDate >= now2) return false; // Only past gigs
     
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
-    const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
     
-    return anyMusicianUnpaid || soundUnpaid;
-  }) : [];
+    if (role === 'admin') {
+      const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
+      const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
+      return anyMusicianUnpaid || soundUnpaid;
+    } else {
+      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+      return myLineup && myLineup.status !== 'pago';
+    }
+  });
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
@@ -225,9 +230,21 @@ export default async function Home({
                   const lineupData = lineups.filter((l) => l.gig_id === gig.id);
                   const gigDate = new Date(gig.start_time);
                   const isPast = gigDate < now2;
-                  const isFullyPaid = isPast && lineupData.length > 0 && lineupData.every(l => l.status === 'pago');
+                  
+                  let isFullyPaid = false;
+                  if (isPast) {
+                    if (role === 'admin') {
+                      const anyMusicianUnpaid = lineupData.some(l => l.status !== 'pago');
+                      const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
+                      isFullyPaid = !anyMusicianUnpaid && !soundUnpaid && lineupData.length > 0;
+                    } else {
+                      const myLineup = lineupData.find(l => l.member_id === userMemberId);
+                      isFullyPaid = myLineup ? myLineup.status === 'pago' : false;
+                    }
+                  }
+                  
                   return (
-                    <GigCard key={gig.id} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} isPastFullyPaid={tab === 'all' && isFullyPaid} />
+                    <GigCard key={gig.id} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} isPastFullyPaid={isFullyPaid} />
                   );
                 })}
               </div>

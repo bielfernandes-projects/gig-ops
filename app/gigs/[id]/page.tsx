@@ -7,6 +7,7 @@ import { AddLineupMember } from '@/components/add-lineup-member';
 import { LineupMemberCard } from '@/components/lineup-member-card';
 import { EditGigModal } from '@/components/edit-gig-modal';
 import { ToggleSoundPaymentButton } from './toggle-sound-payment-button';
+import { BackButton } from '@/components/back-button';
 import { getUserInfo } from '@/lib/auth';
 
 export const revalidate = 0;
@@ -47,7 +48,9 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             {JSON.stringify(gigError, null, 2)}
           </pre>
         )}
-        <Link href="/" className="text-emerald-500 mt-4 block p-3 bg-zinc-900 rounded-lg">Voltar à Timeline</Link>
+        <BackButton className="text-emerald-500 mt-4 block p-3 bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors w-full">
+          Voltar à Timeline
+        </BackButton>
       </div>
     );
   }
@@ -92,13 +95,12 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             <p className="text-zinc-400 text-sm mb-8 max-w-sm mx-auto">
               Você não está escalado para este show e não tem permissão para visualizar estes detalhes.
             </p>
-            <Link 
-              href="/" 
+          <BackButton 
               className="inline-flex items-center justify-center gap-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold px-6 py-3 rounded-xl text-sm transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
               Voltar para Timeline
-            </Link>
+          </BackButton>
           </div>
         </div>
       );
@@ -135,13 +137,12 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       {/* Top Header */}
       <header className="mb-8">
         <div className="flex items-center justify-between mb-6">
-          <Link
-            href="/"
+          <BackButton
             className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-50 transition-colors group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             Voltar para Timeline
-          </Link>
+          </BackButton>
 
           {/* Edit Gig Button — admin only */}
           {role === 'admin' && (

@@ -45,7 +45,7 @@ export default function RootLayout({
         </div>
 
         {/* Main Content Area */}
-        <main className="flex-1 md:ml-64 w-full flex flex-col pb-20 md:pb-0 select-text">
+        <main className="flex-1 md:pl-64 w-full flex flex-col pb-20 md:pb-0 select-text overflow-x-hidden">
           {children}
         </main>
 

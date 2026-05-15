@@ -44,7 +44,7 @@ export async function updateSession(request: NextRequest) {
   if (user && isAuthRoute) {
     // If authenticated and trying to access login page, redirect to home
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 

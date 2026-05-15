@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { CalendarDays, FolderOpen, Users, UserRound } from 'lucide-react';
+import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard } from 'lucide-react';
 
 const navItems = [
-  { name: 'Gigs', href: '/', icon: CalendarDays },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Agenda', href: '/agenda', icon: CalendarDays },
   { name: 'Projetos', href: '/projects', icon: FolderOpen },
   { name: 'Músicos', href: '/members', icon: Users },
   { name: 'Perfil', href: '/profile', icon: UserRound },

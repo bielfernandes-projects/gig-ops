@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 const FILTERS = [
   { key: '7days', label: '7 Dias' },
@@ -12,6 +12,7 @@ const FILTERS = [
 export function FilterTabs() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const active = searchParams.get('tab') || '7days';
   const from = searchParams.get('from') || '';
   const to = searchParams.get('to') || '';
@@ -23,13 +24,13 @@ export function FilterTabs() {
       params.delete('from');
       params.delete('to');
     }
-    router.push(`/?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   const handleDateChange = (type: 'from' | 'to', value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set(type, value);
-    router.push(`/?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   return (
