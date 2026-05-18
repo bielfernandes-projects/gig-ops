@@ -84,8 +84,9 @@ export default async function Home({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string; from?: string; to?: string; cloneId?: string }>;
+  searchParams: Promise<{ tab?: string; from?: string; to?: string; cloneId?: string; project?: string }>;
 }) {
-  const { tab = '7days', from, to, cloneId } = await searchParams;
+  const { tab = '7days', from, to, cloneId, project = 'all' } = await searchParams;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const { role, memberId: userMemberId } = await getUserInfo();
@@ -122,9 +123,14 @@ export default async function Home({
   const lineups = lineupsResult.data || [];
   const cloneData = cloneResult.data ?? null;
 
-  const visibleGigs = (role === 'admin') 
+  let visibleGigs = (role === 'admin') 
     ? allGigs 
     : allGigs.filter(gig => lineups.some(l => l.gig_id === gig.id && l.member_id === userMemberId));
+
+  // Filter by selected project
+  if (project !== 'all') {
+    visibleGigs = visibleGigs.filter(g => g.project_id === project);
+  }
 
   const filtered = filterGigs(visibleGigs, tab, from, to);
   const grouped = groupByMonth(filtered);
@@ -186,7 +192,7 @@ export default async function Home({
 
         {/* Filter Tabs */}
         <Suspense>
-          <FilterTabs />
+          <FilterTabs projects={projects} />
         </Suspense>
       </header>
 

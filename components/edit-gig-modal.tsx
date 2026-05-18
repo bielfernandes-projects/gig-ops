@@ -36,6 +36,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
   const [isPendingDelete, setIsPendingDelete] = useState(false);
   const [bringSound, setBringSound] = useState(gig.bring_sound ?? false);
   const [isSoundPaid, setIsSoundPaid] = useState(gig.is_sound_paid ?? false);
+  const [deleteMode, setDeleteMode] = useState<'single' | 'future' | 'all'>('single');
   const [cancelReason, setCancelReason] = useState('');
 
   // Hide global navigation when modal is open
@@ -75,7 +76,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
     }
     setIsPendingDelete(true);
     try {
-      await cancelGig(gig.id, cancelReason.trim()); // redirects to / on success
+      await cancelGig(gig.id, cancelReason.trim(), deleteMode); // redirects to agenda
     } catch {
       // redirect() throws — this is normal Next.js behavior
     }
@@ -83,7 +84,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
 
   const handleDuplicate = () => {
     setIsOpen(false);
-    router.push(`/?cloneId=${gig.id}`);
+    router.push(`/agenda?cloneId=${gig.id}`);
   };
 
   return (
@@ -114,6 +115,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                 <h2 className="text-xl font-bold tracking-tight text-zinc-100">Editar Gig</h2>
                 <p className="text-sm text-zinc-500 mt-0.5 truncate max-w-[220px]">{gig.title}</p>
               </div>
+              
               <button
                 onClick={() => !isPendingSave && setIsOpen(false)}
                 disabled={isPendingSave}
@@ -344,6 +346,24 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                 <span className="text-xs text-zinc-600 uppercase tracking-widest">Zona de Perigo</span>
                 <div className="flex-1 h-px bg-zinc-800" />
               </div>
+
+              {gig.recurrence_group_id && (
+                <div className="flex flex-col gap-2 bg-zinc-900 border border-red-500/20 p-3 rounded-lg text-left">
+                  <label className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Este show se repete</label>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-zinc-300 hover:text-white cursor-pointer">
+                    <input type="radio" name="deleteMode" value="single" checked={deleteMode === 'single'} onChange={() => setDeleteMode('single')} className="accent-red-500" />
+                    Apagar apenas este
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-zinc-300 hover:text-white cursor-pointer">
+                    <input type="radio" name="deleteMode" value="future" checked={deleteMode === 'future'} onChange={() => setDeleteMode('future')} className="accent-red-500" />
+                    Apagar este e os próximos
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-zinc-300 hover:text-white cursor-pointer">
+                    <input type="radio" name="deleteMode" value="all" checked={deleteMode === 'all'} onChange={() => setDeleteMode('all')} className="accent-red-500" />
+                    Apagar toda a série
+                  </label>
+                </div>
+              )}
 
               {/* Delete Button */}
               <button

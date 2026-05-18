@@ -34,6 +34,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       sound_cost, 
       sound_person_id,
       notes,
+      recurrence_group_id,
       go_projects ( * )
     `)
     .eq('id', id)

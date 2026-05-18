@@ -38,6 +38,7 @@ export type GoGig = {
   sound_person_id: string | null;
   notes: string | null;
   is_sound_paid: boolean;
+  recurrence_group_id?: string | null;
 };
 
 export type GoLineup = {

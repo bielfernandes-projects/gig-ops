@@ -21,8 +21,8 @@ export async function addProject(formData: FormData) {
   }
 
   revalidatePath('/projects');
-  // Revalidate the home page so the dropdown updates in the QuickAddGig
-  revalidatePath('/');
+  revalidatePath('/agenda');
+  revalidatePath('/dashboard');
   return { success: true };
 }
 
@@ -46,6 +46,7 @@ export async function updateProject(formData: FormData) {
   }
 
   revalidatePath('/projects');
-  revalidatePath('/');
+  revalidatePath('/agenda');
+  revalidatePath('/dashboard');
   return { success: true };
 }

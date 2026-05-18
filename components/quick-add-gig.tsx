@@ -12,6 +12,8 @@ export function QuickAddGig({ projects, cloneData }: { projects: GoProject[]; cl
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [recurrence, setRecurrence] = useState('none');
+  const [recurrenceEnd, setRecurrenceEnd] = useState('1month');
   const isClone = !!cloneData;
 
   // Auto-open when cloneData is provided and clear the URL param
@@ -52,7 +54,7 @@ export function QuickAddGig({ projects, cloneData }: { projects: GoProject[]; cl
       setIsPending(false);
       toast.success(isClone ? 'Gig duplicada com sucesso!' : 'Gig agendada com sucesso!');
       // If we came from a clone, go back to clean URL
-      if (isClone) router.push('/');
+      if (isClone) router.push('/agenda');
     }
   };
 
@@ -108,6 +110,8 @@ export function QuickAddGig({ projects, cloneData }: { projects: GoProject[]; cl
                 />
               </div>
 
+              <input type="hidden" name="clone_id" value={cloneData?.id || ''} />
+
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="project_id" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
                   Série / Formato
@@ -136,6 +140,47 @@ export function QuickAddGig({ projects, cloneData }: { projects: GoProject[]; cl
                 name="end_time"
                 label="Término (opcional)"
               />
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="recurrence" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                  Repetição
+                </label>
+                <select 
+                  id="recurrence" 
+                  name="recurrence" 
+                  value={recurrence}
+                  onChange={(e) => setRecurrence(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none"
+                >
+                  <option value="none">Evento Único</option>
+                  <option value="weekly">Semanal</option>
+                  <option value="biweekly">Quinzenal</option>
+                  <option value="monthly">Mensal</option>
+                </select>
+              </div>
+
+              {recurrence !== 'none' && (
+                <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200 p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                  <label className="text-[11px] font-semibold text-emerald-400 uppercase tracking-widest mb-1">
+                    Término da Recorrência
+                  </label>
+                  <select 
+                    name="recurrence_end"
+                    value={recurrenceEnd}
+                    onChange={(e) => setRecurrenceEnd(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none transition-all appearance-none"
+                  >
+                    <option value="1month">Termina em 1 Mês</option>
+                    <option value="3months">Termina em 3 Meses</option>
+                    <option value="6months">Termina em 6 Meses</option>
+                    <option value="1year">Termina em 1 Ano</option>
+                    <option value="custom">Escolher data de término</option>
+                  </select>
+                  {recurrenceEnd === 'custom' && (
+                    <input type="date" name="custom_end_date" required className="mt-2 w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none transition-all" />
+                  )}
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="gross_value" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
