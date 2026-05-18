@@ -339,13 +339,10 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
             </span>
             {isGigPronta && (
               <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500 uppercase tracking-tighter">
-                Gig Pronta
+                Gig OK
               </span>
             )}
           </div>
-          {gig.notes && (
-            <StickyNote className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
-          )}
         </div>
         <h2 className={`text-base font-bold text-zinc-100 leading-snug break-words mb-2 line-clamp-2 ${isPastFullyPaid ? 'line-through' : ''}`}>
           {gig.title}
