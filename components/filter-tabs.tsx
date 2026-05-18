@@ -29,9 +29,9 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const handleDateChange = (type: 'from' | 'to', value: string) => {
+  const handleParamChange = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set(type, value);
+    params.set(key, value);
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -60,7 +60,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
         </div>
         <select 
           value={project}
-          onChange={(e) => handleDateChange('project', e.target.value)}
+          onChange={(e) => handleParamChange('project', e.target.value)}
           className="bg-zinc-900 border border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-400 rounded-xl px-3 py-2.5 max-w-[140px] focus:outline-none focus:border-zinc-700 transition-colors truncate"
         >
           <option value="all">TODOS PROJETOS</option>
@@ -77,7 +77,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
             <input 
               type="date" 
               value={from}
-              onChange={(e) => handleDateChange('from', e.target.value)}
+              onChange={(e) => handleParamChange('from', e.target.value)}
               className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:border-zinc-700 transition-colors"
             />
           </div>
@@ -86,7 +86,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
             <input 
               type="date" 
               value={to}
-              onChange={(e) => handleDateChange('to', e.target.value)}
+              onChange={(e) => handleParamChange('to', e.target.value)}
               className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:border-zinc-700 transition-colors"
             />
           </div>
