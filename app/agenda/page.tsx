@@ -83,7 +83,6 @@ function formatDuration(startIso: string, endIso: string): string {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; from?: string; to?: string; cloneId?: string }>;
   searchParams: Promise<{ tab?: string; from?: string; to?: string; cloneId?: string; project?: string }>;
 }) {
   const { tab = '7days', from, to, cloneId, project = 'all' } = await searchParams;
