@@ -89,6 +89,12 @@ Para otimizar o uso em celulares:
 ### 6.3. Segurança Nativa (RLS)
 * **Row Level Security:** Camada de segurança ativa no PostgreSQL (Supabase). Se um usuário `viewer` tentar burlar o front-end e acessar a API diretamente para ver o cachê bruto de um show, o banco de dados bloqueia o retorno das colunas proibidas com base no ID do usuário autenticado.
 
+### 6.4. Isolamento de Dados por Admin (admin_id)
+* **Conceito:** As tabelas `go_gigs`, `go_members` e `go_projects` possuem a coluna `admin_id` (FK para `go_profiles.id`). Todo INSERT carimba o UUID do admin logado.
+* **Filtro obrigatório:** SELECTs de admin são SEMPRE filtrados por `.eq('admin_id', userId)`. Viewers continuam vendo dados via `go_lineup`.
+* **Server Actions:** Todas as actions de criação, atualização e exclusão verificam `admin_id` para garantir ownership.
+* **Fluxo "Criar Minha Banda":** Novo admin se cadastra e já ganha um perfil com `role='admin'` em `go_profiles`, entrando em ambiente isolado.
+
 ---
 
 ## 7. Fluxos de Operação (Manuais)

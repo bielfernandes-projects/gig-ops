@@ -8,16 +8,20 @@ import { getUserInfo } from '@/lib/auth';
 export const revalidate = 0;
 
 export default async function ProjectsPage() {
-  // Parallel: auth + data fetching run simultaneously
-  const [userInfo, projectsResult] = await Promise.all([
-    getUserInfo(),
-    supabase
-      .from('go_projects')
-      .select('*')
-      .order('name', { ascending: true }) as unknown as Promise<{ data: GoProject[] | null, error: PostgrestError | null }>,
-  ]);
+  // Auth first — needed to build admin_id filter
+  const userInfo = await getUserInfo();
+  const { role, userId } = userInfo;
 
-  const role = userInfo.role;
+  let projectsQuery = supabase
+    .from('go_projects')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (role === 'admin' && userId) {
+    projectsQuery = projectsQuery.eq('admin_id', userId);
+  }
+
+  const projectsResult = await (projectsQuery as unknown as Promise<{ data: GoProject[] | null, error: PostgrestError | null }>);
   const projects = projectsResult.data || [];
   const error = projectsResult.error;
 

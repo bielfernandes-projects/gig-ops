@@ -1,11 +1,22 @@
 'use server';
 
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { sendPushToMember } from './push-actions';
 
+async function requireAdmin() {
+  const client = await createClient();
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) return null;
+  return user.id;
+}
+
 export async function addQuickGig(formData: FormData) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
   const start_time = formData.get('start_time') as string;
@@ -68,7 +79,8 @@ export async function addQuickGig(formData: FormData) {
       sound_person_id: originalGig ? originalGig.sound_person_id : null,
       notes,
       is_sound_paid: false,
-      recurrence_group_id
+      recurrence_group_id,
+      admin_id: adminId
     });
 
     if (!recurrence || recurrence === 'none' || !endRecurrenceDate) break;
@@ -117,6 +129,9 @@ export async function addQuickGig(formData: FormData) {
 }
 
 export async function updateGig(formData: FormData) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
   const id = formData.get('id') as string;
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
@@ -138,7 +153,8 @@ export async function updateGig(formData: FormData) {
   const { error } = await supabase
     .from('go_gigs')
     .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes, is_sound_paid })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('admin_id', adminId);
 
   if (error) {
     console.error('Error updating gig:', error);
@@ -152,10 +168,13 @@ export async function updateGig(formData: FormData) {
 }
 
 export async function cancelGig(gigId: string, reason: string, deleteMode: 'single' | 'future' | 'all' = 'single') {
-  const { data: currentGig } = await supabase.from('go_gigs').select('*').eq('id', gigId).single();
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
+  const { data: currentGig } = await supabase.from('go_gigs').select('*').eq('id', gigId).eq('admin_id', adminId).single();
   if (!currentGig) return { error: 'Show não encontrado.' };
 
-  let query = supabase.from('go_gigs').select('id');
+  let query = supabase.from('go_gigs').select('id').eq('admin_id', adminId);
   
   if (currentGig.recurrence_group_id && deleteMode !== 'single') {
     query = query.eq('recurrence_group_id', currentGig.recurrence_group_id);
@@ -207,15 +226,22 @@ export async function cancelGig(gigId: string, reason: string, deleteMode: 'sing
 }
 
 export async function addMemberToLineup(formData: FormData) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
   const gig_id = formData.get('gig_id') as string;
-  let member_id = formData.get('musician_id') as string | null; // from hidden input
-  const feeStr = formData.get('agreed_fee') as string; // from input name
+  let member_id = formData.get('musician_id') as string | null;
+  const feeStr = formData.get('agreed_fee') as string;
   const custom_name = formData.get('musician_name') as string;
   const custom_instrument = formData.get('custom_instrument') as string;
 
   if (!gig_id || (!member_id && !custom_name)) {
     return { error: 'Campos obrigatórios faltando.' };
   }
+
+  // Verify gig belongs to admin
+  const { data: gig } = await supabase.from('go_gigs').select('id').eq('id', gig_id).eq('admin_id', adminId).single();
+  if (!gig) return { error: 'Gig não encontrada.' };
 
   if (!member_id) member_id = null;
 
@@ -255,6 +281,9 @@ export async function addMemberToLineup(formData: FormData) {
 }
 
 export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolean) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
   const newStatus = targetIsPaid ? 'pago' : 'pendente';
   
   // Grab lineup info to know who to notify and the gig title
@@ -263,9 +292,10 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
     .select(`
       member_id,
       gig_id,
-      go_gigs ( title )
+      go_gigs!inner ( title, admin_id )
     `)
     .eq('id', lineupId)
+    .eq('go_gigs.admin_id', adminId)
     .single();
 
   const { error } = await supabase
@@ -299,6 +329,13 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
 }
 
 export async function removeFromLineup(lineupId: string, gigId: string) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
+  // Verify gig belongs to admin
+  const { data: gig } = await supabase.from('go_gigs').select('id').eq('id', gigId).eq('admin_id', adminId).single();
+  if (!gig) return { error: 'Gig não encontrada.' };
+
   const { error } = await supabase
     .from('go_lineup')
     .delete()
@@ -314,6 +351,9 @@ export async function removeFromLineup(lineupId: string, gigId: string) {
 }
 
 export async function updateLineupFee(formData: FormData) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
   const lineupId = formData.get('lineup_id') as string;
   const gigId = formData.get('gig_id') as string;
   const feeStr = formData.get('agreed_fee') as string;
@@ -321,6 +361,10 @@ export async function updateLineupFee(formData: FormData) {
   if (!lineupId || !gigId) {
     return { error: 'Dados inválidos.' };
   }
+
+  // Verify gig belongs to admin
+  const { data: gig } = await supabase.from('go_gigs').select('id').eq('id', gigId).eq('admin_id', adminId).single();
+  if (!gig) return { error: 'Gig não encontrada.' };
 
   const fee_amount = parseFloat(feeStr) || 0;
 
@@ -339,10 +383,14 @@ export async function updateLineupFee(formData: FormData) {
 }
 
 export async function toggleSoundPayment(gigId: string, targetIsPaid: boolean) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
   const { error } = await supabase
     .from('go_gigs')
     .update({ is_sound_paid: targetIsPaid })
-    .eq('id', gigId);
+    .eq('id', gigId)
+    .eq('admin_id', adminId);
 
   if (error) {
     console.error('Error updating sound payment status:', error);

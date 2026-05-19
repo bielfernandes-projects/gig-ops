@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { CheckCircle2, Eye, EyeOff } from 'lucide-react';
-import { login, signup, forgotPassword } from './actions';
+import { login, signup, forgotPassword, adminSignup } from './actions';
 import { PasswordStrengthIndicator, isPasswordValid } from '@/components/password-strength-indicator';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isAdminSignup, setIsAdminSignup] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -40,7 +41,7 @@ export default function LoginPage() {
     const formData = new FormData(e.currentTarget);
     formData.append('origin', window.location.origin);
 
-    const res = isLogin ? await login(formData) : await signup(formData);
+    const res = isLogin ? await login(formData) : isAdminSignup ? await adminSignup(formData) : await signup(formData);
 
     if (res?.error) {
       setErrorMsg(res.error);
@@ -90,7 +91,9 @@ export default function LoginPage() {
             <p className="text-xs md:text-sm text-zinc-400 mb-6 font-medium text-center">
               {isLogin
                 ? 'Bem-vindo ao Minha Banda. Faça login para gerenciar sua agenda.'
-                : 'Cadastre-se na banda da qual foi convidado.'}
+                : isAdminSignup
+                  ? 'Crie sua própria banda e gerencie seus shows, músicos e projetos.'
+                  : 'Cadastre-se na banda da qual foi convidado.'}
             </p>
           </>
         )}
@@ -191,7 +194,7 @@ export default function LoginPage() {
                     {!isLogin && <PasswordStrengthIndicator password={password} />}
                   </div>
 
-                  {!isLogin && (
+                  {!isLogin && !isAdminSignup && (
                     <div className="flex flex-col gap-1 mt-1 p-2.5 bg-zinc-950/50 border border-zinc-800/80 rounded-lg">
                       <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest flex justify-between">
                         Código de Convite da Banda
@@ -199,7 +202,6 @@ export default function LoginPage() {
                       <input
                         type="text"
                         name="inviteCode"
-                        required={!isLogin}
                         className="w-full bg-zinc-900 border border-zinc-700/50 rounded-lg px-3 py-2 mt-1 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
                         placeholder="Ex: BANDA2026"
                       />
@@ -211,8 +213,21 @@ export default function LoginPage() {
                     disabled={isLoading || (!isLogin && !isPasswordValid(password))}
                     className="w-full bg-zinc-100 hover:bg-white text-zinc-900 font-bold py-2.5 mt-2 rounded-lg text-sm transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? 'Autenticando...' : isLogin ? 'Entrar' : 'Registrar'}
+                    {isLoading ? 'Autenticando...' : isLogin ? 'Entrar' : isAdminSignup ? 'Criar Minha Banda' : 'Registrar'}
                   </button>
+
+                  {isAdminSignup && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAdminSignup(false);
+                        setErrorMsg('');
+                      }}
+                      className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 font-medium transition-colors"
+                    >
+                      Voltar para cadastro com convite
+                    </button>
+                  )}
                 </form>
 
                 {isLogin && (
@@ -232,27 +247,36 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setIsLogin(!isLogin);
+                    if (isAdminSignup) {
+                      setIsAdminSignup(false);
+                      setIsLogin(true);
+                    } else {
+                      setIsLogin(!isLogin);
+                    }
                     setErrorMsg('');
                     setForgotMessage('');
                   }}
                   className="mt-4 text-xs text-zinc-500 hover:text-zinc-300 font-medium transition-colors"
                 >
-                  {isLogin ? 'Não tem conta? Crie uma aqui.' : 'Já tem conta? Faça login.'}
+                  {isAdminSignup ? 'Já tem conta? Faça login.' : isLogin ? 'Não tem conta? Crie uma aqui.' : 'Já tem conta? Faça login.'}
                 </button>
 
-                {!isLogin && (
+                {!isLogin && !isAdminSignup && (
                   <div className="w-full flex flex-col items-center mt-4 pt-4 border-t border-zinc-800/80">
                     <span className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3 font-bold">Ou então</span>
                     <button
                       type="button"
-                      disabled
-                      className="w-full py-2.5 px-3 bg-indigo-600 border border-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 opacity-60 cursor-not-allowed shadow-md text-sm"
+                      onClick={() => {
+                        setIsAdminSignup(true);
+                        setErrorMsg('');
+                        setForgotMessage('');
+                      }}
+                      className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-md text-sm transition-all active:scale-[0.98]"
                     >
-                      ✨ Criar Minha Banda <span className="uppercase text-[8px] tracking-wider ml-1 px-1.5 py-0.5 bg-indigo-800 rounded">(Premium)</span>
+                      ✨ Criar Minha Banda
                     </button>
                     <p className="text-[9px] text-zinc-500 font-medium text-center mt-1.5 max-w-[200px] leading-tight">
-                      Seja o administrador da sua própria agenda. (Em breve)
+                      Seja o administrador da sua própria agenda.
                     </p>
                   </div>
                 )}

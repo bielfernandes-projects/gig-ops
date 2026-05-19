@@ -1,9 +1,11 @@
 'use client';
 
+'use client';
+
 import { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar, Bell, Copy, Check, Clipboard, ClipboardCheck } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar, Bell, Copy, Check, Clipboard, ClipboardCheck, PenLine, X, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { updatePassword, removeProfile } from '@/app/profile/actions';
+import { updatePassword, removeProfile, saveInviteCode, updateInvitedBy } from '@/app/profile/actions';
 import { savePushSubscription } from '@/app/actions/push-actions';
 import { GigWithProject, GoLineup, GoProfile } from '@/lib/types';
 import { signout } from '@/app/login/actions';
@@ -17,6 +19,8 @@ type Props = {
   lineups: GoLineup[];
   userMemberId: string | null;
   calendarToken: string | null;
+  userId: string | null;
+  viewerInviteCode: string | null;
 };
 
 // Sub-component: isolated copy state per user row
@@ -66,10 +70,12 @@ function ProfileEmailRow({ profile, onRemove }: { profile: GoProfile; onRemove: 
   );
 }
 
-export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId, calendarToken }: Props) {
+export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId, calendarToken, userId, viewerInviteCode }: Props) {
   const [originUrl, setOriginUrl] = useState('');
   const [isCopied, setIsCopied] = useState(false);
   const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
+  const [editingInvite, setEditingInvite] = useState(false);
+  const [inviteInput, setInviteInput] = useState(inviteCode || '');
 
   useEffect(() => {
     // Check initial notification permission status
@@ -252,14 +258,69 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
             <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1">
               Código de Convite
             </label>
-            <div className="flex items-center gap-3">
-              <code className="bg-zinc-950 border border-zinc-800 text-emerald-400 font-mono text-lg px-4 py-2 rounded-lg font-bold tracking-widest">
-                {inviteCode || 'N/A'}
-              </code>
-              <p className="text-xs text-zinc-500 max-w-[200px]">
-                Envie este código aos seus músicos para que eles possam criar conta no Minha Banda.
-              </p>
-            </div>
+            {editingInvite ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const fd = new FormData();
+                  fd.set('inviteCode', inviteInput);
+                  const res = await saveInviteCode(fd);
+                  if (res.error) {
+                    toast.error(res.error);
+                  } else {
+                    toast.success('Código de convite salvo!');
+                    setEditingInvite(false);
+                  }
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  type="text"
+                  value={inviteInput}
+                  onChange={(e) => setInviteInput(e.target.value.toUpperCase().slice(0, 5))}
+                  maxLength={5}
+                  className="w-24 bg-zinc-950 border border-zinc-700 text-emerald-400 font-mono text-lg px-3 py-2 rounded-lg font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50"
+                  placeholder="ABC12"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-lg text-xs transition-colors"
+                >
+                  Salvar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInviteInput(inviteCode || '');
+                    setEditingInvite(false);
+                  }}
+                  className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <p className="text-[10px] text-zinc-500 leading-tight max-w-[160px]">
+                  Máximo 5 caracteres, letras e números.
+                </p>
+              </form>
+            ) : (
+              <div className="flex items-center gap-3">
+                <code className="bg-zinc-950 border border-zinc-800 text-emerald-400 font-mono text-lg px-4 py-2 rounded-lg font-bold tracking-widest">
+                  {inviteCode || 'N/A'}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => setEditingInvite(true)}
+                  className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-md transition-colors"
+                  title="Editar código de convite"
+                >
+                  <PenLine className="w-4 h-4" />
+                </button>
+                <p className="text-xs text-zinc-500 max-w-[200px]">
+                  Envie este código aos seus músicos para que eles possam criar conta no Minha Banda.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-zinc-800/80 pt-6">
@@ -284,6 +345,90 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
           </div>
 
 
+        </section>
+      )}
+
+      {/* ─── SECTION: BANDA (VIEWER) ─── */}
+      {role !== 'admin' && (
+        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6 flex flex-col gap-6">
+          <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
+            <Users className="w-5 h-5 text-indigo-400" />
+            <h3 className="text-zinc-100 font-bold">Minha Banda</h3>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1">
+              Código de Convite da Banda
+            </label>
+            {editingInvite ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const fd = new FormData();
+                  fd.set('inviteCode', inviteInput);
+                  const res = await updateInvitedBy(fd);
+                  if (res.error) {
+                    toast.error(res.error);
+                  } else {
+                    toast.success('Banda alterada com sucesso!');
+                    setEditingInvite(false);
+                  }
+                }}
+                className="flex flex-col gap-3"
+              >
+                <input
+                  type="text"
+                  value={inviteInput}
+                  onChange={(e) => setInviteInput(e.target.value.toUpperCase().slice(0, 5))}
+                  maxLength={5}
+                  className="w-full bg-zinc-950 border border-zinc-700 text-emerald-400 font-mono text-lg px-4 py-3 rounded-lg font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50"
+                  placeholder="Digite o código da nova banda"
+                  autoFocus
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-colors"
+                  >
+                    Entrar na Banda
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInviteInput(viewerInviteCode || '');
+                      setEditingInvite(false);
+                    }}
+                    className="px-4 py-2 text-zinc-500 hover:text-zinc-300 text-sm transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+                <p className="text-[10px] text-zinc-500">
+                  Seus shows escalados continuarão intactos. Apenas sua afiliação à banda muda.
+                </p>
+              </form>
+            ) : (
+              <div className="flex items-center gap-3">
+                <code className="bg-zinc-950 border border-zinc-800 text-emerald-400 font-mono text-lg px-4 py-2 rounded-lg font-bold tracking-widest">
+                  {viewerInviteCode || 'N/A'}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInviteInput(viewerInviteCode || '');
+                    setEditingInvite(true);
+                  }}
+                  className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-md transition-colors"
+                  title="Trocar de banda"
+                >
+                  <PenLine className="w-4 h-4" />
+                </button>
+                <p className="text-xs text-zinc-500 max-w-[200px]">
+                  Código da banda que você está vinculado.
+                </p>
+              </div>
+            )}
+          </div>
         </section>
       )}
 

@@ -8,18 +8,15 @@ import { getUserInfo } from '@/lib/auth';
 export const revalidate = 0;
 
 export default async function MembersPage() {
-  // Parallel: auth + data fetching run simultaneously
-  const [userInfo, membersResult] = await Promise.all([
-    getUserInfo(),
-    supabase
-      .from('go_members')
-      .select('*')
-      .order('name', { ascending: true }) as unknown as Promise<{ data: GoMember[] | null, error: PostgrestError | null }>,
-  ]);
+  const userInfo = await getUserInfo();
+  const { role, userId } = userInfo;
 
-  const role = userInfo.role;
-  const members = membersResult.data || [];
-  const error = membersResult.error;
+  const membersResult = role === 'admin' && userId
+    ? await supabase.from('go_members').select('*').order('name', { ascending: true }).eq('admin_id', userId)
+    : await supabase.from('go_members').select('*').order('name', { ascending: true });
+
+  const members = (membersResult as unknown as { data: GoMember[] | null, error: PostgrestError | null }).data || [];
+  const error = (membersResult as unknown as { data: GoMember[] | null, error: PostgrestError | null }).error;
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">

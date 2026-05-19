@@ -17,7 +17,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const id = resolvedParams.id;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId } = await getUserInfo();
+  const { role, memberId: userMemberId, userId } = await getUserInfo();
 
   // Fetch Gig with Project Join (must happen first — we need the gig data)
   const { data: gigData, error: gigError } = await supabase
@@ -56,20 +56,30 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     );
   }
 
+  // Build admin-scoped queries for members and projects
+  let membersQuery = supabase
+    .from('go_members')
+    .select('*')
+    .order('name', { ascending: true });
+
+  let projectsQuery = supabase
+    .from('go_projects')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (role === 'admin' && userId) {
+    membersQuery = membersQuery.eq('admin_id', userId);
+    projectsQuery = projectsQuery.eq('admin_id', userId);
+  }
+
   // Parallel data fetching — lineup, members, projects, and sound person all at once
   const [lineupResult, membersResult, projectsResult, soundPersonResult] = await Promise.all([
     supabase
       .from('go_lineup')
       .select(`*, go_members ( name, instrument )`)
       .eq('gig_id', id) as unknown as Promise<{ data: LineupWithMember[] | null }>,
-    supabase
-      .from('go_members')
-      .select('*')
-      .order('name', { ascending: true }) as unknown as Promise<{ data: GoMember[] | null }>,
-    supabase
-      .from('go_projects')
-      .select('*')
-      .order('name', { ascending: true }) as unknown as Promise<{ data: GoProject[] | null }>,
+    membersQuery as unknown as Promise<{ data: GoMember[] | null }>,
+    projectsQuery as unknown as Promise<{ data: GoProject[] | null }>,
     gigData.sound_person_id
       ? supabase
           .from('go_members')

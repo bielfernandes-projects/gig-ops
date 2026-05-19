@@ -88,22 +88,32 @@ export default async function Home({
   const { tab = '7days', from, to, cloneId, project = 'all' } = await searchParams;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId } = await getUserInfo();
+  const { role, memberId: userMemberId, userId } = await getUserInfo();
+
+  // Build queries with admin_id isolation for admin users
+  let gigsQuery = supabase
+    .from('go_gigs')
+    .select(`
+      id, project_id, title, location, start_time, end_time, gross_value, 
+      bring_sound, sound_cost, sound_person_id, notes, is_sound_paid,
+      go_projects ( name, color_hex )
+    `)
+    .order('start_time', { ascending: true });
+
+  let projectsQuery = supabase
+    .from('go_projects')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (role === 'admin' && userId) {
+    gigsQuery = gigsQuery.eq('admin_id', userId);
+    projectsQuery = projectsQuery.eq('admin_id', userId);
+  }
 
   // Parallel data fetching — all queries run simultaneously
   const [gigsResult, projectsResult, lineupsResult, cloneResult] = await Promise.all([
-    supabase
-      .from('go_gigs')
-      .select(`
-        id, project_id, title, location, start_time, end_time, gross_value, 
-        bring_sound, sound_cost, sound_person_id, notes, is_sound_paid,
-        go_projects ( name, color_hex )
-      `)
-      .order('start_time', { ascending: true }) as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
-    supabase
-      .from('go_projects')
-      .select('*')
-      .order('name', { ascending: true }) as unknown as Promise<{ data: GoProject[] | null }>,
+    gigsQuery as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
+    projectsQuery as unknown as Promise<{ data: GoProject[] | null }>,
     supabase
       .from('go_lineup')
       .select('*') as unknown as Promise<{ data: GoLineup[] | null }>,

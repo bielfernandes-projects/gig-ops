@@ -1,9 +1,20 @@
 'use server';
 
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+async function requireAdmin() {
+  const client = await createClient();
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) return null;
+  return user.id;
+}
+
 export async function addMember(formData: FormData) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
   const name = formData.get('name') as string;
   const instrument = formData.get('instrument') as string;
   const emailRaw = formData.get('email') as string;
@@ -24,7 +35,7 @@ export async function addMember(formData: FormData) {
 
   const { error } = await supabase
     .from('go_members')
-    .insert([{ name, instrument, phone: phone || null, email }]);
+    .insert([{ name, instrument, phone: phone || null, email, admin_id: adminId }]);
 
   if (error) {
     console.error('Error inserting member:', error);
@@ -38,6 +49,9 @@ export async function addMember(formData: FormData) {
 }
 
 export async function updateMember(formData: FormData) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
   const id = formData.get('id') as string;
   const name = formData.get('name') as string;
   const instrument = formData.get('instrument') as string;
@@ -59,7 +73,8 @@ export async function updateMember(formData: FormData) {
   const { error } = await supabase
     .from('go_members')
     .update({ name, instrument, phone: phone || null, email })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('admin_id', adminId);
 
   if (error) {
     console.error('Error updating member:', error);
