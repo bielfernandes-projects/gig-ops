@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { login, signup, forgotPassword } from './actions';
+import { PasswordStrengthIndicator, isPasswordValid } from '@/components/password-strength-indicator';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [successMsg, setSuccessMsg] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotLoading, setIsForgotLoading] = useState(false);
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     console.log('LoginPage hydrated');
@@ -170,7 +172,10 @@ export default function LoginPage() {
                       <input
                         type={showPassword ? 'text' : 'password'}
                         name="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         required
+                        minLength={8}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700 pr-10"
                         placeholder="••••••••"
                       />
@@ -183,6 +188,7 @@ export default function LoginPage() {
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    {!isLogin && <PasswordStrengthIndicator password={password} />}
                   </div>
 
                   {!isLogin && (
@@ -202,7 +208,7 @@ export default function LoginPage() {
 
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || (!isLogin && !isPasswordValid(password))}
                     className="w-full bg-zinc-100 hover:bg-white text-zinc-900 font-bold py-2.5 mt-2 rounded-lg text-sm transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? 'Autenticando...' : isLogin ? 'Entrar' : 'Registrar'}

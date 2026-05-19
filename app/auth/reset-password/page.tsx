@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { resetPassword } from './actions';
+import { createClient } from '@/lib/supabase/client';
+import { PasswordStrengthIndicator, isPasswordValid } from '@/components/password-strength-indicator';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -14,7 +15,39 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [sessionError, setSessionError] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    const handleSession = async () => {
+      const { data: existingSession } = await supabase.auth.getSession();
+
+      if (existingSession?.session) {
+        setIsLoadingSession(false);
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.hash.replace('#', '?'));
+      const code = params.get('code') || new URL(window.location.href).searchParams.get('code');
+
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (error || !data.session) {
+          setSessionError('Não foi possível iniciar o fluxo de recuperação. Verifique o link e tente novamente.');
+        }
+      } else {
+        setSessionError('Sessão de recuperação não encontrada. Abra o link do e-mail novamente.');
+      }
+
+      setIsLoadingSession(false);
+    };
+
+    handleSession();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,15 +63,15 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    const supabase = createClient();
     setIsSubmitting(true);
-    const formData = new FormData();
-    formData.append('password', password);
 
-    const res = await resetPassword(formData);
+    const { error } = await supabase.auth.updateUser({ password });
+
     setIsSubmitting(false);
 
-    if (res?.error) {
-      setErrorMsg(res.error);
+    if (error) {
+      setErrorMsg(error.message || 'Não foi possível atualizar a senha. Tente novamente.');
       return;
     }
 
@@ -64,6 +97,16 @@ export default function ResetPasswordPage() {
           Informe uma nova senha para seguir ao login.
         </p>
 
+        {isLoadingSession ? (
+          <div className="w-full bg-zinc-950/80 border border-zinc-800 text-zinc-300 text-[11px] p-3 rounded-lg text-center mb-4 font-semibold">
+            Verificando o link de recuperação...
+          </div>
+        ) : sessionError ? (
+          <div className="w-full bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] p-3 rounded-lg text-center mb-4 font-semibold">
+            {sessionError}
+          </div>
+        ) : null}
+
         {errorMsg && (
           <div className="w-full bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] p-3 rounded-lg text-center mb-4 font-semibold">
             {errorMsg}
@@ -71,6 +114,7 @@ export default function ResetPasswordPage() {
         )}
 
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
+          <fieldset disabled={isSubmitting || isLoadingSession || Boolean(sessionError)} className="space-y-0">
           <div className="flex flex-col gap-1 relative">
             <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
               Nova senha
@@ -81,7 +125,7 @@ export default function ResetPasswordPage() {
               onChange={(event) => setPassword(event.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700 pr-10"
               placeholder="••••••••"
-              minLength={6}
+              minLength={8}
               required
             />
             <button
@@ -93,6 +137,7 @@ export default function ResetPasswordPage() {
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+          <PasswordStrengthIndicator password={password} />
 
           <div className="flex flex-col gap-1 relative">
             <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
@@ -119,11 +164,12 @@ export default function ResetPasswordPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoadingSession || Boolean(sessionError) || !isPasswordValid(password)}
             className="w-full bg-zinc-100 hover:bg-white text-zinc-900 font-bold py-2.5 rounded-lg text-sm transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Salvando...' : 'Salvar Nova Senha'}
           </button>
+        </fieldset>
         </form>
 
         <button
