@@ -32,7 +32,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login')
+  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/auth/reset-password'
 
   if (!user && !isAuthRoute) {
     // If not authenticated and trying to access a protected route
