@@ -16,7 +16,7 @@ const navItems = [
 export function Navigation({ isMobile }: { isMobile: boolean }) {
   const pathname = usePathname();
 
-  if (pathname === '/login') return null;
+  if (pathname === '/login' || pathname.startsWith('/auth')) return null;
 
   if (isMobile) {
     return (

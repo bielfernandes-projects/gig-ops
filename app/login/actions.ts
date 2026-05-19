@@ -67,6 +67,22 @@ export async function signup(formData: FormData) {
   return { success: true };
 }
 
+export async function forgotPassword(formData: FormData) {
+  const supabase = await createClient();
+  const email = formData.get('email') as string;
+  const origin = (formData.get('origin') as string) || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/reset-password`,
+  });
+
+  if (error) {
+    return { error: 'Não foi possível enviar o link de recuperação. Verifique o e-mail e tente novamente.' };
+  }
+
+  return { success: true };
+}
+
 export async function signout() {
   const supabase = await createClient();
   await supabase.auth.signOut();

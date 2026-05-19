@@ -8,8 +8,9 @@ const nextConfig: NextConfig = {
         destination: '/dashboard',
         permanent: true,
       },
-    ]
+    ];
   },
+  allowedDevOrigins: ['192.168.40.18'],
 };
 
 export default nextConfig;

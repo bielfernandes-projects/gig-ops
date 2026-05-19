@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { login, signup, forgotPassword } from './actions';
 
-export default function LoginPage() {
+export default function LoginClient() {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -16,7 +16,6 @@ export default function LoginPage() {
   const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   useEffect(() => {
-    console.log('LoginPage hydrated');
     let timer: NodeJS.Timeout;
     if (successMsg) {
       timer = setTimeout(() => {
@@ -162,27 +161,25 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 relative">
                     <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
                       Senha
                     </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        name="password"
-                        required
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700 pr-10"
-                        placeholder="••••••••"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((value) => !value)}
-                        className="absolute inset-y-0 right-3 flex items-center text-zinc-400 hover:text-zinc-100"
-                        aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      required
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700 pr-10"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((value) => !value)}
+                      className="absolute right-3 top-9 text-zinc-400 hover:text-zinc-100"
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
 
                   {!isLogin && (
