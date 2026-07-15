@@ -312,6 +312,7 @@ export async function addMemberToLineup(formData: FormData) {
   }
 
   revalidatePath(`/gigs/${gig_id}`);
+  revalidatePath('/agenda');
 
   // Fire push notification non-blocking (never breaks main flow)
   if (member_id) {

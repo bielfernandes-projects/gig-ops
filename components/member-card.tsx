@@ -2,13 +2,30 @@
 
 import { useState } from 'react';
 import { GoMember } from '@/lib/types';
-import { MessageCircle, X, Loader2 } from 'lucide-react';
-import { updateMember } from '@/app/actions/member-actions';
+import { MessageCircle, X, Loader2, Trash2 } from 'lucide-react';
+import { updateMember, deleteMember } from '@/app/actions/member-actions';
 import { toast } from 'sonner';
 
 export function MemberCard({ member, role }: { member: GoMember; role: string }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setIsPending(true);
+    const res = await deleteMember(member.id);
+    if (res.error) {
+      toast.error(`Erro ao excluir: ${res.error}`);
+      setIsPending(false);
+      setConfirmDelete(false);
+    } else {
+      toast.success(`${member.name} removido da equipe.`);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,9 +48,9 @@ export function MemberCard({ member, role }: { member: GoMember; role: string })
   return (
     <>
       <div className={`flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-xl p-4 group transition-colors select-none ${role === 'admin' ? 'hover:bg-zinc-800 cursor-pointer' : ''}`}>
-        <div 
+        <div
           className="flex flex-col flex-1"
-          onClick={() => { if (role === 'admin') setIsEditing(true) }}
+          onClick={() => { if (role === 'admin') { setConfirmDelete(false); setIsEditing(true); } }}
         >
           <h3 className="font-bold text-zinc-100 text-base">{member.name}</h3>
           <span className="text-xs uppercase font-semibold text-zinc-500 tracking-wider">
@@ -41,19 +58,34 @@ export function MemberCard({ member, role }: { member: GoMember; role: string })
           </span>
         </div>
         
-        {member.phone ? (
-          <a 
-            href={`https://wa.me/${member.phone}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-10 h-10 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 transition-colors rounded-full shrink-0"
-          >
-            <MessageCircle className="w-5 h-5" />
-          </a>
-        ) : (
-          <div className="w-10 h-10 opacity-0 shrink-0" />
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {member.phone ? (
+            <a
+              href={`https://wa.me/${member.phone}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center w-10 h-10 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 transition-colors rounded-full shrink-0"
+            >
+              <MessageCircle className="w-5 h-5" />
+            </a>
+          ) : null}
+
+          {role === 'admin' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+              disabled={isPending}
+              className={`flex items-center justify-center w-10 h-10 rounded-full shrink-0 transition-colors disabled:opacity-50 ${
+                confirmDelete
+                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                  : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300'
+              }`}
+              title={confirmDelete ? 'Clique novamente para confirmar' : 'Excluir músico'}
+            >
+              {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+            </button>
+          )}
+        </div>
       </div>
 
       {isEditing && (

@@ -319,17 +319,19 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
       {/* Lineup Section */}
       <section>
-        <div className="flex items-end justify-between mb-4 px-1">
-          <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase flex items-center gap-2">
-            Escala de Músicos
-          </h2>
-          <span className="text-xs font-bold px-2 py-1 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg">
-            {lineup.length} Confirmados
-          </span>
-        </div>
+        {role === 'admin' && (
+          <div className="flex items-end justify-between mb-4 px-1">
+            <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase flex items-center gap-2">
+              Escala de Músicos
+            </h2>
+            <span className="text-xs font-bold px-2 py-1 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg">
+              {lineup.length} Confirmados
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3">
-          {lineup.length === 0 && (
+          {lineup.length === 0 && role === 'admin' && (
             <div className="p-8 text-center text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
               Nenhuma escala montada para este evento ainda.
             </div>

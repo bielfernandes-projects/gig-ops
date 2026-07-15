@@ -87,3 +87,35 @@ export async function updateMember(formData: FormData) {
   revalidatePath('/gigs/[id]', 'page');
   return { success: true };
 }
+
+export async function deleteMember(memberId: string) {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Não autenticado.' };
+
+  if (!memberId) return { error: 'ID do músico inválido.' };
+
+  const { data: member, error: fetchError } = await supabase
+    .from('go_members')
+    .select('id, name')
+    .eq('id', memberId)
+    .eq('admin_id', adminId)
+    .single();
+
+  if (fetchError || !member) return { error: 'Músico não encontrado.' };
+
+  const { error } = await supabase
+    .from('go_members')
+    .delete()
+    .eq('id', memberId)
+    .eq('admin_id', adminId);
+
+  if (error) {
+    console.error('Error deleting member:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath('/members');
+  revalidatePath('/gigs/[id]', 'page');
+  revalidatePath('/agenda');
+  return { success: true };
+}

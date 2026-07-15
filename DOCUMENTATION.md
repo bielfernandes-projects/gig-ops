@@ -21,12 +21,14 @@ O sistema possui uma arquitetura de permissões focada em privacidade, com duas 
   * Pode criar, editar e excluir Gigs (shows), Projetos e Membros.
   * Define os cachês individuais e gerencia o pagamento (baixa financeira) da equipe e do equipamento de som.
   * Tem acesso ao campo de "Observações" dos shows (dados sensíveis/contratuais).
+  * Visualiza e gerencia a seção "Escala de Músicos" na página de detalhes do show (adicionar, editar cachê, remover, confirmar pagamento).
 
 * **Músico Convidado (Viewer):**
   * Visualiza apenas a própria realidade. Não vê os cachês dos colegas nem o lucro da empresa.
   * O painel financeiro exibe exclusivamente o "Meu Cachê" (soma dos valores nos shows em que está escalado).
   * Não visualiza o bloco de "Observações" do contratante.
-  * Possui link de calendário exclusivo para sincronizar apenas os shows nos quais foi escalado.
+  * Visualiza os membros da escala na página do show (somente nome e instrumento, sem valores nem controles).
+  * Não visualiza a seção "Escala de Músicos" (cabeçalho, badge de confirmados e botão de adicionar).
 
 ---
 
@@ -48,12 +50,17 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 
 ### 5.1. Gestão de Agenda e Escala
 * **Criação de Gigs:** Admins definem data via componente de Calendário interativo e selecionam horários e local.
-* **Escala de Músicos:** Admins selecionam membros do banco de talentos, definindo o cachê de cada um para aquele evento específico.
+* **Escala de Músicos:** Admins selecionam membros do banco de talentos via busca com autocomplete (digite para filtrar, clique para selecionar). Membros não cadastrados podem ser adicionados como "avulsos" (apenas para aquela gig).
 * **Cópia Rápida de Logística:** Botão na Home que extrai Título, Data, Horário e Local para a área de transferência, omitindo as observações privadas.
 * **Duplicação de Gigs:** Funcionalidade que permite clonar todos os dados de uma Gig existente (Logística, Custos de Som, Observações, etc.) para um novo evento, agilizando turnês e shows recorrentes.
 * **Cancelamento com Notificação:** A exclusão de um show exige o preenchimento de um motivo obrigatório, que é disparado via Push Notification para toda a lineup escalada.
 * **Cópia de E-mail para Gestão:** Na aba Perfil (Gestão de Banda), admins podem copiar o e-mail de novos músicos registrados para facilitar a atualização de seus dados no banco de talentos.
 * **QuickAddGig Completo:** O modal de criação rápida agora inclui todos os campos: titulo, projeto, local, datas, valor bruto, equipamento de som (toggle + custo + responsavel), escala de musicos (seleção + cachê individual), repetição, observações e lembretes push.
+
+### 5.1.1. Gestão de Membros (Equipe)
+* **Cadastro:** Admins criam membros com nome, instrumento, WhatsApp (opcional) e e-mail (opcional). O e-mail vincula o membro ao login do app.
+* **Edição:** Clique no card do membro para editar nome, instrumento, WhatsApp e e-mail.
+* **Exclusão:** Botão de lixeira no card do membro (confirmação em dois cliques). Remove o membro do banco de talentos. Membros escalados em gigs anteriores permanecem no histórico da lineup.
 
 ### 5.2. Motor Financeiro e Pendências
 * **Cálculo de Lucro Líquido:** O sistema calcula em tempo real o lucro do evento: `Lucro = Cachê Bruto - Custo do Som - Soma(Cachês da Lineup)`.
