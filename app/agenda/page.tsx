@@ -336,10 +336,10 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
     : startStr;
 
   return (
-    <div className={`flex w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm group hover:border-zinc-700 transition-colors ${isPastFullyPaid ? 'opacity-40 grayscale' : ''}`}>
+    <div className={`flex w-full bg-zinc-900 border border-zinc-800 rounded-xl shadow-sm group hover:border-zinc-700 transition-colors ${isPastFullyPaid ? 'opacity-40 grayscale' : ''}`}>
       {/* Date column */}
       <div
-        className="flex flex-col items-center justify-center px-4 py-5 bg-zinc-950 border-r border-zinc-800 min-w-[64px] shrink-0"
+        className="flex flex-col items-center justify-center px-4 py-5 bg-zinc-950 border-r border-zinc-800 min-w-[64px] shrink-0 rounded-l-xl overflow-hidden"
         style={{ borderLeftColor: projectColor, borderLeftWidth: 3 }}
       >
         <span className="text-[9px] font-bold text-zinc-600 tracking-wider uppercase mb-0.5">{weekday}</span>

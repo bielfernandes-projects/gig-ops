@@ -34,7 +34,8 @@ export async function getUserInfo(): Promise<UserInfo> {
           .from('go_members')
           .select('id')
           .eq('email', email)
-          .single()
+          .eq('admin_id', user.id)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
