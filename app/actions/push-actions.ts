@@ -35,6 +35,12 @@ export async function savePushSubscription(userId: string, subscription: PushSub
 
 /** Send a push notification to all subscriptions belonging to a member (by their member_id in go_members) */
 export async function sendPushToMember(memberId: string, payload: { title: string; body: string; url?: string }) {
+  const enrichedPayload = {
+    ...payload,
+    icon: '/icon-192x192.png',
+    badge: '/badge-icon.png',
+  };
+
   try {
     // 1. Get member email from go_members
     const { data: member } = await supabaseAdmin
@@ -63,7 +69,7 @@ export async function sendPushToMember(memberId: string, payload: { title: strin
     if (!subscriptions || subscriptions.length === 0) return;
 
     // 4. Send notification to each subscription (fire & forget, don't break main flow)
-    const payloadStr = JSON.stringify(payload);
+    const payloadStr = JSON.stringify(enrichedPayload);
     await Promise.allSettled(
       subscriptions.map(async (row) => {
         try {
@@ -86,6 +92,12 @@ export async function sendPushToMember(memberId: string, payload: { title: strin
 }
 /** Send a push notification to all active admins */
 export async function sendPushToAdmins(payload: { title: string; body: string; url?: string }) {
+  const enrichedPayload = {
+    ...payload,
+    icon: '/icon-192x192.png',
+    badge: '/badge-icon.png',
+  };
+
   try {
     // 1. Get all admin profiles
     const { data: adminProfiles } = await supabaseAdmin
@@ -96,7 +108,7 @@ export async function sendPushToAdmins(payload: { title: string; body: string; u
     if (!adminProfiles || adminProfiles.length === 0) return;
 
     // 2. For each admin, fetch their subscriptions and send in parallel
-    const payloadStr = JSON.stringify(payload);
+    const payloadStr = JSON.stringify(enrichedPayload);
 
     await Promise.allSettled(
       adminProfiles.map(async (admin) => {

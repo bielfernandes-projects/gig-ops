@@ -121,6 +121,8 @@ export async function GET(req: Request) {
           title: `Lembrete: ${title}`,
           body: `${dateStr} as ${timeStr}. Nao esqueca!`,
           url: `/gigs/${gig.id}`,
+          icon: '/icon-192x192.png',
+          badge: '/badge-icon.png',
         });
 
         // Send to all subscriptions

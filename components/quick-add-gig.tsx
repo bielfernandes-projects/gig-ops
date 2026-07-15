@@ -24,6 +24,8 @@ export function QuickAddGig({ projects, members, cloneData }: { projects: GoProj
   const [bringSound, setBringSound] = useState(false);
   const [lineup, setLineup] = useState<LineupEntry[]>([]);
   const [reminderMinutes, setReminderMinutes] = useState<number[]>([]);
+  const [endDefault, setEndDefault] = useState('');
+  const [endKey, setEndKey] = useState(0);
   const isClone = !!cloneData;
 
   useEffect(() => {
@@ -48,14 +50,11 @@ export function QuickAddGig({ projects, members, cloneData }: { projects: GoProj
 
   const handleStartTimeChange = useCallback((isoValue: string) => {
     if (!isoValue) return;
-    const endDateInput = document.querySelector<HTMLInputElement>('[name="end_time"]');
-    if (endDateInput && !endDateInput.value) {
-      const start = new Date(isoValue);
-      start.setHours(start.getHours() + 2);
-      const pad = (n: number) => String(n).padStart(2, '0');
-      endDateInput.value = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}T${pad(start.getHours())}:${pad(start.getMinutes())}`;
-      endDateInput.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    const start = new Date(isoValue);
+    start.setHours(start.getHours() + 2);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setEndDefault(`${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}T${pad(start.getHours())}:${pad(start.getMinutes())}`);
+    setEndKey(k => k + 1);
   }, []);
 
   const addLineupMember = (memberId: string) => {
@@ -223,8 +222,10 @@ export function QuickAddGig({ projects, members, cloneData }: { projects: GoProj
               />
 
               <DateTimePicker
+                key={`end-${endKey}`}
                 name="end_time"
                 label="Termino (opcional)"
+                defaultValue={endDefault}
               />
 
               <div className="flex flex-col gap-1.5">
