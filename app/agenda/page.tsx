@@ -277,7 +277,7 @@ export default async function Home({
         )}
       </main>
 
-      {role === 'admin' && <QuickAddGig projects={projects} members={members} cloneData={cloneData} />}
+      {role === 'admin' && <QuickAddGig projects={projects} members={members} cloneData={cloneData} adminMemberId={userMemberId} />}
 
       {/* Pending Gigs Section */}
       {pendingGigs.length > 0 && (
@@ -305,7 +305,7 @@ export default async function Home({
 
 // ─── GigCard ────────────────────────────────────────────────────────────────
 
-function GigCard({ gig, lineupData, userMemberId, isPastFullyPaid = false }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null, isPastFullyPaid?: boolean }) {
+function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null, isPastFullyPaid?: boolean }) {
   const lineupFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
   
@@ -355,11 +355,6 @@ function GigCard({ gig, lineupData, userMemberId, isPastFullyPaid = false }: { g
             <span className="text-[10px] font-bold tracking-widest uppercase truncate" style={{ color: projectColor }}>
               {gig.go_projects?.name || '—'}
             </span>
-            {isGigPronta && (
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500 uppercase tracking-tighter">
-                Gig OK
-              </span>
-            )}
           </div>
         </div>
         <h2 className={`text-base font-bold text-zinc-100 leading-snug break-words mb-2 line-clamp-2 ${isPastFullyPaid ? 'line-through' : ''}`}>
@@ -376,12 +371,23 @@ function GigCard({ gig, lineupData, userMemberId, isPastFullyPaid = false }: { g
 
         {/* Financial row */}
         <div className="mt-auto flex items-center justify-between pt-2.5 border-t border-zinc-800/60">
-          <span className="text-xs text-zinc-500 font-medium">R$ {gig.gross_value.toFixed(2)}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-500 font-medium">R$ {gig.gross_value.toFixed(2)}</span>
+            {isGigPronta && (
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500 uppercase tracking-tighter">
+                Gig OK
+              </span>
+            )}
+          </div>
           {!isNotScheduled ? (
             <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
               estimatedProfit >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'
             }`}>
               R$ {estimatedProfit.toFixed(2)}
+            </span>
+          ) : role === 'admin' ? (
+            <span className="text-xs text-zinc-600 font-medium">
+              R$ 0,00
             </span>
           ) : (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-md text-zinc-500 bg-zinc-800/50 uppercase tracking-widest">

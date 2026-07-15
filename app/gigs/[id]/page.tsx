@@ -133,14 +133,18 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
   let viewerFee = 0;
   let viewerNotScheduled = false;
+  let adminMyLineup: LineupWithMember | undefined;
+
+  const myLineup = lineup.find(l => l.member_id === userMemberId);
 
   if (role === 'viewer') {
-    const myLineup = lineup.find(l => l.member_id === userMemberId);
     if (myLineup) {
       viewerFee = myLineup.fee_amount;
     } else {
       viewerNotScheduled = true;
     }
+  } else if (role === 'admin') {
+    adminMyLineup = myLineup;
   }
 
   return (
@@ -156,14 +160,6 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           </BackButton>
 
           <div className="flex items-center gap-2">
-            <AddToCalendarButton
-              title={gigData.title}
-              projectName={gigData.go_projects?.name}
-              start_time={gigData.start_time}
-              end_time={gigData.end_time}
-              location={gigData.location}
-              compact
-            />
             {/* Edit Gig Button — admin only */}
             {role === 'admin' && (
               <EditGigModal gig={gigData} projects={projects} members={members} />
@@ -241,6 +237,18 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             )}
           </div>
         </div>
+
+        {/* Full-width Add to Calendar button */}
+        <div className="mt-6">
+          <AddToCalendarButton
+            title={gigData.title}
+            projectName={gigData.go_projects?.name}
+            start_time={gigData.start_time}
+            end_time={gigData.end_time}
+            location={gigData.location}
+            fullWidth
+          />
+        </div>
       </header>
 
       {/* Financial Summary Card */}
@@ -276,12 +284,21 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             <div className="hidden md:block w-px h-12 bg-zinc-800" />
 
             {role === 'admin' ? (
-              <div className="flex flex-col gap-1.5 md:items-end">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Lucro Líquido</span>
-                <span className={`text-2xl md:text-3xl font-black tracking-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  R$ {netProfit.toFixed(2)}
-                </span>
-              </div>
+              adminMyLineup ? (
+                <div className="flex flex-col gap-1.5 md:items-end">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Seu Cachê</span>
+                  <span className="text-2xl md:text-3xl font-black tracking-tight text-emerald-400">
+                    R$ {adminMyLineup.fee_amount.toFixed(2)}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5 md:items-end">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Lucro Líquido</span>
+                  <span className={`text-2xl md:text-3xl font-black tracking-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    R$ {netProfit.toFixed(2)}
+                  </span>
+                </div>
+              )
             ) : (
               <div className="flex flex-col gap-1.5 md:items-end">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Meu Cachê</span>

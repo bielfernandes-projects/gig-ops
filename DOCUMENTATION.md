@@ -51,6 +51,7 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 ### 5.1. Gestão de Agenda e Escala
 * **Criação de Gigs:** Admins definem data via componente de Calendário interativo e selecionam horários e local.
 * **Escala de Músicos:** Admins selecionam membros do banco de talentos via busca com autocomplete (digite para filtrar, clique para selecionar). Membros não cadastrados podem ser adicionados como "avulsos" (apenas para aquela gig).
+* **Auto-Escala do Admin:** Ao criar uma nova gig, o admin (se tiver registro de membro com o mesmo e-mail do login) já entra automaticamente na escala com cachê 0, editável.
 * **Cópia Rápida de Logística:** Botão na Home que extrai Título, Data, Horário e Local para a área de transferência, omitindo as observações privadas.
 * **Duplicação de Gigs:** Funcionalidade que permite clonar todos os dados de uma Gig existente (Logística, Custos de Som, Observações, etc.) para um novo evento, agilizando turnês e shows recorrentes.
 * **Cancelamento com Notificação:** A exclusão de um show exige o preenchimento de um motivo obrigatório, que é disparado via Push Notification para toda a lineup escalada.
@@ -62,11 +63,17 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 * **Edição:** Clique no card do membro para editar nome, instrumento, WhatsApp e e-mail.
 * **Exclusão:** Botão de lixeira no card do membro (confirmação em dois cliques). Remove o membro do banco de talentos. Membros escalados em gigs anteriores permanecem no histórico da lineup.
 
+### 5.1.2. Visão no Card da Agenda (Diferenciação por Role)
+* **Admin:** Não exibe a badge "Não Escalado" no card. Se o admin não estiver na lineup, mostra "R$ 0,00" silenciosamente (admins são donos de todas as gigs, então "Não Escalado" não se aplica).
+* **Viewer:** Exibe "Meu Cachê" ou "Não Escalado" normalmente.
+* **Badge "Gig OK":** Movido para a linha financeira (ao lado do valor bruto), evitando o espaço apertado no topo do card.
+
 ### 5.2. Motor Financeiro e Pendências
 * **Cálculo de Lucro Líquido:** O sistema calcula em tempo real o lucro do evento: `Lucro = Cachê Bruto - Custo do Som - Soma(Cachês da Lineup)`.
 * **Diferenciação de Visão:** 
   * **Home (Próximos):** Exibe o Lucro Estimado (o que a banda "ainda vai ganhar").
   * **Perfil (Dashboard):** Exibe o Lucro Realizado (só entra no gráfico o que já foi marcado como 'Pago').
+* **"Seu Cachê" para Admin Escalado:** Na página de detalhes da gig, quando o admin está escalado (consta na lineup), o card de resumo financeiro exibe "Seu Cachê" com o valor do fee do admin em vez de "Lucro Líquido".
 * **Motor de Pendências (Contas a Pagar):** 
   * O sistema varre eventos passados (`data < agora`).
   * Se houver músico pendente OU som não pago, o evento fica na seção amarela de **"Pendentes"** na Home.
@@ -77,10 +84,13 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 * **Privacidade:** A exportação omite campos sensíveis como "Observações".
 * **Assinatura Contínua:** Sincronização automática com Google Agenda, Apple Calendar e Outlook.
 * **Adição por Gig:** Botão "Calendário" na página de detalhes do show e na Agenda permite baixar `.ics` individual ou abrir direto no Google Calendar.
+* **Botão Full-Width na Gig:** Na página de detalhes da gig, há um botão grande "Adicionar ao Calendário" abaixo das informações do show, com dropdown para baixar `.ics` ou abrir no Google Calendar.
+* **Ícone Destaque no Card:** No card compacto da agenda, o botão de calendário tem fundo indigo/azul com borda, destacando-se dos demais ícones.
+* **Fuso Horário Google Calendar:** URL do Google Calendar inclui o parâmetro `ctz=America/Sao_Paulo` para garantir interpretação correta do fuso.
 * **Tokens Automáticos:** Admins recebem `calendar_token` ao criar conta; músicos recebem ao serem cadastrados.
 
 ### 5.4. Notificações Push (Web Push)
-* **Gatilho de Escala:** Quando o Admin salva a escala, o servidor dispara uma notificação via biblioteca `web-push` (VAPID) diretamente para o dispositivo cadastrado do músico.
+* **Gatilho de Escala:** Quando o Admin salva a escala, o servidor dispara uma notificação via biblioteca `web-push` (VAPID) diretamente para o dispositivo cadastrado do músico. O texto da push inclui menção ao calendário: `"Você foi escalado para um novo show. Abra o app para ver os detalhes e adicionar ao seu calendário."`. O `url` da notificação aponta para `/gigs/[id]`, que já exibe o botão de calendário em destaque.
 * **Gatilho de Cancelamento:** Ao cancelar um show com justificativa, todos os músicos impactados recebem o motivo em real-time.
 * **Aviso de Novo Cadastro:** Admins são notificados sempre que um novo usuário entra na plataforma utilizando o código de convite da banda.
 

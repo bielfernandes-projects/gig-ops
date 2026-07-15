@@ -319,7 +319,7 @@ export async function addMemberToLineup(formData: FormData) {
     try {
       await sendPushToMember(member_id, {
         title: 'Nova Gig Escalada! 🎸',
-        body: 'Você foi escalado para um novo show. Abra o app para ver os detalhes.',
+        body: 'Você foi escalado para um novo show. Abra o app para ver os detalhes e adicionar ao seu calendário.',
         url: `/gigs/${gig_id}`,
       });
     } catch (e) {

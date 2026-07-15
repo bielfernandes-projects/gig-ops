@@ -15,7 +15,7 @@ interface LineupEntry {
   fee_amount: number;
 }
 
-export function QuickAddGig({ projects, members, cloneData }: { projects: GoProject[]; members: GoMember[]; cloneData?: Partial<GoGig> | null }) {
+export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { projects: GoProject[]; members: GoMember[]; cloneData?: Partial<GoGig> | null; adminMemberId?: string | null }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -38,6 +38,21 @@ export function QuickAddGig({ projects, members, cloneData }: { projects: GoProj
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Pre-fill the admin as a default lineup member when the modal opens (only for new gigs, not clones)
+  useEffect(() => {
+    if (!isOpen || isClone || !adminMemberId) return;
+    const adminMember = members.find(m => m.id === adminMemberId);
+    if (!adminMember) return;
+    if (lineup.some(l => l.member_id === adminMemberId)) return;
+    setLineup([{
+      member_id: adminMember.id,
+      name: adminMember.name,
+      instrument: adminMember.instrument,
+      fee_amount: 0,
+    }]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
