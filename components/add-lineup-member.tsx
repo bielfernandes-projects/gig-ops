@@ -6,17 +6,27 @@ import { addMemberToLineup } from '@/app/actions/gig-actions';
 import { GoMember } from '@/lib/types';
 import { toast } from 'sonner';
 
+const CUSTOM_VALUE = '__custom__';
+
 export function AddLineupMember({ gigId, members }: { gigId: string, members: GoMember[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedValue, setSelectedValue] = useState('');
+
+  const filteredMembers = members.filter((m) =>
+    m.name.toLowerCase().includes(search.toLowerCase()) ||
+    m.instrument.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const isCustom = selectedValue === CUSTOM_VALUE;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
     const formData = new FormData(e.currentTarget);
     formData.append('gig_id', gigId);
-    
+
     const res = await addMemberToLineup(formData);
 
     if (res.error) {
@@ -26,16 +36,14 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
       setIsOpen(false);
       setIsPending(false);
       setSearch('');
+      setSelectedValue('');
       toast.success('Músico escalado com sucesso!');
     }
   };
 
-  const matchedMember = members.find((m) => m.name.toLowerCase() === search.trim().toLowerCase());
-  const isCustom = search.trim().length > 0 && !matchedMember;
-
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="mt-3 w-full flex items-center justify-center gap-2 bg-transparent border-2 border-dashed border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50 rounded-xl p-5 transition-all group outline-none select-none"
       >
@@ -45,16 +53,16 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             onClick={() => !isPending && setIsOpen(false)}
             aria-hidden="true"
           />
-          
+
           <div className="relative w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold tracking-tight text-zinc-100">Escalar Músico</h2>
-              <button 
+              <button
                 onClick={() => !isPending && setIsOpen(false)}
                 disabled={isPending}
                 className="p-1 rounded-full text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors disabled:opacity-50"
@@ -65,27 +73,51 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="musician_name" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
-                  Músico / Instrumento
+                <label htmlFor="member-search" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                  Buscar Músico
                 </label>
-                <input 
-                  id="musician_name" 
-                  name="musician_name" 
+                <input
+                  id="member-search"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  list="members-list"
-                  placeholder="Nome do músico..."
-                  required
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setSelectedValue('');
+                  }}
+                  placeholder="Nome ou instrumento..."
                   autoFocus
                   autoComplete="off"
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                 />
-                <datalist id="members-list">
-                  {members.map((m) => (
-                    <option key={m.id} value={m.name}>{m.instrument}</option>
-                  ))}
-                </datalist>
-                <input type="hidden" name="musician_id" value={matchedMember ? matchedMember.id : ''} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                  Selecionar
+                </label>
+                {members.length === 0 ? (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-4 text-center">
+                    <p className="text-sm text-zinc-500">Nenhum músico cadastrado.</p>
+                    <p className="text-xs text-zinc-600 mt-1">Cadastre membros no menu {'"Equipe"'} primeiro.</p>
+                  </div>
+                ) : (
+                  <select
+                    name="musician_id"
+                    value={selectedValue}
+                    onChange={(e) => setSelectedValue(e.target.value)}
+                    required
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>Selecione um músico...</option>
+                    {filteredMembers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name} — {m.instrument}</option>
+                    ))}
+                    {filteredMembers.length === 0 && search.trim().length > 0 && (
+                      <option value={CUSTOM_VALUE}>{`Membro avulso: "${search.trim()}"`}</option>
+                    )}
+                    <option value={CUSTOM_VALUE}>+ Membro avulso</option>
+                  </select>
+                )}
+                <input type="hidden" name="musician_name" value={isCustom ? search.trim() : ''} />
               </div>
 
               {isCustom && (
@@ -93,12 +125,12 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
                   <label htmlFor="custom_instrument" className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">
                     Instrumento / Função
                   </label>
-                  <input 
-                    type="text" 
-                    id="custom_instrument" 
-                    name="custom_instrument" 
+                  <input
+                    type="text"
+                    id="custom_instrument"
+                    name="custom_instrument"
                     placeholder="Ex: Baixo, Fotografia, etc..."
-                    required 
+                    required
                     className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2 text-sm text-emerald-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-emerald-500/30"
                   />
                   <p className="text-[10px] text-zinc-500 font-medium">Membro avulso. Será adicionado apenas a este show.</p>
@@ -113,22 +145,22 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <span className="text-zinc-500 text-sm font-semibold">R$</span>
                   </div>
-                  <input 
-                    type="number" 
-                    id="agreed_fee" 
-                    name="agreed_fee" 
+                  <input
+                    type="number"
+                    id="agreed_fee"
+                    name="agreed_fee"
                     placeholder="0.00"
                     step="0.01"
                     inputMode="decimal"
-                    required 
+                    required
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-md pl-9 pr-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600"
                   />
                 </div>
               </div>
 
-              <button 
-                type="submit" 
-                disabled={isPending}
+              <button
+                type="submit"
+                disabled={isPending || (members.length > 0 && !selectedValue)}
                 className="mt-2 w-full flex items-center justify-center gap-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold py-2.5 rounded-md transition-colors active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed select-none"
               >
                 {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Adicionar à Escala'}
