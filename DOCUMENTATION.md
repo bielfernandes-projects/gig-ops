@@ -67,6 +67,9 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 * **Geração Dinâmica:** Rotas API `/api/calendar/[token]` traduzem os dados para o padrão universal `.ics`.
 * **Privacidade:** A exportação omite campos sensíveis como "Observações".
 * **Assinatura Contínua:** Sincronização automática com Google Agenda, Apple Calendar e Outlook.
+* **Adição por Gig:** Botão "Calendário" na página de detalhes do show e na Agenda permite baixar `.ics` individual ou abrir direto no Google Calendar.
+* **Banner de Assinatura:** Página da Agenda exibe callout com link de assinatura iCal para configuração automática.
+* **Tokens Automáticos:** Admins recebem `calendar_token` ao criar conta; músicos recebem ao serem cadastrados.
 
 ### 5.4. Notificações Push (Web Push)
 * **Gatilho de Escala:** Quando o Admin salva a escala, o servidor dispara uma notificação via biblioteca `web-push` (VAPID) diretamente para o dispositivo cadastrado do músico.
@@ -101,3 +104,35 @@ Para otimizar o uso em celulares:
 
 * **Adição de Novo Músico:** Admin cadastra o músico com e-mail real -> Músico cria conta -> O sistema vincula automaticamente.
 * **Pagamento de Som:** Realizado no modal da Gig ou na página de detalhes, impactando diretamente o cálculo de pendências e lucro realizado.
+
+---
+
+## 8. Variáveis de Ambiente
+
+| Variável | Descrição |
+|----------|-----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anônima do Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Chave de serviço (admin) do Supabase |
+| `NEXT_PUBLIC_SITE_URL` | URL base do app (localhost ou Vercel) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Chave pública VAPID (Web Push) |
+| `VAPID_PRIVATE_KEY` | Chave privada VAPID (Web Push) |
+| `VAPID_ADMIN_EMAIL` | E-mail do admin VAPID |
+
+---
+
+## 9. Componentes de Calendário
+
+| Componente | Arquivo | Uso |
+|------------|---------|-----|
+| `AddToCalendarButton` | `components/add-to-calendar-button.tsx` | Dropdown com "Baixar .ics" e "Abrir no Google Calendar". Usado na página do gig (ícone) e na agenda (compacto). |
+| `CalendarSubscriptionBanner` | `components/calendar-subscription-banner.tsx` | Callout na Agenda com link de assinatura iCal pra sincronização automática. |
+
+---
+
+## 10. Configuração do Supabase Auth
+
+* **Site URL:** `https://minhabanda.vercel.app/`
+* **URI Allow List:** `http://localhost:3000/*`, `https://minhabanda.vercel.app/*`
+* **Email autoconfirm:** Ativado (não precisa confirmar email)
+* **Senha:** Mínimo 8 caracteres, maiúscula + minúscula + número + especial

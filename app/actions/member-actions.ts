@@ -33,9 +33,11 @@ export async function addMember(formData: FormData) {
 
   const email = emailRaw ? emailRaw.trim() : null;
 
+  const calendarToken = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+
   const { error } = await supabase
     .from('go_members')
-    .insert([{ name, instrument, phone: phone || null, email, admin_id: adminId }]);
+    .insert([{ name, instrument, phone: phone || null, email, admin_id: adminId, calendar_token: calendarToken }]);
 
   if (error) {
     console.error('Error inserting member:', error);

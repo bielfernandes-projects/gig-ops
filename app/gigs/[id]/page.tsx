@@ -8,6 +8,7 @@ import { LineupMemberCard } from '@/components/lineup-member-card';
 import { EditGigModal } from '@/components/edit-gig-modal';
 import { ToggleSoundPaymentButton } from './toggle-sound-payment-button';
 import { BackButton } from '@/components/back-button';
+import { AddToCalendarButton } from '@/components/add-to-calendar-button';
 import { getUserInfo } from '@/lib/auth';
 
 export const revalidate = 0;
@@ -155,10 +156,20 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             Voltar para Timeline
           </BackButton>
 
-          {/* Edit Gig Button — admin only */}
-          {role === 'admin' && (
-            <EditGigModal gig={gigData} projects={projects} members={members} />
-          )}
+          <div className="flex items-center gap-2">
+            <AddToCalendarButton
+              title={gigData.title}
+              projectName={gigData.go_projects?.name}
+              start_time={gigData.start_time}
+              end_time={gigData.end_time}
+              location={gigData.location}
+              compact
+            />
+            {/* Edit Gig Button — admin only */}
+            {role === 'admin' && (
+              <EditGigModal gig={gigData} projects={projects} members={members} />
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col gap-4">

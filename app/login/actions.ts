@@ -16,7 +16,8 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(data);
 
   if (error) {
-    return { error: 'E-mail ou senha inválidos.' };
+    console.error('Login error:', error.message, error.status);
+    return { error: `[${error.status}] ${error.message}` };
   }
 
   revalidatePath('/', 'layout');
@@ -108,6 +109,15 @@ export async function adminSignup(formData: FormData) {
     // Rollback is not feasible here (auth user already created)
     return { error: 'Conta criada, mas houve um erro ao configurar perfil. Entre em contato com o suporte.' };
   }
+
+  // Create go_settings with auto-generated calendar_token for the new admin
+  const calendarToken = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  await supabase
+    .from('go_settings')
+    .upsert(
+      { admin_id: data.user.id, calendar_token: calendarToken },
+      { onConflict: 'admin_id' }
+    );
 
   return { success: true };
 }

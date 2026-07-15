@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase';
 import { QuickAddGig } from '@/components/quick-add-gig';
 import { FilterTabs } from '@/components/filter-tabs';
 import { CopyLogisticsButton } from '@/components/copy-logistics-button';
+import { AddToCalendarButton } from '@/components/add-to-calendar-button';
+import { CalendarSubscriptionBanner } from '@/components/calendar-subscription-banner';
 import { GigWithProject, GoProject, GoLineup } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import Link from 'next/link';
@@ -89,6 +91,24 @@ export default async function Home({
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const { role, memberId: userMemberId, userId } = await getUserInfo();
+
+  // Fetch calendar token for subscription banner
+  let calendarToken: string | null = null;
+  if (role === 'admin' && userId) {
+    const { data: settingsData } = await supabase
+      .from('go_settings')
+      .select('calendar_token')
+      .eq('admin_id', userId)
+      .maybeSingle();
+    calendarToken = settingsData?.calendar_token || null;
+  } else if (userMemberId) {
+    const { data: memberData } = await supabase
+      .from('go_members')
+      .select('calendar_token')
+      .eq('id', userMemberId)
+      .single();
+    calendarToken = memberData?.calendar_token || null;
+  }
 
   // Build queries with admin_id isolation for admin users
   let gigsQuery = supabase
@@ -204,6 +224,9 @@ export default async function Home({
           <FilterTabs projects={projects} />
         </Suspense>
       </header>
+
+      {/* Calendar subscription callout */}
+      <CalendarSubscriptionBanner calendarToken={calendarToken} />
 
       {error && (
         <div className="p-4 text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">
@@ -382,8 +405,16 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
         </div>
       </Link>
 
-      {/* Copy logistics button */}
-      <div className="flex items-start pt-3 pr-3 shrink-0">
+      {/* Action buttons */}
+      <div className="flex flex-col items-center gap-1 pt-3 pr-3 shrink-0">
+        <AddToCalendarButton
+          title={gig.title}
+          projectName={gig.go_projects?.name}
+          start_time={gig.start_time}
+          end_time={gig.end_time}
+          location={gig.location}
+          compact
+        />
         <CopyLogisticsButton gig={gig} />
       </div>
     </div>
