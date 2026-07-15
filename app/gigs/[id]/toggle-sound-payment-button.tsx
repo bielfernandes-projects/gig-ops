@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition, useOptimistic } from 'react';
+import { useState, useTransition } from 'react';
 import { toggleSoundPayment } from '@/app/actions/gig-actions';
 import { Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,29 +15,25 @@ export function ToggleSoundPaymentButton({
   role?: string;
 }) {
   const [isPending, startTransition] = useTransition();
-  
-  const [optimisticStatus, setOptimisticStatus] = useOptimistic(
-    currentStatus,
-    (state, newStatus: boolean) => newStatus
-  );
+  const [isPaid, setIsPaid] = useState(currentStatus);
 
   const handleToggle = () => {
     if (role === 'viewer') return;
     
+    const newStatus = !isPaid;
+    setIsPaid(newStatus);
+    
     startTransition(async () => {
-      setOptimisticStatus(!optimisticStatus);
-      
-      const res = await toggleSoundPayment(gigId, !optimisticStatus);
+      const res = await toggleSoundPayment(gigId, newStatus);
       
       if (res?.error) {
+        setIsPaid(isPaid);
         toast.error(`Erro: ${res.error}`);
       } else {
-        toast.success(!optimisticStatus ? 'Equipamento pago!' : 'Pagamento de som pendente');
+        toast.success(newStatus ? 'Equipamento pago!' : 'Pagamento de som pendente');
       }
     });
   };
-
-  const isPaid = optimisticStatus;
 
   return (
     <button

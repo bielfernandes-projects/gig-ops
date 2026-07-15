@@ -12,6 +12,8 @@ interface DateTimePickerProps {
   defaultValue?: string;
   /** Whether the field is required */
   required?: boolean;
+  /** Fires with the ISO string whenever date or time changes */
+  onChange?: (isoValue: string) => void;
 }
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -40,7 +42,7 @@ function getFirstDayOfWeek(year: number, month: number): number {
   return new Date(year, month, 1).getDay();
 }
 
-export function DateTimePicker({ name, label, defaultValue, required }: DateTimePickerProps) {
+export function DateTimePicker({ name, label, defaultValue, required, onChange }: DateTimePickerProps) {
   const initial = parseInitial(defaultValue);
   const today = new Date();
 
@@ -49,6 +51,12 @@ export function DateTimePicker({ name, label, defaultValue, required }: DateTime
   const [viewMonth, setViewMonth] = useState(initial.date?.getMonth() ?? today.getMonth());
   const [hour, setHour] = useState(initial.hour);
   const [minute, setMinute] = useState(initial.minute);
+
+  const emitChange = (date: Date | null, h: string, m: string) => {
+    if (!onChange) return;
+    if (!date) { onChange(''); return; }
+    onChange(new Date(date.getFullYear(), date.getMonth(), date.getDate(), Number(h), Number(m)).toISOString());
+  };
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDay = getFirstDayOfWeek(viewYear, viewMonth);
@@ -64,7 +72,9 @@ export function DateTimePicker({ name, label, defaultValue, required }: DateTime
   };
 
   const selectDay = (day: number) => {
-    setSelectedDate(new Date(viewYear, viewMonth, day));
+    const d = new Date(viewYear, viewMonth, day);
+    setSelectedDate(d);
+    emitChange(d, hour, minute);
   };
 
   const isSelected = (day: number) =>
@@ -173,7 +183,7 @@ export function DateTimePicker({ name, label, defaultValue, required }: DateTime
           <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest shrink-0">Hora</span>
           <select
             value={hour}
-            onChange={e => setHour(e.target.value)}
+            onChange={e => { setHour(e.target.value); emitChange(selectedDate, e.target.value, minute); }}
             className="flex-1 bg-transparent text-sm text-zinc-100 font-medium focus:outline-none appearance-none text-center"
           >
             {Array.from({ length: 24 }).map((_, h) => (
@@ -185,7 +195,7 @@ export function DateTimePicker({ name, label, defaultValue, required }: DateTime
           <span className="text-zinc-500 font-bold">:</span>
           <select
             value={minute}
-            onChange={e => setMinute(e.target.value)}
+            onChange={e => { setMinute(e.target.value); emitChange(selectedDate, hour, e.target.value); }}
             className="flex-1 bg-transparent text-sm text-zinc-100 font-medium focus:outline-none appearance-none text-center"
           >
             {['00', '15', '30', '45'].map(m => (

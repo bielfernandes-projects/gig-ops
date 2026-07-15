@@ -3,11 +3,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Calendar, Bell, Copy, Check, Clipboard, ClipboardCheck, PenLine, X, Users } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Bell, Clipboard, ClipboardCheck, PenLine, X, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { updatePassword, removeProfile, saveInviteCode, updateInvitedBy } from '@/app/profile/actions';
 import { savePushSubscription } from '@/app/actions/push-actions';
-import { GigWithProject, GoLineup, GoProfile } from '@/lib/types';
+import { GoProfile } from '@/lib/types';
 import { signout } from '@/app/login/actions';
 
 type Props = {
@@ -15,11 +15,6 @@ type Props = {
   email: string | null | undefined;
   inviteCode: string | null;
   profiles: GoProfile[];
-  gigs: GigWithProject[];
-  lineups: GoLineup[];
-  userMemberId: string | null;
-  calendarToken: string | null;
-  userId: string | null;
   viewerInviteCode: string | null;
 };
 
@@ -70,23 +65,16 @@ function ProfileEmailRow({ profile, onRemove }: { profile: GoProfile; onRemove: 
   );
 }
 
-export default function ProfileClient({ role, email, inviteCode, profiles, gigs, lineups, userMemberId, calendarToken, userId, viewerInviteCode }: Props) {
-  const [originUrl, setOriginUrl] = useState('');
-  const [isCopied, setIsCopied] = useState(false);
+export default function ProfileClient({ role, email, inviteCode, profiles, viewerInviteCode }: Props) {
   const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
   const [editingInvite, setEditingInvite] = useState(false);
   const [inviteInput, setInviteInput] = useState(inviteCode || '');
 
   useEffect(() => {
-    // Check initial notification permission status
     if (typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'granted') setPushStatus('active');
       else if (Notification.permission === 'denied') setPushStatus('denied');
     }
-  }, []);
-
-  useEffect(() => {
-    setOriginUrl(window.location.origin);
   }, []);
 
   return (
@@ -127,58 +115,11 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
       {/* ─── SECTION: AGENDA E NOTIFICAÇÕES ─── */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6 flex flex-col gap-6">
         <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
-          <Calendar className="w-5 h-5 text-indigo-400" />
-          <h3 className="text-zinc-100 font-bold">Agenda & Notificações</h3>
+          <Bell className="w-5 h-5 text-emerald-400" />
+          <h3 className="text-zinc-100 font-bold">Notificações Push</h3>
         </div>
 
         <div>
-          <h4 className="text-sm font-bold text-zinc-300 mb-2">
-            {role === 'admin' ? 'Agenda Global (iCal)' : 'Minha Agenda (iCal)'}
-          </h4>
-          {calendarToken ? (
-            <div className="flex flex-col gap-3">
-              <p className="text-xs text-zinc-400">
-                Copie o link abaixo e adicione-o no seu Google Agenda (<strong>Configurações &gt; Adicionar agenda &gt; Do URL</strong>). Este processo deve ser feito pelo computador (Desktop) e não pelo aplicativo. Basta fazer uma vez e seus novos shows e mudanças de horário serão atualizados automaticamente.
-              </p>
-              
-              <div className="flex flex-col md:flex-row gap-2 mt-1">
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={originUrl ? `${originUrl}/api/calendar/${calendarToken}` : ''}
-                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-xs text-zinc-400 font-mono focus:outline-none placeholder-zinc-800"
-                  placeholder="Carregando link..."
-                />
-                <button 
-                  onClick={() => {
-                    if (originUrl) {
-                      navigator.clipboard.writeText(`${originUrl}/api/calendar/${calendarToken}`);
-                      setIsCopied(true);
-                      toast.success('Link copiado!');
-                      setTimeout(() => setIsCopied(false), 3000);
-                    }
-                  }}
-                  className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap shadow-md"
-                >
-                  {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {isCopied ? 'Copiado!' : 'Copiar Link'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-red-500 font-medium bg-red-400/10 p-3 rounded-lg border border-red-400/20">
-              {role === 'admin' 
-                ? 'Nenhum token gerado para a banda. Solicite a migração de banco.' 
-                : 'Não localizamos seu token na tabela de músicos. Peça ao administrador.'}
-            </p>
-          )}
-        </div>
-
-        <div className="border-t border-zinc-800/80 pt-6">
-          <h4 className="text-sm font-bold text-zinc-300 mb-2 flex items-center gap-2">
-            <Bell className="w-4 h-4 text-emerald-400" />
-            Notificações Push
-          </h4>
           <p className="text-xs text-zinc-400 mb-4">
             {pushStatus === 'active'
               ? 'Você já está inscrito. Receberá alertas quando for escalado para um show!'
@@ -201,7 +142,6 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
                   setPushStatus('idle');
                   return;
                 }
-                // Register service worker if not already registered
                 await navigator.serviceWorker.register('/sw.js');
                 const permission = await Notification.requestPermission();
                 if (permission !== 'granted') {
@@ -217,14 +157,13 @@ export default function ProfileClient({ role, email, inviteCode, profiles, gigs,
                 });
                 const subJson = sub.toJSON();
                 const userId = (await (await fetch('/api/me')).json())?.id;
-                // Fallback: try getting from profile card email (server-side we resolve this client-side)
                 const res = await savePushSubscription(userId || '', subJson);
                 if (res?.error) {
                   toast.error('Erro ao salvar assinatura: ' + res.error);
                   setPushStatus('idle');
                 } else {
                   setPushStatus('active');
-                  toast.success('Notificações ativadas com sucesso! 🔔');
+                  toast.success('Notificações ativadas com sucesso!');
                 }
               } catch (err) {
                 console.error(err);

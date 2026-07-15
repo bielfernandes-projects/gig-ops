@@ -22,11 +22,32 @@ export async function addQuickGig(formData: FormData) {
   const start_time = formData.get('start_time') as string;
   const end_time = (formData.get('end_time') as string) || null;
   const grossValueStr = formData.get('gross_value') as string;
+  const location = (formData.get('location') as string) || 'A definir';
   const notes = (formData.get('notes') as string) || null;
   const clone_id = formData.get('clone_id') as string;
   const recurrence = formData.get('recurrence') as string;
   const recurrence_end = formData.get('recurrence_end') as string;
   const custom_end_date = formData.get('custom_end_date') as string;
+
+  // Sound equipment fields
+  const bring_sound = formData.get('bring_sound') === 'true';
+  const sound_cost = bring_sound ? (parseFloat(formData.get('sound_cost') as string) || 0) : 0;
+  const rawSoundPerson = formData.get('sound_person_id') as string;
+  const sound_person_id = bring_sound && rawSoundPerson ? rawSoundPerson : null;
+
+  // Lineup data (JSON array of { member_id, custom_name, custom_instrument, fee_amount })
+  const lineupRaw = formData.get('lineup') as string;
+  let lineupData: { member_id?: string | null; custom_name?: string | null; custom_instrument?: string | null; fee_amount: number }[] = [];
+  if (lineupRaw) {
+    try { lineupData = JSON.parse(lineupRaw); } catch { /* ignore bad JSON */ }
+  }
+
+  // Reminder minutes (JSON array of numbers)
+  const reminderRaw = formData.get('reminder_minutes') as string;
+  let reminderMinutes: number[] = [];
+  if (reminderRaw) {
+    try { reminderMinutes = JSON.parse(reminderRaw); } catch { /* ignore bad JSON */ }
+  }
   
   if (!title || !project_id || !start_time) {
     return { error: 'Campos obrigatórios faltando.' };
@@ -63,7 +84,7 @@ export async function addQuickGig(formData: FormData) {
   const durationMs = endDt ? endDt.getTime() - startDt.getTime() : 0;
 
   const gigsToInsert = [];
-  let currentStart = new Date(startDt);
+  const currentStart = new Date(startDt);
 
   // Gera as datas recorrentes e/ou apenas a gig isolada
   while (true) {
@@ -73,14 +94,15 @@ export async function addQuickGig(formData: FormData) {
       start_time: currentStart.toISOString(),
       end_time: endDt ? new Date(currentStart.getTime() + durationMs).toISOString() : null,
       gross_value,
-      location: originalGig ? originalGig.location : 'A definir',
-      bring_sound: originalGig ? originalGig.bring_sound : false,
-      sound_cost: originalGig ? originalGig.sound_cost : 0,
-      sound_person_id: originalGig ? originalGig.sound_person_id : null,
+      location: originalGig ? originalGig.location : location,
+      bring_sound: originalGig ? originalGig.bring_sound : bring_sound,
+      sound_cost: originalGig ? originalGig.sound_cost : sound_cost,
+      sound_person_id: originalGig ? originalGig.sound_person_id : sound_person_id,
       notes,
       is_sound_paid: false,
       recurrence_group_id,
-      admin_id: adminId
+      admin_id: adminId,
+      reminder_minutes: reminderMinutes.length > 0 ? reminderMinutes : [],
     });
 
     if (!recurrence || recurrence === 'none' || !endRecurrenceDate) break;
@@ -121,6 +143,33 @@ export async function addQuickGig(formData: FormData) {
       }
       await supabase.from('go_lineup').insert(newLineups);
     }
+  }
+
+  // Insert lineup from the QuickAddGig form (if provided and not a clone)
+  if (!clone_id && lineupData.length > 0 && insertedGigs && insertedGigs.length > 0) {
+    const targetGigId = insertedGigs[0].id;
+    const newLineups = lineupData.map(l => ({
+      gig_id: targetGigId,
+      member_id: l.member_id || null,
+      fee_amount: l.fee_amount || 0,
+      custom_name: l.member_id ? null : (l.custom_name || null),
+      custom_instrument: l.member_id ? null : (l.custom_instrument || null),
+      status: 'pendente' as const,
+    }));
+    await supabase.from('go_lineup').insert(newLineups);
+  }
+
+  // Create reminder entries for the first gig (recurrence creates reminders per gig)
+  if (reminderMinutes.length > 0 && insertedGigs && insertedGigs.length > 0) {
+    const gigStart = new Date(start_time);
+    const remindersToInsert = insertedGigs.flatMap(gig => {
+      const gigStartDate = new Date(gig.id ? start_time : gigStart);
+      return reminderMinutes.map(minutes => ({
+        gig_id: gig.id,
+        remind_at: new Date(gigStartDate.getTime() - minutes * 60 * 1000).toISOString(),
+      }));
+    });
+    await supabase.from('go_reminders').insert(remindersToInsert);
   }
 
   revalidatePath('/agenda');

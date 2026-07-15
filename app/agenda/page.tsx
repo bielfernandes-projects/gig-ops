@@ -3,11 +3,10 @@ import { QuickAddGig } from '@/components/quick-add-gig';
 import { FilterTabs } from '@/components/filter-tabs';
 import { CopyLogisticsButton } from '@/components/copy-logistics-button';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
-import { CalendarSubscriptionBanner } from '@/components/calendar-subscription-banner';
-import { GigWithProject, GoProject, GoLineup } from '@/lib/types';
+import { GigWithProject, GoProject, GoLineup, GoMember } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import Link from 'next/link';
-import { StickyNote, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { getUserInfo } from '@/lib/auth';
 import { Suspense } from 'react';
 
@@ -92,24 +91,6 @@ export default async function Home({
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const { role, memberId: userMemberId, userId } = await getUserInfo();
 
-  // Fetch calendar token for subscription banner
-  let calendarToken: string | null = null;
-  if (role === 'admin' && userId) {
-    const { data: settingsData } = await supabase
-      .from('go_settings')
-      .select('calendar_token')
-      .eq('admin_id', userId)
-      .maybeSingle();
-    calendarToken = settingsData?.calendar_token || null;
-  } else if (userMemberId) {
-    const { data: memberData } = await supabase
-      .from('go_members')
-      .select('calendar_token')
-      .eq('id', userMemberId)
-      .single();
-    calendarToken = memberData?.calendar_token || null;
-  }
-
   // Build queries with admin_id isolation for admin users
   let gigsQuery = supabase
     .from('go_gigs')
@@ -125,13 +106,19 @@ export default async function Home({
     .select('*')
     .order('name', { ascending: true });
 
+  let membersQuery = supabase
+    .from('go_members')
+    .select('*')
+    .order('name', { ascending: true });
+
   if (role === 'admin' && userId) {
     gigsQuery = gigsQuery.eq('admin_id', userId);
     projectsQuery = projectsQuery.eq('admin_id', userId);
+    membersQuery = membersQuery.eq('admin_id', userId);
   }
 
   // Parallel data fetching — all queries run simultaneously
-  const [gigsResult, projectsResult, lineupsResult, cloneResult] = await Promise.all([
+  const [gigsResult, projectsResult, lineupsResult, cloneResult, membersResult] = await Promise.all([
     gigsQuery as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
     projectsQuery as unknown as Promise<{ data: GoProject[] | null }>,
     supabase
@@ -144,6 +131,7 @@ export default async function Home({
           .eq('id', cloneId)
           .single() as unknown as Promise<{ data: Partial<GigWithProject> | null }>
       : Promise.resolve({ data: null }),
+    membersQuery as unknown as Promise<{ data: GoMember[] | null }>,
   ]);
 
   const allGigs = gigsResult.data || [];
@@ -151,6 +139,7 @@ export default async function Home({
   const projects = projectsResult.data || [];
   const lineups = lineupsResult.data || [];
   const cloneData = cloneResult.data ?? null;
+  const members = membersResult.data || [];
 
   let visibleGigs = (role === 'admin') 
     ? allGigs 
@@ -225,9 +214,6 @@ export default async function Home({
         </Suspense>
       </header>
 
-      {/* Calendar subscription callout */}
-      <CalendarSubscriptionBanner calendarToken={calendarToken} />
-
       {error && (
         <div className="p-4 text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">
           <h2 className="font-bold mb-2">Erro ao carregar dados:</h2>
@@ -291,7 +277,7 @@ export default async function Home({
         )}
       </main>
 
-      {role === 'admin' && <QuickAddGig projects={projects} cloneData={cloneData} />}
+      {role === 'admin' && <QuickAddGig projects={projects} members={members} cloneData={cloneData} />}
 
       {/* Pending Gigs Section */}
       {pendingGigs.length > 0 && (
@@ -319,7 +305,7 @@ export default async function Home({
 
 // ─── GigCard ────────────────────────────────────────────────────────────────
 
-function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null, isPastFullyPaid?: boolean }) {
+function GigCard({ gig, lineupData, userMemberId, isPastFullyPaid = false }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null, isPastFullyPaid?: boolean }) {
   const lineupFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
   

@@ -1,4 +1,4 @@
-# 📘 Documentação Oficial: Minha Banda (GigOps)
+# Documentação Oficial: Minha Banda (GigOps)
 
 ## 1. Visão Geral do Produto
 O **Minha Banda** é um SaaS (Software as a Service) Mobile-First construído em formato PWA (Progressive Web App). Seu objetivo é centralizar a logística, a agenda e a gestão financeira de bandas e projetos musicais, eliminando a dependência de grupos de WhatsApp e planilhas de Excel.
@@ -36,10 +36,11 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 * **`go_profiles`**: Gerencia a autenticação e as roles (`admin` ou `viewer`).
 * **`go_projects`**: Os "produtos" da banda (ex: Baile, Casamento, Acústico), definindo cores para o calendário.
 * **`go_members`**: O banco de talentos/músicos da banda. Cruza com o e-mail do `go_profiles` para identificar quem está logado. Possui a coluna `calendar_token` para geração de links privados.
-* **`go_gigs`**: A tabela central de eventos. Guarda Título, Horário (ISO UTC), Endereço, Valor Bruto, Observações, Custo de Som (`sound_cost`) e Status do Som (`is_sound_paid`).
+* **`go_gigs`**: A tabela central de eventos. Guarda Título, Horário (ISO UTC), Endereço, Valor Bruto, Observações, Custo de Som (`sound_cost`), Status do Som (`is_sound_paid`), e `reminder_minutes` (array de minutos para lembretes push).
 * **`go_lineup`**: Tabela relacional de escala. Conecta um `member` a uma `gig`, definindo sua função (instrumento), valor do cachê (`fee_amount`) e status (`pago` / `pendente`).
 * **`go_push_subscriptions`**: Armazena as assinaturas de dispositivos para o envio de notificações push.
 * **`go_settings`**: Configurações globais da banda (Código de Convite e Token Global do iCal).
+* **`go_reminders`**: Lembretes push agendados. Cada registro armazena `gig_id`, `remind_at` (data/hora do disparo) e `sent` (status de envio).
 
 ---
 
@@ -52,6 +53,7 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 * **Duplicação de Gigs:** Funcionalidade que permite clonar todos os dados de uma Gig existente (Logística, Custos de Som, Observações, etc.) para um novo evento, agilizando turnês e shows recorrentes.
 * **Cancelamento com Notificação:** A exclusão de um show exige o preenchimento de um motivo obrigatório, que é disparado via Push Notification para toda a lineup escalada.
 * **Cópia de E-mail para Gestão:** Na aba Perfil (Gestão de Banda), admins podem copiar o e-mail de novos músicos registrados para facilitar a atualização de seus dados no banco de talentos.
+* **QuickAddGig Completo:** O modal de criação rápida agora inclui todos os campos: titulo, projeto, local, datas, valor bruto, equipamento de som (toggle + custo + responsavel), escala de musicos (seleção + cachê individual), repetição, observações e lembretes push.
 
 ### 5.2. Motor Financeiro e Pendências
 * **Cálculo de Lucro Líquido:** O sistema calcula em tempo real o lucro do evento: `Lucro = Cachê Bruto - Custo do Som - Soma(Cachês da Lineup)`.
@@ -68,13 +70,19 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 * **Privacidade:** A exportação omite campos sensíveis como "Observações".
 * **Assinatura Contínua:** Sincronização automática com Google Agenda, Apple Calendar e Outlook.
 * **Adição por Gig:** Botão "Calendário" na página de detalhes do show e na Agenda permite baixar `.ics` individual ou abrir direto no Google Calendar.
-* **Banner de Assinatura:** Página da Agenda exibe callout com link de assinatura iCal para configuração automática.
 * **Tokens Automáticos:** Admins recebem `calendar_token` ao criar conta; músicos recebem ao serem cadastrados.
 
 ### 5.4. Notificações Push (Web Push)
 * **Gatilho de Escala:** Quando o Admin salva a escala, o servidor dispara uma notificação via biblioteca `web-push` (VAPID) diretamente para o dispositivo cadastrado do músico.
 * **Gatilho de Cancelamento:** Ao cancelar um show com justificativa, todos os músicos impactados recebem o motivo em real-time.
 * **Aviso de Novo Cadastro:** Admins são notificados sempre que um novo usuário entra na plataforma utilizando o código de convite da banda.
+
+### 5.5. Lembretes Push (Agendados)
+* **Configuração na Criação:** Ao criar uma gig, o admin pode selecionar lembretes push com presets: 1 semana, 2 dias, 1 dia, 12 horas, 3 horas, 1 hora antes do evento.
+* **Tabela `go_reminders`:** Armazena os lembretes com `gig_id`, `remind_at` e `sent`.
+* **Endpoint Cron:** `/api/cron/check-reminders` processa lembretes pendentes e envia push para todos os músicos escalados naquela gig.
+* **Segurança:** O endpoint requer header `Authorization: Bearer <CRON_SECRET>` para evitar acesso não autorizado.
+* **Configuração Externa:** Use um serviço como [cron-job.org](https://cron-job.org) (gratuito) para chamar o endpoint a cada 5-15 minutos.
 
 ---
 
@@ -104,6 +112,7 @@ Para otimizar o uso em celulares:
 
 * **Adição de Novo Músico:** Admin cadastra o músico com e-mail real -> Músico cria conta -> O sistema vincula automaticamente.
 * **Pagamento de Som:** Realizado no modal da Gig ou na página de detalhes, impactando diretamente o cálculo de pendências e lucro realizado.
+* **Configuração de Lembretes:** Ao criar uma gig, selecione os lembretes desejados. Configure um cron externo (ex: cron-job.org) para chamar `/api/cron/check-reminders` a cada 5-15 minutos com o header `Authorization: Bearer <CRON_SECRET>`.
 
 ---
 
@@ -118,6 +127,7 @@ Para otimizar o uso em celulares:
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Chave pública VAPID (Web Push) |
 | `VAPID_PRIVATE_KEY` | Chave privada VAPID (Web Push) |
 | `VAPID_ADMIN_EMAIL` | E-mail do admin VAPID |
+| `CRON_SECRET` | Secret para autenticar o endpoint de lembretes |
 
 ---
 
@@ -126,7 +136,6 @@ Para otimizar o uso em celulares:
 | Componente | Arquivo | Uso |
 |------------|---------|-----|
 | `AddToCalendarButton` | `components/add-to-calendar-button.tsx` | Dropdown com "Baixar .ics" e "Abrir no Google Calendar". Usado na página do gig (ícone) e na agenda (compacto). |
-| `CalendarSubscriptionBanner` | `components/calendar-subscription-banner.tsx` | Callout na Agenda com link de assinatura iCal pra sincronização automática. |
 
 ---
 
@@ -136,3 +145,41 @@ Para otimizar o uso em celulares:
 * **URI Allow List:** `http://localhost:3000/*`, `https://minhabanda.vercel.app/*`
 * **Email autoconfirm:** Ativado (não precisa confirmar email)
 * **Senha:** Mínimo 8 caracteres, maiúscula + minúscula + número + especial
+
+---
+
+## 11. Migração do Banco (go_reminders)
+
+Execute o SQL abaixo no Supabase SQL Editor para criar a tabela de lembretes:
+
+```sql
+-- Table: go_reminders
+CREATE TABLE IF NOT EXISTS go_reminders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  gig_id UUID NOT NULL REFERENCES go_gigs(id) ON DELETE CASCADE,
+  remind_at TIMESTAMPTZ NOT NULL,
+  sent BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_go_reminders_due 
+  ON go_reminders(remind_at) 
+  WHERE sent = FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_go_reminders_gig 
+  ON go_reminders(gig_id);
+
+ALTER TABLE go_reminders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins manage their reminders" ON go_reminders
+  FOR ALL
+  USING (
+    gig_id IN (
+      SELECT id FROM go_gigs WHERE admin_id = auth.uid()
+    )
+  );
+
+-- Add reminder_minutes column to go_gigs
+ALTER TABLE go_gigs ADD COLUMN IF NOT EXISTS reminder_minutes INTEGER[] DEFAULT '{}';
+```
+
