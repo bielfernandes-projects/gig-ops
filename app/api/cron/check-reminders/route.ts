@@ -46,7 +46,8 @@ export async function GET(req: Request) {
   let failedCount = 0;
 
   for (const reminder of dueReminders) {
-    const gig = reminder.go_gigs as { id: string; title: string; start_time: string; go_projects: { name: string } | { name: string }[] | null } | null;
+    const gigArray = reminder.go_gigs as unknown as { id: string; title: string; start_time: string; go_projects: { name: string } | { name: string }[] | null }[] | null;
+    const gig = Array.isArray(gigArray) ? gigArray[0] : gigArray;
     if (!gig) {
       // Gig was deleted, mark reminder as sent to skip
       await supabase.from('go_reminders').update({ sent: true }).eq('id', reminder.id);
