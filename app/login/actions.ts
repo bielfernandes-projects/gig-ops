@@ -57,11 +57,17 @@ export async function signup(formData: FormData) {
     return { error: error.message };
   }
 
-  // Link the new user's profile to the admin who owns this invite code
+  // Link the new user's profile to the admin who owns this invite code.
+  // We include role + email so the upsert is idempotent: it works whether a
+  // Supabase trigger already created a row or not, and never clobbers an
+  // existing role/email.
   if (data.user) {
     const { error: profileError } = await supabase
       .from('go_profiles')
-      .upsert({ id: data.user.id, invited_by: adminId }, { onConflict: 'id' });
+      .upsert(
+        { id: data.user.id, role: 'viewer', email, invited_by: adminId },
+        { onConflict: 'id' }
+      );
 
     if (profileError) {
       console.error('Error linking profile to admin:', profileError);

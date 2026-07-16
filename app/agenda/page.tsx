@@ -89,9 +89,15 @@ export default async function Home({
   const { tab = '7days', from, to, cloneId, project = 'all' } = await searchParams;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId, userId } = await getUserInfo();
+  const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
 
-  // Build queries with admin_id isolation for admin users
+  // Multi-tenant isolation: every read is scoped to a single "tenant admin id".
+  //   - Admins own themselves (userId).
+  //   - Viewers are scoped to the admin who invited them (invitedBy).
+  //   - Without a tenant id we return nothing (defensive).
+  const tenantAdminId = role === 'admin' ? userId : invitedBy;
+
+  // Build queries with tenant-admin isolation
   let gigsQuery = supabase
     .from('go_gigs')
     .select(`
@@ -111,24 +117,22 @@ export default async function Home({
     .select('*')
     .order('name', { ascending: true });
 
-  if (role === 'admin' && userId) {
-    gigsQuery = gigsQuery.eq('admin_id', userId);
-    projectsQuery = projectsQuery.eq('admin_id', userId);
-    membersQuery = membersQuery.eq('admin_id', userId);
+  if (tenantAdminId) {
+    gigsQuery = gigsQuery.eq('admin_id', tenantAdminId);
+    projectsQuery = projectsQuery.eq('admin_id', tenantAdminId);
+    membersQuery = membersQuery.eq('admin_id', tenantAdminId);
   }
 
   // Parallel data fetching — all queries run simultaneously
-  const [gigsResult, projectsResult, lineupsResult, cloneResult, membersResult] = await Promise.all([
+  const [gigsResult, projectsResult, cloneResult, membersResult] = await Promise.all([
     gigsQuery as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
     projectsQuery as unknown as Promise<{ data: GoProject[] | null }>,
-    supabase
-      .from('go_lineup')
-      .select('*') as unknown as Promise<{ data: GoLineup[] | null }>,
-    cloneId
+    cloneId && tenantAdminId
       ? supabase
           .from('go_gigs')
           .select('id, project_id, title, location, gross_value, bring_sound, sound_cost, sound_person_id, notes')
           .eq('id', cloneId)
+          .eq('admin_id', tenantAdminId)
           .single() as unknown as Promise<{ data: Partial<GigWithProject> | null }>
       : Promise.resolve({ data: null }),
     membersQuery as unknown as Promise<{ data: GoMember[] | null }>,
@@ -137,12 +141,26 @@ export default async function Home({
   const allGigs = gigsResult.data || [];
   const error = gigsResult.error;
   const projects = projectsResult.data || [];
-  const lineups = lineupsResult.data || [];
   const cloneData = cloneResult.data ?? null;
   const members = membersResult.data || [];
 
-  let visibleGigs = (role === 'admin') 
-    ? allGigs 
+  // Fetch lineups only for the gigs we already have — this is the multi-tenant seam.
+  // Viewers see lineups for gigs they're invited to (still inside their tenant).
+  // If there's no tenant (no admin link yet), we read no lineups.
+  const gigIdsForLineups = allGigs.map(g => g.id);
+  let lineups: GoLineup[] = [];
+  if (gigIdsForLineups.length > 0) {
+    const { data } = await supabase
+      .from('go_lineup')
+      .select('*')
+      .in('gig_id', gigIdsForLineups);
+    lineups = (data as GoLineup[] | null) || [];
+  }
+
+  // Admins see every gig in their tenant. Viewers see only gigs where they
+  // (their resolved go_members.id) appear in the lineup.
+  let visibleGigs = (role === 'admin')
+    ? allGigs
     : allGigs.filter(gig => lineups.some(l => l.gig_id === gig.id && l.member_id === userMemberId));
 
   // Filter by selected project
@@ -370,7 +388,7 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
         </div>
 
         {/* Financial row */}
-        <div className="mt-auto flex items-center justify-between pt-2.5 border-t border-zinc-800/60">
+        <div className="mt-auto flex items-center justify-between gap-3 pt-2.5 border-t border-zinc-800/60">
           <div className="flex items-center gap-2">
             <span className="text-xs text-zinc-500 font-medium">R$ {gig.gross_value.toFixed(2)}</span>
             {isGigPronta && (

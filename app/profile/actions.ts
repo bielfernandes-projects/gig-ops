@@ -60,10 +60,13 @@ export async function updateInvitedBy(formData: FormData) {
 
   if (!settingsData) return { error: 'Código de convite inválido.' };
 
-  // Link viewer's profile to the new admin
+  // Link viewer's profile to the new admin (idempotent — keeps role/email intact)
   const { error } = await supabase
     .from('go_profiles')
-    .upsert({ id: user.id, invited_by: settingsData.admin_id }, { onConflict: 'id' });
+    .upsert(
+      { id: user.id, invited_by: settingsData.admin_id },
+      { onConflict: 'id' }
+    );
 
   if (error) {
     console.error('Error updating invited_by:', error);

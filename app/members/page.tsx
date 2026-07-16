@@ -8,12 +8,22 @@ import { getUserInfo } from '@/lib/auth';
 export const revalidate = 0;
 
 export default async function MembersPage() {
-  const userInfo = await getUserInfo();
-  const { role, userId } = userInfo;
+  const { role, userId, invitedBy } = await getUserInfo();
 
-  const membersResult = role === 'admin' && userId
-    ? await supabase.from('go_members').select('*').order('name', { ascending: true }).eq('admin_id', userId)
-    : await supabase.from('go_members').select('*').order('name', { ascending: true });
+  // Multi-tenant isolation: every read is scoped to a single tenant admin.
+  const tenantAdminId = role === 'admin' ? userId : invitedBy;
+
+  let membersResult;
+  if (tenantAdminId) {
+    membersResult = await supabase
+      .from('go_members')
+      .select('*')
+      .order('name', { ascending: true })
+      .eq('admin_id', tenantAdminId);
+  } else {
+    // No tenant link yet — return an empty set rather than leaking other admins' data.
+    membersResult = { data: [] as GoMember[], error: null as PostgrestError | null };
+  }
 
   const members = (membersResult as unknown as { data: GoMember[] | null, error: PostgrestError | null }).data || [];
   const error = (membersResult as unknown as { data: GoMember[] | null, error: PostgrestError | null }).error;
@@ -43,6 +53,9 @@ export default async function MembersPage() {
           <div className="w-full py-20 flex flex-col items-center justify-center text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
             <p className="text-zinc-400 font-medium">Nenhum músico na sua rede.</p>
             {role === 'admin' && <p className="text-zinc-500 text-sm mt-1">Toque no + para começar.</p>}
+            {role !== 'admin' && (
+              <p className="text-zinc-500 text-sm mt-1">Peça ao administrador para te cadastrar como músico.</p>
+            )}
           </div>
         ) : (
           <MembersSearch members={members} role={role} />

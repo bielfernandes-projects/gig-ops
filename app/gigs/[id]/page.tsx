@@ -17,7 +17,10 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const id = resolvedParams.id;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId, userId } = await getUserInfo();
+  const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
+
+  // Multi-tenant isolation
+  const tenantAdminId = role === 'admin' ? userId : invitedBy;
 
   // Fetch Gig with Project Join (must happen first — we need the gig data)
   const { data: gigData, error: gigError } = await supabase
@@ -35,10 +38,11 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       sound_person_id,
       notes,
       recurrence_group_id,
+      admin_id,
       go_projects ( * )
     `)
     .eq('id', id)
-    .single() as { data: GigWithProject | null, error: PostgrestError | null };
+    .single() as { data: (GigWithProject & { admin_id?: string }) | null, error: PostgrestError | null };
 
   if (gigError || !gigData) {
     return (
@@ -67,9 +71,9 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     .select('*')
     .order('name', { ascending: true });
 
-  if (role === 'admin' && userId) {
-    membersQuery = membersQuery.eq('admin_id', userId);
-    projectsQuery = projectsQuery.eq('admin_id', userId);
+  if (tenantAdminId) {
+    membersQuery = membersQuery.eq('admin_id', tenantAdminId);
+    projectsQuery = projectsQuery.eq('admin_id', tenantAdminId);
   }
 
   // Parallel data fetching — lineup, members, projects, and sound person all at once
@@ -97,8 +101,12 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const projectColor = gigData.go_projects?.color_hex || '#71717a';
 
   if (role !== 'admin') {
+    // Two checks, both must pass for a viewer to access a gig detail page:
+    //   1. The gig belongs to the admin who invited them (tenant isolation).
+    //   2. The viewer is in the lineup of that gig.
+    const inTenant = tenantAdminId !== null && gigData?.admin_id === tenantAdminId;
     const isInLineup = lineup.some(l => l.member_id === userMemberId);
-    if (!isInLineup) {
+    if (!inTenant || !isInLineup) {
       return (
         <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-20 text-center">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 md:p-12 shadow-xl">
@@ -106,7 +114,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             <p className="text-zinc-400 text-sm mb-8 max-w-sm mx-auto">
               Você não está escalado para este show e não tem permissão para visualizar estes detalhes.
             </p>
-          <BackButton 
+          <BackButton
               className="inline-flex items-center justify-center gap-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold px-6 py-3 rounded-xl text-sm transition-all"
             >
               <ArrowLeft className="w-4 h-4" />

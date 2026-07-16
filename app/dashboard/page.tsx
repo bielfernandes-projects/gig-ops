@@ -6,9 +6,12 @@ import DashboardClient from '@/components/dashboard-client';
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  const { role, memberId: userMemberId, userId } = await getUserInfo();
+  const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
 
-  // Build query with admin_id isolation for admin users
+  // Multi-tenant isolation: scope every read to a single "tenant admin id".
+  const tenantAdminId = role === 'admin' ? userId : invitedBy;
+
+  // Build gig query with tenant isolation
   let gigsQuery = supabase
     .from('go_gigs')
     .select(`
@@ -17,23 +20,25 @@ export default async function DashboardPage() {
     `)
     .order('start_time', { ascending: true });
 
-  if (role === 'admin' && userId) {
-    gigsQuery = gigsQuery.eq('admin_id', userId);
+  if (tenantAdminId) {
+    gigsQuery = gigsQuery.eq('admin_id', tenantAdminId);
   }
 
-  // Fetch all gigs and lineups
-  const [gigsResult, lineupsResult] = await Promise.all([
-    gigsQuery as unknown as Promise<{ data: GigWithProject[] | null }>,
-    supabase
-      .from('go_lineup')
-      .select('*') as unknown as Promise<{ data: GoLineup[] | null }>,
-  ]);
+  const { data: gigsData } = await gigsQuery as unknown as { data: GigWithProject[] | null };
+  const allGigs = gigsData || [];
 
-  const allGigs = gigsResult.data || [];
-  const lineups = lineupsResult.data || [];
+  // Fetch lineups only for the gigs we already have (tenant-scoped).
+  const gigIds = allGigs.map(g => g.id);
+  const { data: lineupsData } = gigIds.length > 0
+    ? await supabase
+        .from('go_lineup')
+        .select('*')
+        .in('gig_id', gigIds) as unknown as { data: GoLineup[] | null }
+    : { data: [] as GoLineup[] };
+  const lineups = lineupsData || [];
 
   return (
-    <DashboardClient 
+    <DashboardClient
       role={role}
       userMemberId={userMemberId}
       gigs={allGigs}

@@ -8,22 +8,24 @@ import { getUserInfo } from '@/lib/auth';
 export const revalidate = 0;
 
 export default async function ProjectsPage() {
-  // Auth first — needed to build admin_id filter
-  const userInfo = await getUserInfo();
-  const { role, userId } = userInfo;
+  const { role, userId, invitedBy } = await getUserInfo();
 
-  let projectsQuery = supabase
-    .from('go_projects')
-    .select('*')
-    .order('name', { ascending: true });
+  // Multi-tenant isolation: scope reads to the tenant admin.
+  const tenantAdminId = role === 'admin' ? userId : invitedBy;
 
-  if (role === 'admin' && userId) {
-    projectsQuery = projectsQuery.eq('admin_id', userId);
+  let projectsResult;
+  if (tenantAdminId) {
+    projectsResult = await supabase
+      .from('go_projects')
+      .select('*')
+      .order('name', { ascending: true })
+      .eq('admin_id', tenantAdminId);
+  } else {
+    projectsResult = { data: [] as GoProject[], error: null as PostgrestError | null };
   }
 
-  const projectsResult = await (projectsQuery as unknown as Promise<{ data: GoProject[] | null, error: PostgrestError | null }>);
-  const projects = projectsResult.data || [];
-  const error = projectsResult.error;
+  const projects = (projectsResult as unknown as { data: GoProject[] | null, error: PostgrestError | null }).data || [];
+  const error = (projectsResult as unknown as { data: GoProject[] | null, error: PostgrestError | null }).error;
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">

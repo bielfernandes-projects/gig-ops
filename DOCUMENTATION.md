@@ -14,11 +14,16 @@ O **Minha Banda** é um SaaS (Software as a Service) Mobile-First construído em
 ---
 
 ## 3. Níveis de Acesso (Multitenant & Roles)
-O sistema possui uma arquitetura de permissões focada em privacidade, com duas "visões" completamente distintas do mesmo aplicativo:
+O sistema possui uma arquitetura de permissões focada em privacidade, com duas "visões" completamente distintas do mesmo aplicativo. Toda leitura é escopada a um único "tenant admin id" (a conta que possui os dados).
+
+**Resolução do tenant** (`lib/auth.ts:getUserInfo`):
+- **Admin** → `tenantAdminId = userId` (dono do tenant).
+- **Viewer** → `tenantAdminId = invitedBy` (UUID do admin que o convidou, gravado em `go_profiles.invited_by`).
+- **Sem tenant** → queries retornam vazio (defesa em profundidade).
 
 * **Administrador (Admin / Dono):**
   * Tem acesso irrestrito ao painel financeiro (receitas, despesas, lucro líquido).
-  * Pode criar, editar e excluir Gigs (shows), Projetos e Membros.
+  * Pode criar, editar e excluir Gigs (Shows), Projetos e Membros.
   * Define os cachês individuais e gerencia o pagamento (baixa financeira) da equipe e do equipamento de som.
   * Tem acesso ao campo de "Observações" dos shows (dados sensíveis/contratuais).
   * Visualiza e gerencia a seção "Escala de Músicos" na página de detalhes do show (adicionar, editar cachê, remover, confirmar pagamento).
@@ -29,16 +34,17 @@ O sistema possui uma arquitetura de permissões focada em privacidade, com duas 
   * Não visualiza o bloco de "Observações" do contratante.
   * Visualiza os membros da escala na página do show (somente nome e instrumento, sem valores nem controles).
   * Não visualiza a seção "Escala de Músicos" (cabeçalho, badge de confirmados e botão de adicionar).
+  * **Não enxerga dados de outros tenants**: gigs, projetos, membros e lineups são todos filtrados por `tenantAdminId`. Se um viewer não está linkado a um admin (`invited_by IS NULL`), vê apenas listas vazias — nenhum dado de outros admins vaza.
 
 ---
 
 ## 4. Estrutura de Banco de Dados (PostgreSQL)
 A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabelas principais:
 
-* **`go_profiles`**: Gerencia a autenticação e as roles (`admin` ou `viewer`).
-* **`go_projects`**: Os "produtos" da banda (ex: Baile, Casamento, Acústico), definindo cores para o calendário.
-* **`go_members`**: O banco de talentos/músicos da banda. Cruza com o e-mail do `go_profiles` para identificar quem está logado. Possui a coluna `calendar_token` para geração de links privados.
-* **`go_gigs`**: A tabela central de eventos. Guarda Título, Horário (ISO UTC), Endereço, Valor Bruto, Observações, Custo de Som (`sound_cost`), Status do Som (`is_sound_paid`), e `reminder_minutes` (array de minutos para lembretes push).
+* **`go_profiles`**: Gerencia a autenticação e as roles (`admin` ou `viewer`). Inclui a coluna `invited_by` (FK para `go_profiles.id` de um admin) que linka cada viewer ao admin que o convidou — é a peça-chave do multi-tenant.
+* **`go_projects`**: Os "produtos" da banda (ex: Baile, Casamento, Acústico), definindo cores para o calendário. Possui `admin_id` para isolamento por tenant.
+* **`go_members`**: O banco de talentos/músicos da banda. Cruza com o e-mail do `go_profiles` para identificar quem está logado (dentro do tenant correto, via `admin_id`). Possui a coluna `calendar_token` para geração de links privados.
+* **`go_gigs`**: A tabela central de eventos. Guarda Título, Horário (ISO UTC), Endereço, Valor Bruto, Observações, Custo de Som (`sound_cost`), Status do Som (`is_sound_paid`), e `reminder_minutes` (array de minutos para lembretes push). Inclui `admin_id` para isolamento por tenant.
 * **`go_lineup`**: Tabela relacional de escala. Conecta um `member` a uma `gig`, definindo sua função (instrumento), valor do cachê (`fee_amount`) e status (`pago` / `pendente`).
 * **`go_push_subscriptions`**: Armazena as assinaturas de dispositivos para o envio de notificações push.
 * **`go_settings`**: Configurações globais da banda (Código de Convite e Token Global do iCal).
@@ -123,13 +129,46 @@ Para otimizar o uso em celulares:
 * **Server Actions:** Todas as actions de criação, atualização e exclusão verificam `admin_id` para garantir ownership.
 * **Fluxo "Criar Minha Banda":** Novo admin se cadastra e já ganha um perfil com `role='admin'` em `go_profiles`, entrando em ambiente isolado.
 
+### 6.5. Multi-Tenant Seam (`tenantAdminId`)
+
+Toda página que lê dados do banco segue o mesmo contrato:
+
+```ts
+const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
+const tenantAdminId = role === 'admin' ? userId : invitedBy;
+
+// Toda query subsequente filtra por tenantAdminId:
+gigsQuery     = gigsQuery.eq('admin_id', tenantAdminId);
+projectsQuery = projectsQuery.eq('admin_id', tenantAdminId);
+membersQuery  = membersQuery.eq('admin_id', tenantAdminId);
+```
+
+**Regras de borda:**
+* Se `tenantAdminId === null` (viewer sem `invited_by`), todas as listas retornam vazio. Isso impede vazamento de dados de outros admins.
+* O `go_lineup` (que não tem `admin_id` próprio) é buscado apenas para os `gig_id` já filtrados do tenant: `supabase.from('go_lineup').select('*').in('gig_id', tenantGigIds)`. Assim, viewers só veem lineups de gigs do **seu** admin.
+* Em `app/gigs/[id]/page.tsx`, o viewer precisa passar **duas** checagens antes de ver os detalhes:
+  1. `gigData.admin_id === tenantAdminId` (pertence ao seu admin)
+  2. O viewer está escalado no lineup daquele gig
+  Falha em qualquer → "Acesso Negado".
+
+**Resolução do `go_members.id` para o viewer** (`lib/auth.ts:getUserInfo`):
+1. Carrega o profile do viewer (incluindo `invited_by`).
+2. Determina `targetAdminId`:
+   - Admin: `targetAdminId = user.id` (o próprio).
+   - Viewer: `targetAdminId = invited_by` (o admin que o convidou).
+3. Resolve o `member_id` buscando em `go_members` por `(email, admin_id)`.
+
+Sem o passo 2, o `memberId` do viewer seria `null` e ele não veria nenhum show — bug crítico que existia antes do fix.
+
 ---
 
 ## 7. Fluxos de Operação (Manuais)
 
-* **Adição de Novo Músico:** Admin cadastra o músico com e-mail real -> Músico cria conta -> O sistema vincula automaticamente.
+* **Adição de Novo Músico:** Admin cadastra o músico com e-mail real -> Músico cria conta -> O sistema vincula automaticamente (`signup()` grava `go_profiles.invited_by = admin_id`, e `getUserInfo()` resolve o `go_members.id` correspondente via `(email, admin_id)`).
 * **Pagamento de Som:** Realizado no modal da Gig ou na página de detalhes, impactando diretamente o cálculo de pendências e lucro realizado.
 * **Configuração de Lembretes:** Ao criar uma gig, selecione os lembretes desejados. Configure um cron externo (ex: cron-job.org) para chamar `/api/cron/check-reminders` a cada 5-15 minutos com o header `Authorization: Bearer <CRON_SECRET>`.
+* **Trocar de banda (viewer):** Em `/profile`, o viewer pode informar um novo código de convite (`updateInvitedBy` em `app/profile/actions.ts`). Isso regrava `invited_by` no `go_profiles` e a próxima requisição passa a ver os dados do novo admin.
+* **Admin descobre seus convidados:** A página `/profile` lista todos os `go_profiles` com `invited_by = userId`, mostrando os usuários que se cadastraram via código de convite.
 
 ---
 
@@ -165,9 +204,11 @@ Para otimizar o uso em celulares:
 
 ---
 
-## 11. Migração do Banco (go_reminders)
+## 11. Migrações do Banco
 
-Execute o SQL abaixo no Supabase SQL Editor para criar a tabela de lembretes:
+As migrations ficam versionadas em `supabase/migrations/` e são aplicadas via Supabase Management API. Mantenha-as em ordem cronológica.
+
+### 11.1. `20250101000000_create_reminders.sql` — Lembretes Push
 
 ```sql
 -- Table: go_reminders
@@ -179,11 +220,11 @@ CREATE TABLE IF NOT EXISTS go_reminders (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_go_reminders_due 
-  ON go_reminders(remind_at) 
+CREATE INDEX IF NOT EXISTS idx_go_reminders_due
+  ON go_reminders(remind_at)
   WHERE sent = FALSE;
 
-CREATE INDEX IF NOT EXISTS idx_go_reminders_gig 
+CREATE INDEX IF NOT EXISTS idx_go_reminders_gig
   ON go_reminders(gig_id);
 
 ALTER TABLE go_reminders ENABLE ROW LEVEL SECURITY;
@@ -199,4 +240,29 @@ CREATE POLICY "Admins manage their reminders" ON go_reminders
 -- Add reminder_minutes column to go_gigs
 ALTER TABLE go_gigs ADD COLUMN IF NOT EXISTS reminder_minutes INTEGER[] DEFAULT '{}';
 ```
+
+### 11.2. `20250115000000_add_invited_by.sql` — Multi-tenant viewer link
+
+```sql
+ALTER TABLE go_profiles
+  ADD COLUMN IF NOT EXISTS invited_by UUID REFERENCES go_profiles(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_go_profiles_invited_by
+  ON go_profiles(invited_by);
+```
+
+**Por que existe:** antes desta migration, o signup tentava gravar `invited_by` mas a coluna não existia — toda a lógica de viewer (filtros de agenda, dashboard, gigs por tenant) estava silenciosamente quebrada. Esta migration restaura a peça-chave do multi-tenant e habilita a página `/profile` do admin listar os usuários convidados.
+
+**Backfill de usuários existentes:**
+
+```sql
+UPDATE go_profiles p
+SET invited_by = m.admin_id
+FROM go_members m
+WHERE p.role = 'viewer'
+  AND p.email = m.email
+  AND p.invited_by IS NULL;
+```
+
+Viewers sem `go_members` correspondente (ex: admin não os cadastrou como músicos com o mesmo email) precisarão re-linkar via `/profile` → "Trocar de banda", informando o código de convite.
 
