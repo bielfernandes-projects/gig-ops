@@ -3,10 +3,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Bell, Clipboard, ClipboardCheck, PenLine, X, Users } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Bell, BellOff, Clipboard, ClipboardCheck, PenLine, X, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { updatePassword, removeProfile, saveInviteCode, updateInvitedBy } from '@/app/profile/actions';
-import { savePushSubscription } from '@/app/actions/push-actions';
+import { savePushSubscription, removePushSubscription } from '@/app/actions/push-actions';
 import { GoProfile } from '@/lib/types';
 import { signout } from '@/app/login/actions';
 
@@ -122,66 +122,101 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
         <div>
           <p className="text-xs text-zinc-400 mb-4">
             {pushStatus === 'active'
-              ? 'Você já está inscrito. Receberá alertas quando for escalado para um show!'
+              ? 'Você está inscrito. Receberá alertas quando for escalado para um show.'
               : pushStatus === 'denied'
               ? 'Permissão bloqueada pelo dispositivo. Ative nas configurações do navegador.'
               : 'Ative para receber alertas automáticos quando o admin te escalar para um novo show.'}
           </p>
-          
-          <button 
-            disabled={pushStatus === 'active' || pushStatus === 'denied' || pushStatus === 'loading'}
-            onClick={async () => {
-              if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
-                toast.error('Este navegador não suporta Push Notifications.');
-                return;
-              }
-              setPushStatus('loading');
-              try {
-                if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
-                  toast.error('Erro de configuração: Chave VAPID não encontrada.');
-                  setPushStatus('idle');
+
+          {pushStatus === 'active' ? (
+            <button
+              onClick={async () => {
+                if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+                  toast.error('Este navegador não suporta Push Notifications.');
                   return;
                 }
-                await navigator.serviceWorker.register('/sw.js');
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') {
-                  setPushStatus('denied');
-                  toast.error('Permissão negada pelo dispositivo.');
-                  return;
-                }
-                const reg = await navigator.serviceWorker.ready;
-                const existing = await reg.pushManager.getSubscription();
-                const sub = existing ?? await reg.pushManager.subscribe({
-                  userVisibleOnly: true,
-                  applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-                });
-                const subJson = sub.toJSON();
-                const userId = (await (await fetch('/api/me')).json())?.id;
-                const res = await savePushSubscription(userId || '', subJson);
-                if (res?.error) {
-                  toast.error('Erro ao salvar assinatura: ' + res.error);
+                setPushStatus('loading');
+                try {
+                  const reg = await navigator.serviceWorker.ready;
+                  const sub = await reg.pushManager.getSubscription();
+                  if (sub) {
+                    const endpoint = sub.endpoint;
+                    const userId = (await (await fetch('/api/me')).json())?.id;
+                    // 1) Unsubscribe the browser-side subscription
+                    await sub.unsubscribe();
+                    // 2) Remove from DB
+                    if (userId && endpoint) {
+                      const res = await removePushSubscription(userId, endpoint);
+                      if (res?.error) console.warn('removePushSubscription error:', res.error);
+                    }
+                  }
                   setPushStatus('idle');
-                } else {
+                  toast.success('Notificações desativadas.');
+                } catch (err) {
+                  console.error(err);
+                  toast.error('Falha ao desativar notificações.');
                   setPushStatus('active');
-                  toast.success('Notificações ativadas com sucesso!');
                 }
-              } catch (err) {
-                console.error(err);
-                toast.error('Falha ao ativar notificações.');
-                setPushStatus('idle');
-              }
-            }}
-            className={`flex items-center justify-center gap-2 font-bold px-4 py-2.5 rounded-lg text-sm transition-colors w-full md:w-auto ${
-              pushStatus === 'active'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
-                : pushStatus === 'denied'
-                ? 'bg-red-500/10 text-red-400 border border-red-500/20 cursor-not-allowed'
-                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
-            }`}
-          >
-            <Bell className="w-4 h-4" />
-            {pushStatus === 'loading' ? 'Ativando...' : pushStatus === 'active' ? 'Notificações Ativas ✓' : pushStatus === 'denied' ? 'Permissão Bloqueada' : 'Ativar Notificações no Celular'}
-          </button>
+              }}
+              className="flex items-center justify-center gap-2 font-bold px-4 py-2.5 rounded-lg text-sm transition-colors w-full md:w-auto bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+            >
+              <BellOff className="w-4 h-4" />
+              Desativar Notificações
+            </button>
+          ) : (
+            <button
+              disabled={pushStatus === 'denied' || pushStatus === 'loading'}
+              onClick={async () => {
+                if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
+                  toast.error('Este navegador não suporta Push Notifications.');
+                  return;
+                }
+                setPushStatus('loading');
+                try {
+                  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+                    toast.error('Erro de configuração: Chave VAPID não encontrada.');
+                    setPushStatus('idle');
+                    return;
+                  }
+                  await navigator.serviceWorker.register('/sw.js');
+                  const permission = await Notification.requestPermission();
+                  if (permission !== 'granted') {
+                    setPushStatus('denied');
+                    toast.error('Permissão negada pelo dispositivo.');
+                    return;
+                  }
+                  const reg = await navigator.serviceWorker.ready;
+                  const existing = await reg.pushManager.getSubscription();
+                  const sub = existing ?? await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+                  });
+                  const subJson = sub.toJSON();
+                  const userId = (await (await fetch('/api/me')).json())?.id;
+                  const res = await savePushSubscription(userId || '', subJson);
+                  if (res?.error) {
+                    toast.error('Erro ao salvar assinatura: ' + res.error);
+                    setPushStatus('idle');
+                  } else {
+                    setPushStatus('active');
+                    toast.success('Notificações ativadas com sucesso!');
+                  }
+                } catch (err) {
+                  console.error(err);
+                  toast.error('Falha ao ativar notificações.');
+                  setPushStatus('idle');
+                }
+              }}
+              className={`flex items-center justify-center gap-2 font-bold px-4 py-2.5 rounded-lg text-sm transition-colors w-full md:w-auto ${
+                pushStatus === 'denied'
+                  ? 'bg-red-500/10 text-red-400 border border-red-500/20 cursor-not-allowed'
+                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
+              }`}
+            >
+              <Bell className="w-4 h-4" />
+              {pushStatus === 'loading' ? 'Ativando...' : pushStatus === 'denied' ? 'Permissão Bloqueada' : 'Ativar Notificações no Celular'}
+            </button>
+          )}
         </div>
       </section>
 

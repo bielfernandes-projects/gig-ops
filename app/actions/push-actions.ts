@@ -33,6 +33,26 @@ export async function savePushSubscription(userId: string, subscription: PushSub
   return { success: true };
 }
 
+/** Remove a push subscription from the DB by endpoint. The user-side
+ *  pushManager.unsubscribe() should be called by the client too. */
+export async function removePushSubscription(userId: string, endpoint: string) {
+  if (!userId || !endpoint) {
+    return { error: 'Dados inválidos.' };
+  }
+
+  const { error } = await supabaseAdmin
+    .from('go_push_subscriptions')
+    .delete()
+    .eq('user_id', userId)
+    .eq('endpoint', endpoint);
+
+  if (error) {
+    console.error('Error removing push subscription:', error);
+    return { error: error.message };
+  }
+  return { success: true };
+}
+
 /** Send a push notification to all subscriptions belonging to a member (by their member_id in go_members) */
 export async function sendPushToMember(memberId: string, payload: { title: string; body: string; url?: string }) {
   const enrichedPayload = {

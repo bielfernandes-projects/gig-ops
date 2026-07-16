@@ -177,11 +177,23 @@ export default async function Home({
   const now2 = new Date();
   const netProfit = filtered.reduce((acc, gig) => {
     if (new Date(gig.start_time) < now2) return acc;
-    
+
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
     const myLineup = gigLineups.find(l => l.member_id === userMemberId);
     return acc + (myLineup ? myLineup.fee_amount : 0);
   }, 0);
+
+  // "Shows Total" stat:
+  //   - Admin: every gig in their tenant (all statuses, past + future).
+  //   - Viewer: only past gigs where they were actually in the lineup
+  //     (cancelled gigs that never happened don't count).
+  const totalShows = role === 'admin'
+    ? allGigs.length
+    : allGigs.filter(gig => {
+        const gigDate = new Date(gig.start_time);
+        if (gigDate >= now2) return false; // only past
+        return lineups.some(l => l.gig_id === gig.id && l.member_id === userMemberId);
+      }).length;
 
   // Pending gigs: past gigs with unpaid musicians or unpaid sound equipment
   const pendingGigs = visibleGigs.filter(gig => {
@@ -220,7 +232,7 @@ export default async function Home({
           </div>
           <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
             <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 block mb-1">Shows Total</span>
-            <span className="text-xl font-black text-zinc-100">{allGigs.length}</span>
+            <span className="text-xl font-black text-zinc-100">{totalShows}</span>
           </div>
           <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
             <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 block mb-1">Nesta Seleção</span>

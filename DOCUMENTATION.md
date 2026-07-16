@@ -73,6 +73,7 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 * **Admin:** Não exibe a badge "Não Escalado" no card. Se o admin não estiver na lineup, mostra "R$ 0,00" silenciosamente (admins são donos de todas as gigs, então "Não Escalado" não se aplica).
 * **Viewer:** Exibe "Meu Cachê" ou "Não Escalado" normalmente.
 * **Badge "Gig OK":** Movido para a linha financeira (ao lado do valor bruto), evitando o espaço apertado no topo do card.
+* **Card "Shows Total" (header da Agenda):** Para **admin**, mostra o total de gigs do seu tenant. Para **viewer**, mostra apenas o total de gigs **passadas** em que ele **foi escalado** (lineup com `member_id === userMemberId` e `start_time < now`). Gigs canceladas ou em que ele não estava escalado não contam.
 
 ### 5.2. Motor Financeiro e Pendências
 * **Cálculo de Lucro Líquido:** O sistema calcula em tempo real o lucro do evento: `Lucro = Cachê Bruto - Custo do Som - Soma(Cachês da Lineup)`.
@@ -99,6 +100,7 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 * **Gatilho de Escala:** Quando o Admin salva a escala, o servidor dispara uma notificação via biblioteca `web-push` (VAPID) diretamente para o dispositivo cadastrado do músico. O texto da push inclui menção ao calendário: `"Você foi escalado para um novo show. Abra o app para ver os detalhes e adicionar ao seu calendário."`. O `url` da notificação aponta para `/gigs/[id]`, que já exibe o botão de calendário em destaque.
 * **Gatilho de Cancelamento:** Ao cancelar um show com justificativa, todos os músicos impactados recebem o motivo em real-time.
 * **Aviso de Novo Cadastro:** Admins são notificados sempre que um novo usuário entra na plataforma utilizando o código de convite da banda.
+* **Ativar / Desativar:** Em `/profile`, o usuário pode tanto **ativar** quanto **desativar** as notificações. A desativação remove a subscription via `pushManager.unsubscribe()` no cliente e deleta o registro em `go_push_subscriptions` no servidor (`removePushSubscription` em `app/actions/push-actions.ts`).
 
 ### 5.5. Lembretes Push (Agendados)
 * **Configuração na Criação:** Ao criar uma gig, o admin pode selecionar lembretes push com presets: 1 semana, 2 dias, 1 dia, 12 horas, 3 horas, 1 hora antes do evento.
