@@ -99,7 +99,7 @@ export function DateTimePicker({ name, label, defaultValue, required, onChange }
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+      <label className="text-xs font-medium text-zinc-400">
         {label}
       </label>
 
@@ -124,7 +124,7 @@ export function DateTimePicker({ name, label, defaultValue, required, onChange }
         {/* Weekday headers */}
         <div className="grid grid-cols-7 mb-1">
           {WEEKDAYS.map(wd => (
-            <span key={wd} className={`text-center text-[10px] font-bold uppercase tracking-wider py-1 ${wd === 'Sáb' || wd === 'Dom' ? 'text-zinc-600' : 'text-zinc-500'}`}>
+            <span key={wd} className={`text-center text-xs font-medium text-zinc-500 ${wd === 'Sáb' || wd === 'Dom' ? 'text-zinc-600' : 'text-zinc-500'}`}>
               {wd}
             </span>
           ))}
@@ -180,7 +180,7 @@ export function DateTimePicker({ name, label, defaultValue, required, onChange }
       {/* Time selectors */}
       <div className="flex items-center gap-2">
         <div className="flex-1 flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2">
-          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest shrink-0">Hora</span>
+          <span className="text-xs font-medium text-zinc-500">Hora</span>
           <select
             value={hour}
             onChange={e => { setHour(e.target.value); emitChange(selectedDate, e.target.value, minute); }}
@@ -207,7 +207,7 @@ export function DateTimePicker({ name, label, defaultValue, required, onChange }
 
       {/* Validation feedback */}
       {required && !selectedDate && (
-        <p className="text-[10px] text-amber-500/80 font-medium">Selecione uma data no calendário acima.</p>
+        <p className="text-xs font-medium text-amber-500/80">Selecione uma data no calendário acima.</p>
       )}
     </div>
   );

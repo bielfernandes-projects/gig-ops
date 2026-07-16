@@ -63,7 +63,7 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="mt-3 w-full flex items-center justify-center gap-2 bg-transparent border-2 border-dashed border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50 rounded-xl p-5 transition-all group outline-none select-none"
+        className="mt-3 w-full flex items-center justify-center gap-2 bg-transparent border-2 border-dashed border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50 rounded-xl p-5 transition-all group focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-2 focus:ring-offset-zinc-900 select-none"
       >
         <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
         <span className="font-semibold text-sm tracking-wide">Adicionar Músico à Escala</span>
@@ -115,7 +115,7 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
               {members.length === 0 ? (
                 <div className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-4 text-center">
                   <p className="text-sm text-zinc-500">Nenhum músico cadastrado.</p>
-                  <p className="text-[10px] text-zinc-600 mt-1">Cadastre membros no menu Equipe primeiro.</p>
+                  <p className="text-xs font-medium text-zinc-500">Cadastre membros no menu Equipe primeiro.</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1 max-h-48 overflow-y-auto -mx-1 px-1">
@@ -132,7 +132,7 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
                     >
                       <div className="flex flex-col min-w-0 flex-1">
                         <span className="font-semibold truncate">{m.name}</span>
-                        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{m.instrument}</span>
+                        <span className="text-xs font-medium text-zinc-500">{m.instrument}</span>
                       </div>
                       {selected?.type === 'member' && selected.member.id === m.id && (
                         <UserPlus className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -152,7 +152,7 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
                     >
                       <div className="flex flex-col min-w-0 flex-1">
                         <span className="font-semibold truncate">{`Adicionar "${search.trim()}"`}</span>
-                        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Membro avulso</span>
+                        <span className="text-xs font-medium text-zinc-500">Membro avulso</span>
                       </div>
                       {selected?.type === 'custom' && (
                         <UserPlus className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -172,7 +172,7 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
                     >
                       <div className="flex flex-col min-w-0 flex-1">
                         <span className="font-semibold">+ Membro avulso</span>
-                        <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Não está na equipe</span>
+                        <span className="text-xs font-medium text-zinc-600">Não está na equipe</span>
                       </div>
                     </button>
                   )}
@@ -186,7 +186,7 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
               {/* Custom instrument field */}
               {selected?.type === 'custom' && (
                 <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label htmlFor="custom_instrument" className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">
+                  <label htmlFor="custom_instrument" className="text-xs font-medium text-emerald-400">
                     Instrumento / Função
                   </label>
                   <input
@@ -197,14 +197,14 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
                     required
                     className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2 text-sm text-emerald-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-emerald-500/30"
                   />
-                  <p className="text-[10px] text-zinc-500 font-medium">Membro avulso. Será adicionado apenas a este show.</p>
+                  <p className="text-xs font-medium text-zinc-500">Membro avulso. Será adicionado apenas a este show.</p>
                 </div>
               )}
 
               {/* Fee field */}
               {selected && (
                 <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label htmlFor="agreed_fee" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                  <label htmlFor="agreed_fee" className="text-xs font-medium text-zinc-400">
                     Cachê Base Acordado
                   </label>
                   <div className="relative">

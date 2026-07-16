@@ -170,11 +170,30 @@ export default async function Home({
     visibleGigs = visibleGigs.filter(g => g.project_id === project);
   }
 
-  const filtered = filterGigs(visibleGigs, tab, from, to);
+  // Pending gigs: past gigs with unpaid musicians or unpaid sound equipment
+  const now2 = new Date();
+  const pendingGigs = visibleGigs.filter(gig => {
+    const gigDate = new Date(gig.start_time);
+    if (gigDate >= now2) return false; // Only past gigs
+    
+    const gigLineups = lineups.filter(l => l.gig_id === gig.id);
+    
+    if (role === 'admin') {
+      const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
+      const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
+      return anyMusicianUnpaid || soundUnpaid;
+    } else {
+      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+      return myLineup && myLineup.status !== 'pago';
+    }
+  });
+
+  // Exclude pending gigs from the main timeline to avoid showing them twice
+  const pendingGigIds = new Set(pendingGigs.map(g => g.id));
+  const filtered = filterGigs(visibleGigs, tab, from, to).filter(g => !pendingGigIds.has(g.id));
   const grouped = groupByMonth(filtered);
 
   // Dynamic profit calculation based on filtered selection: strictly upcoming gigs only
-  const now2 = new Date();
   const netProfit = filtered.reduce((acc, gig) => {
     if (new Date(gig.start_time) < now2) return acc;
 
@@ -195,48 +214,31 @@ export default async function Home({
         return lineups.some(l => l.gig_id === gig.id && l.member_id === userMemberId);
       }).length;
 
-  // Pending gigs: past gigs with unpaid musicians or unpaid sound equipment
-  const pendingGigs = visibleGigs.filter(gig => {
-    const gigDate = new Date(gig.start_time);
-    if (gigDate >= now2) return false; // Only past gigs
-    
-    const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    
-    if (role === 'admin') {
-      const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
-      const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
-      return anyMusicianUnpaid || soundUnpaid;
-    } else {
-      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
-      return myLineup && myLineup.status !== 'pago';
-    }
-  });
-
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-3xl md:text-5xl font-black tracking-tight text-zinc-50 mb-6 font-display">
+        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50 mb-6">
           Agenda
         </h1>
 
         {/* Stats strip */}
         <div className="flex gap-3 overflow-x-auto pb-3 snap-x hide-scrollbar mb-6">
           <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 block mb-1">
+            <span className="text-xs font-medium text-zinc-500 block mb-1">
               {role === 'admin' ? 'Lucro Estimado' : 'Meu Cachê'}
             </span>
-            <span className={`text-xl font-black ${netProfit >= 0 ? 'text-emerald-400' : 'text-zinc-400'}`}>
+            <span className={`text-xl font-bold ${netProfit >= 0 ? 'text-emerald-400' : 'text-zinc-400'}`}>
               R$ {netProfit.toFixed(2)}
             </span>
           </div>
           <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 block mb-1">Shows Total</span>
-            <span className="text-xl font-black text-zinc-100">{totalShows}</span>
+            <span className="text-xs font-medium text-zinc-500 block mb-1">Shows Total</span>
+            <span className="text-xl font-bold text-zinc-100">{totalShows}</span>
           </div>
           <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 block mb-1">Nesta Seleção</span>
-            <span className="text-xl font-black text-zinc-100">{filtered.length}</span>
+            <span className="text-xs font-medium text-zinc-500 block mb-1">Nesta Seleção</span>
+            <span className="text-xl font-bold text-zinc-100">{filtered.length}</span>
           </div>
         </div>
 
@@ -248,10 +250,16 @@ export default async function Home({
 
       {error && (
         <div className="p-4 text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">
-          <h2 className="font-bold mb-2">Erro ao carregar dados:</h2>
-          <pre className="text-xs overflow-auto p-4 bg-black/50 rounded-lg">
-            {JSON.stringify(error, null, 2)}
-          </pre>
+          <h2 className="font-bold mb-2">Erro ao carregar agenda</h2>
+          <p className="text-sm text-red-400/80 mb-3">
+            Não foi possível carregar seus shows. Verifique sua conexão e tente novamente.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-xs font-semibold text-red-400 hover:text-red-300 transition-colors"
+          >
+            Tentar novamente
+          </button>
         </div>
       )}
 
@@ -272,11 +280,11 @@ export default async function Home({
             <section key={month}>
               {/* Month Header */}
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-[11px] font-black tracking-[0.2em] uppercase text-zinc-500">
+                <span className="text-xs font-semibold tracking-wide text-zinc-500">
                   {month}
                 </span>
                 <div className="flex-1 h-px bg-zinc-800" />
-                <span className="text-[10px] text-zinc-600 font-semibold">
+                <span className="text-xs text-zinc-600 font-medium">
                   {monthGigs.length} {monthGigs.length === 1 ? 'show' : 'shows'}
                 </span>
               </div>
@@ -316,7 +324,7 @@ export default async function Home({
         <section className="mt-8 pb-32">
           <div className="flex items-center gap-3 mb-4">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
-            <span className="text-[11px] font-black tracking-[0.2em] uppercase text-amber-500">
+            <span className="text-xs font-semibold tracking-wide text-amber-500">
               Pendentes ({pendingGigs.length})
             </span>
             <div className="flex-1 h-px bg-amber-500/20" />
@@ -368,14 +376,13 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
     : startStr;
 
   return (
-    <div className={`flex w-full bg-zinc-900 border border-zinc-800 rounded-xl shadow-sm group hover:border-zinc-700 transition-colors ${isPastFullyPaid ? 'opacity-40 grayscale' : ''}`}>
+    <div className={`flex w-full bg-zinc-900 border border-zinc-800 rounded-xl shadow-sm group hover:border-zinc-700 transition-colors ${isPastFullyPaid ? 'opacity-70' : ''}`}>
       {/* Date column */}
       <div
         className="flex flex-col items-center justify-center px-4 py-5 bg-zinc-950 border-r border-zinc-800 min-w-[64px] shrink-0 rounded-l-xl overflow-hidden"
-        style={{ borderLeftColor: projectColor, borderLeftWidth: 3 }}
       >
-        <span className="text-[9px] font-bold text-zinc-600 tracking-wider uppercase mb-0.5">{weekday}</span>
-        <span className="text-2xl font-black leading-none" style={{ color: projectColor }}>{day}</span>
+        <span className="text-[11px] font-medium text-zinc-600 tracking-wide mb-0.5">{weekday}</span>
+        <span className="text-2xl font-bold leading-none" style={{ color: projectColor }}>{day}</span>
       </div>
 
       {/* Content */}
@@ -384,12 +391,17 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: projectColor }} />
-            <span className="text-[10px] font-bold tracking-widest uppercase truncate" style={{ color: projectColor }}>
+            <span className="text-xs font-semibold truncate" style={{ color: projectColor }}>
               {gig.go_projects?.name || '—'}
             </span>
           </div>
+          {isPastFullyPaid && (
+            <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 shrink-0">
+              Pago ✓
+            </span>
+          )}
         </div>
-        <h2 className={`text-base font-bold text-zinc-100 leading-snug break-words mb-2 line-clamp-2 ${isPastFullyPaid ? 'line-through' : ''}`}>
+        <h2 className="text-base font-bold text-zinc-100 leading-snug break-words mb-2 line-clamp-2">
           {gig.title}
         </h2>
 
@@ -406,7 +418,7 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
           <div className="flex items-center gap-2">
             <span className="text-xs text-zinc-500 font-medium">R$ {gig.gross_value.toFixed(2)}</span>
             {isGigPronta && (
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500 uppercase tracking-tighter">
+              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500">
                 Gig OK
               </span>
             )}
@@ -422,7 +434,7 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
               R$ 0,00
             </span>
           ) : (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md text-zinc-500 bg-zinc-800/50 uppercase tracking-widest">
+            <span className="text-xs font-medium px-2 py-0.5 rounded-md text-zinc-500 bg-zinc-800/50">
               Não Escalado
             </span>
           )}
@@ -430,7 +442,7 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
       </Link>
 
       {/* Action buttons */}
-      <div className="flex flex-col items-center gap-1 pt-3 pr-3 shrink-0">
+      <div className="flex flex-col items-center gap-1.5 pt-3 pr-3 shrink-0">
         <AddToCalendarButton
           title={gig.title}
           projectName={gig.go_projects?.name}

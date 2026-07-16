@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Navigation } from '@/components/navigation';
-import { Toaster } from 'sonner';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemeToaster } from '@/components/theme-toaster';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,9 +27,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: '#09090b', // zinc-950
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+    { media: '(prefers-color-scheme: light)', color: '#fafafa' },
+  ],
 };
 
 export default function RootLayout({
@@ -37,10 +39,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className={`${inter.className} min-h-screen bg-zinc-950 text-zinc-50 flex flex-col antialiased select-none overscroll-y-auto`}>
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            var d = document.documentElement;
+            try {
+              var saved = localStorage.getItem('theme');
+              if (saved === 'light') {
+                d.classList.remove('dark');
+              } else if (saved === 'dark') {
+                d.classList.add('dark');
+              } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                d.classList.remove('dark');
+              } else {
+                d.classList.add('dark');
+              }
+            } catch(e) {
+              d.classList.add('dark');
+            }
+          })();
+        `}} />
+      </head>
+      <body className={`${inter.className} min-h-screen bg-background text-foreground flex flex-col antialiased select-none overscroll-y-auto`}>
+        <ThemeToggle />
         {/* Desktop Sidebar (hidden on mobile) */}
-        <div className="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-zinc-800 bg-zinc-950 z-50">
+        <div className="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-zinc-800 bg-zinc-950 z-50 dark:bg-zinc-950">
           <Navigation isMobile={false} />
         </div>
 
@@ -54,17 +78,7 @@ export default function RootLayout({
           <Navigation isMobile={true} />
         </div>
 
-        <Toaster 
-          theme="dark" 
-          position="bottom-center"
-          toastOptions={{
-            style: {
-              background: '#18181b', // zinc-900
-              border: '1px solid #27272a', // zinc-800
-              color: '#fafafa', // zinc-50
-            }
-          }} 
-        />
+        <ThemeToaster />
       </body>
     </html>
   );

@@ -127,7 +127,7 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
 
             <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor={`fee-${freela.id}`} className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor={`fee-${freela.id}`} className="text-xs font-medium text-zinc-400">
                   Cachê Acordado
                 </label>
                 <div className="relative">

@@ -19,7 +19,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
 
   useEffect(() => {
-    console.log('LoginPage hydrated');
     let timer: NodeJS.Timeout;
     if (successMsg) {
       timer = setTimeout(() => {
@@ -75,7 +74,7 @@ export default function LoginPage() {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-zinc-950 z-[999] px-4 overflow-hidden pt-safe pb-safe">
       <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 flex flex-col items-center max-h-[98%] overflow-y-auto no-scrollbar">
-        <div className="mb-4 relative w-40 h-40 shrink-0">
+        <div className="mb-4 relative w-24 h-24 md:w-40 md:h-40 shrink-0">
           <Image
             src="/logo.svg"
             alt="Minha Banda Logo"
@@ -87,7 +86,7 @@ export default function LoginPage() {
 
         {!successMsg && (
           <>
-            <h1 className="text-xl md:text-2xl font-black text-zinc-50 mb-1 tracking-tight text-center">Minha Banda App</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-zinc-50 mb-1 tracking-tight text-center">Minha Banda App</h1>
             <p className="text-xs md:text-sm text-zinc-400 mb-6 font-medium text-center">
               {isLogin
                 ? 'Bem-vindo ao Minha Banda. Faça login para gerenciar sua agenda.'
@@ -119,7 +118,7 @@ export default function LoginPage() {
             {isForgotPassword ? (
               <form onSubmit={handleForgotSubmit} className="w-full flex flex-col gap-2.5">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
+                  <label className="text-xs font-medium text-zinc-400">
                     E-mail para recuperação
                   </label>
                   <input
@@ -155,7 +154,7 @@ export default function LoginPage() {
               <>
                 <form onSubmit={handleSubmit} className="w-full flex flex-col gap-2.5">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
+                    <label className="text-xs font-medium text-zinc-400">
                       E-mail
                     </label>
                     <input
@@ -168,7 +167,7 @@ export default function LoginPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
+                    <label className="text-xs font-medium text-zinc-400">
                       Senha
                     </label>
                     <div className="relative">
@@ -196,7 +195,7 @@ export default function LoginPage() {
 
                   {!isLogin && !isAdminSignup && (
                     <div className="flex flex-col gap-1 mt-1 p-2.5 bg-zinc-950/50 border border-zinc-800/80 rounded-lg">
-                      <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest flex justify-between">
+                      <label className="text-xs font-medium text-zinc-400 flex justify-between">
                         Código de Convite da Banda
                       </label>
                       <input
@@ -263,7 +262,7 @@ export default function LoginPage() {
 
                 {!isLogin && !isAdminSignup && (
                   <div className="w-full flex flex-col items-center mt-4 pt-4 border-t border-zinc-800/80">
-                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3 font-bold">Ou então</span>
+                    <span className="text-xs text-zinc-500 mb-3 font-medium">ou</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -273,9 +272,9 @@ export default function LoginPage() {
                       }}
                       className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-md text-sm transition-all active:scale-[0.98]"
                     >
-                      ✨ Criar Minha Banda
+                      Criar Minha Banda
                     </button>
-                    <p className="text-[9px] text-zinc-500 font-medium text-center mt-1.5 max-w-[200px] leading-tight">
+                    <p className="text-[11px] text-zinc-500 font-medium text-center mt-1.5 max-w-[220px] leading-tight">
                       Seja o administrador da sua própria agenda.
                     </p>
                   </div>

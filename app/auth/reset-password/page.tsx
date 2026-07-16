@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
           />
         </div>
 
-        <h1 className="text-xl md:text-2xl font-black text-zinc-50 mb-1 tracking-tight text-center">Redefinir senha</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-zinc-50 mb-1 tracking-tight text-center">Redefinir senha</h1>
         <p className="text-xs md:text-sm text-zinc-400 mb-6 font-medium text-center">
           Informe uma nova senha para seguir ao login.
         </p>
@@ -116,7 +116,7 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
           <fieldset disabled={isSubmitting || isLoadingSession || Boolean(sessionError)} className="space-y-0">
           <div className="flex flex-col gap-1 relative">
-            <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
+            <label className="text-xs font-medium text-zinc-400">
               Nova senha
             </label>
             <input
@@ -140,7 +140,7 @@ export default function ResetPasswordPage() {
           <PasswordStrengthIndicator password={password} />
 
           <div className="flex flex-col gap-1 relative">
-            <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
+            <label className="text-xs font-medium text-zinc-400">
               Confirme a nova senha
             </label>
             <input

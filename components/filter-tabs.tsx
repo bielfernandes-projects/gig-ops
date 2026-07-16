@@ -47,7 +47,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => handleChange(key)}
-                className={`flex-1 min-w-[80px] py-1.5 px-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${
+                className={`flex-1 min-w-[80px] py-1.5 px-2 text-xs font-semibold rounded-lg transition-all ${
                   isActive
                     ? 'bg-zinc-100 text-zinc-950 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
@@ -61,7 +61,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
         <select 
           value={project}
           onChange={(e) => handleParamChange('project', e.target.value)}
-          className="bg-zinc-900 border border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-400 rounded-xl px-3 py-2.5 max-w-[140px] focus:outline-none focus:border-zinc-700 transition-colors truncate"
+          className="bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-400 rounded-xl px-3 py-2.5 max-w-[140px] focus:outline-none focus:border-zinc-700 transition-colors truncate"
         >
           <option value="all">TODOS PROJETOS</option>
           {projects.map((p) => (
@@ -73,7 +73,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
       {active === 'custom' && (
         <div className="flex gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex-1 flex flex-col gap-1">
-            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-1">De</label>
+            <label className="text-xs font-medium text-zinc-500 px-1">De</label>
             <input 
               type="date" 
               value={from}
@@ -82,7 +82,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
             />
           </div>
           <div className="flex-1 flex flex-col gap-1">
-            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-1">Até</label>
+            <label className="text-xs font-medium text-zinc-500 px-1">Até</label>
             <input 
               type="date" 
               value={to}

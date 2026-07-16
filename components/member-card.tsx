@@ -6,6 +6,34 @@ import { MessageCircle, X, Loader2, Trash2 } from 'lucide-react';
 import { updateMember, deleteMember } from '@/app/actions/member-actions';
 import { toast } from 'sonner';
 
+const INSTRUMENT_COLORS: Record<string, string> = {
+  'Vocal': '#f472b6',
+  'Voz': '#f472b6',
+  'Guitarra': '#f59e0b',
+  'Guitar': '#f59e0b',
+  'Violão': '#f59e0b',
+  'Baixo': '#3b82f6',
+  'Bass': '#3b82f6',
+  'Bateria': '#ef4444',
+  'Drums': '#ef4444',
+  'Teclado': '#a855f7',
+  'Keyboard': '#a855f7',
+  'Piano': '#a855f7',
+  'Sax': '#22c55e',
+  'Saxofone': '#22c55e',
+  'Trompete': '#eab308',
+  'Trumpet': '#eab308',
+  'Violino': '#ec4899',
+  'Flauta': '#06b6d4',
+  'Percussão': '#f97316',
+  'Sound': '#71717a',
+};
+
+function getInstrumentColor(instrument: string): string {
+  const key = Object.keys(INSTRUMENT_COLORS).find(k => instrument.toLowerCase().includes(k.toLowerCase()));
+  return key ? INSTRUMENT_COLORS[key] : '#71717a';
+}
+
 export function MemberCard({ member, role }: { member: GoMember; role: string }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -48,14 +76,22 @@ export function MemberCard({ member, role }: { member: GoMember; role: string })
   return (
     <>
       <div className={`flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-xl p-4 group transition-colors select-none ${role === 'admin' ? 'hover:bg-zinc-800 cursor-pointer' : ''}`}>
-        <div
-          className="flex flex-col flex-1"
-          onClick={() => { if (role === 'admin') { setConfirmDelete(false); setIsEditing(true); } }}
-        >
-          <h3 className="font-bold text-zinc-100 text-base">{member.name}</h3>
-          <span className="text-xs uppercase font-semibold text-zinc-500 tracking-wider">
-            {member.instrument}
-          </span>
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+            style={{ backgroundColor: `${getInstrumentColor(member.instrument)}20`, color: getInstrumentColor(member.instrument) }}
+          >
+            {member.name.charAt(0).toUpperCase()}
+          </div>
+          <div
+            className="flex flex-col min-w-0 flex-1"
+            onClick={() => { if (role === 'admin') { setConfirmDelete(false); setIsEditing(true); } }}
+          >
+            <h3 className="font-bold text-zinc-100 text-base truncate">{member.name}</h3>
+            <span className="text-xs font-medium text-zinc-500">
+              {member.instrument}
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-2 shrink-0">
@@ -110,7 +146,7 @@ export function MemberCard({ member, role }: { member: GoMember; role: string })
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor={`edit-name-${member.id}`} className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor={`edit-name-${member.id}`} className="text-xs font-medium text-zinc-400">
                   Nome do Músico
                 </label>
                 <input 
@@ -124,7 +160,7 @@ export function MemberCard({ member, role }: { member: GoMember; role: string })
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor={`edit-instrument-${member.id}`} className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor={`edit-instrument-${member.id}`} className="text-xs font-medium text-zinc-400">
                   Instrumento Principal
                 </label>
                 <input 
@@ -138,7 +174,7 @@ export function MemberCard({ member, role }: { member: GoMember; role: string })
               </div>
 
                <div className="flex flex-col gap-1.5">
-                <label htmlFor={`edit-phone-${member.id}`} className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor={`edit-phone-${member.id}`} className="text-xs font-medium text-zinc-400">
                   WhatsApp (Opcional)
                 </label>
                 <input 
@@ -153,7 +189,7 @@ export function MemberCard({ member, role }: { member: GoMember; role: string })
               </div>
 
                <div className="flex flex-col gap-1.5">
-                <label htmlFor={`edit-email-${member.id}`} className="text-xs font-semibold text-zinc-400 uppercase tracking-widest flex items-center justify-between">
+                <label htmlFor={`edit-email-${member.id}`} className="text-xs font-medium text-zinc-400 flex items-center justify-between">
                   <span>E-mail do Músico (Opcional)</span>
                 </label>
                 <input 
@@ -164,7 +200,7 @@ export function MemberCard({ member, role }: { member: GoMember; role: string })
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
                   placeholder="Ex: musico@banda.com"
                 />
-                <p className="text-[10px] text-zinc-500 font-medium">O e-mail deve ser o mesmo do login e Google Agenda para sincronização futura.</p>
+                <p className="text-xs font-medium text-zinc-500">O e-mail deve ser o mesmo do login e Google Agenda para sincronização futura.</p>
               </div>
 
               <button 

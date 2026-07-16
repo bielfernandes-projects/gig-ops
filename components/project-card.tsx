@@ -43,7 +43,7 @@ export function ProjectCard({ project, role }: { project: GoProject; role: strin
         />
         <div className="flex flex-col">
           <h3 className="font-bold text-zinc-100 text-lg">{project.name}</h3>
-          <span className="text-xs uppercase font-semibold text-zinc-500 tracking-wider">
+          <span className="text-xs font-medium text-zinc-500">
             {project.color_hex}
           </span>
         </div>
@@ -71,7 +71,7 @@ export function ProjectCard({ project, role }: { project: GoProject; role: strin
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor={`edit-name-${project.id}`} className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor={`edit-name-${project.id}`} className="text-xs font-medium text-zinc-400">
                   Nome do Formato
                 </label>
                 <input 
@@ -85,7 +85,7 @@ export function ProjectCard({ project, role }: { project: GoProject; role: strin
               </div>
 
               <div className="flex flex-col gap-3">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label className="text-xs font-medium text-zinc-400">
                   Cor do Badge
                 </label>
                 
@@ -113,7 +113,7 @@ export function ProjectCard({ project, role }: { project: GoProject; role: strin
                         required 
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 font-mono focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-600 uppercase">HEX</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-zinc-600">HEX</span>
                     </div>
                   </div>
                 </div>

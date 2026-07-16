@@ -147,10 +147,11 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-[88px] md:bottom-10 right-4 md:right-10 z-40 flex items-center justify-center w-14 h-14 bg-zinc-100 text-zinc-900 rounded-full hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl select-none"
-        title="Nova Gig"
+        className="fixed bottom-[88px] md:bottom-10 right-4 md:right-10 z-40 flex items-center gap-2 px-4 h-14 bg-zinc-100 text-zinc-900 rounded-full hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl select-none"
+        aria-label="Novo Show"
       >
         <Plus className="w-6 h-6 stroke-[2.5]" />
+        <span className="text-sm font-bold hidden sm:inline">Novo Show</span>
       </button>
 
       {isOpen && (
@@ -182,7 +183,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
               <input type="hidden" name="clone_id" value={cloneData?.id || ''} />
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="title" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="title" className="text-xs font-medium text-zinc-400">
                   Titulo <span className="text-red-400">*</span>
                 </label>
                 <input 
@@ -198,7 +199,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="project_id" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="project_id" className="text-xs font-medium text-zinc-400">
                   Projeto <span className="text-red-400">*</span>
                 </label>
                 <select 
@@ -216,7 +217,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="location" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="location" className="text-xs font-medium text-zinc-400">
                   Local / Endereco
                 </label>
                 <input 
@@ -244,7 +245,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
               />
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="gross_value" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="gross_value" className="text-xs font-medium text-zinc-400">
                   Valor Bruto (Cache) <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
@@ -296,7 +297,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
                 {bringSound && (
                   <div className="mt-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="flex flex-col gap-1.5">
-                      <label htmlFor="qs-sound-cost" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                      <label htmlFor="qs-sound-cost" className="text-xs font-medium text-zinc-400">
                         Custo do Som
                       </label>
                       <div className="relative">
@@ -316,7 +317,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                      <label htmlFor="qs-sound-person" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                      <label htmlFor="qs-sound-person" className="text-xs font-medium text-zinc-400">
                         Responsavel pelo Som
                       </label>
                       <select
@@ -354,7 +355,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
                       <div key={entry.member_id} className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-lg p-2.5">
                         <div className="flex flex-col min-w-0 flex-1">
                           <span className="text-xs font-bold text-zinc-200 truncate">{entry.name}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{entry.instrument}</span>
+                          <span className="text-xs font-medium text-zinc-500">{entry.instrument}</span>
                         </div>
                         <div className="relative shrink-0">
                           <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
@@ -395,12 +396,12 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
                 )}
 
                 {members.length === 0 && (
-                  <p className="text-[10px] text-zinc-500 font-medium">Nenhum membro cadastrado. Cadastre membros primeiro.</p>
+                  <p className="text-xs font-medium text-zinc-500">Nenhum membro cadastrado. Cadastre membros primeiro.</p>
                 )}
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="recurrence" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="recurrence" className="text-xs font-medium text-zinc-400">
                   Repeticao
                 </label>
                 <select 
@@ -419,7 +420,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
 
               {recurrence !== 'none' && (
                 <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200 p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-                  <label className="text-[11px] font-semibold text-emerald-400 uppercase tracking-widest mb-1">
+                  <label className="text-xs font-medium text-emerald-400">
                     Termino da Recorrencia
                   </label>
                   <select 
@@ -441,7 +442,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="notes" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="notes" className="text-xs font-medium text-zinc-400">
                   Observacoes <span className="text-zinc-600 normal-case font-normal">(opcional)</span>
                 </label>
                 <textarea 
@@ -465,7 +466,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
                     </span>
                   )}
                 </div>
-                <p className="text-[10px] text-zinc-500 mb-3">Selecione quando enviar lembretes para os musicos escalados.</p>
+                <p className="text-xs font-medium text-zinc-500">Selecione quando enviar lembretes para os musicos escalados.</p>
                 <div className="flex flex-wrap gap-2">
                   {REMINDER_PRESETS.map(preset => {
                     const active = reminderMinutes.includes(preset.minutes);

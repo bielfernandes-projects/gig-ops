@@ -1,7 +1,5 @@
 'use client';
 
-'use client';
-
 import { useState, useEffect } from 'react';
 import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Bell, BellOff, Clipboard, ClipboardCheck, PenLine, X, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -46,7 +44,7 @@ function ProfileEmailRow({ profile, onRemove }: { profile: GoProfile; onRemove: 
             }
           </button>
         </div>
-        <span className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${
+        <span className={`text-xs font-medium mt-0.5 ${
           profile.role === 'admin' ? 'text-amber-500' : 'text-zinc-500'
         }`}>
           {profile.role}
@@ -82,7 +80,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
       
       {/* ─── HEADER ─── */}
       <header>
-        <h1 className="text-3xl font-black tracking-tight text-zinc-50 mb-2">Perfil</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-50 mb-2">Perfil</h1>
         <p className="text-zinc-400 text-sm">Gerencie sua conta e visualize suas métricas.</p>
       </header>
 
@@ -97,7 +95,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
           
           <h2 className="text-zinc-100 font-bold text-lg mb-1">{email}</h2>
           
-          <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${
+          <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
             role === 'admin' 
               ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
               : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
@@ -229,8 +227,8 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1">
-              Código de Convite
+            <label className="text-xs font-medium text-zinc-500 block mb-1">
+              Seu Código de Convite
             </label>
             {editingInvite ? (
               <form
@@ -273,7 +271,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
                 >
                   <X className="w-4 h-4" />
                 </button>
-                <p className="text-[10px] text-zinc-500 leading-tight max-w-[160px]">
+                <p className="text-xs text-zinc-500 leading-tight max-w-[160px]">
                   Máximo 5 caracteres, letras e números.
                 </p>
               </form>
@@ -331,8 +329,8 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1">
-              Código de Convite da Banda
+            <label className="text-xs font-medium text-zinc-500 block mb-1">
+              Código de Convite
             </label>
             {editingInvite ? (
               <form
@@ -377,7 +375,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
                     Cancelar
                   </button>
                 </div>
-                <p className="text-[10px] text-zinc-500">
+                <p className="text-xs text-zinc-500">
                   Seus shows escalados continuarão intactos. Apenas sua afiliação à banda muda.
                 </p>
               </form>
@@ -426,10 +424,10 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
             <h3 className="text-sm font-bold text-zinc-300">Alterar Senha</h3>
           </div>
           
-          <div className="flex flex-col gap-3 md:flex-row">
-            <input type="password" name="password" required placeholder="Nova senha" minLength={6} className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
-            <input type="password" name="confirmPassword" required placeholder="Confirmar nova senha" minLength={6} className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
-            <button type="submit" className="bg-zinc-100 hover:bg-white text-zinc-900 font-bold px-6 py-2.5 rounded-lg text-sm transition-transform active:scale-95 whitespace-nowrap">Atualizar</button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input type="password" name="password" required placeholder="Nova senha" minLength={6} className="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
+            <input type="password" name="confirmPassword" required placeholder="Confirmar nova senha" minLength={6} className="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
+            <button type="submit" className="bg-zinc-100 hover:bg-white text-zinc-900 font-bold px-6 py-2.5 rounded-lg text-sm transition-transform active:scale-95 shrink-0">Atualizar</button>
           </div>
         </form>
 

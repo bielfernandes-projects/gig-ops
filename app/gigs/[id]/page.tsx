@@ -114,7 +114,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       return (
         <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-20 text-center">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 md:p-12 shadow-xl">
-            <h2 className="text-2xl font-black text-zinc-100 mb-4">Acesso Negado</h2>
+            <h2 className="text-2xl font-bold text-zinc-100 mb-4">Acesso Negado</h2>
             <p className="text-zinc-400 text-sm mb-8 max-w-sm mx-auto">
               Você não está escalado para este show e não tem permissão para visualizar estes detalhes.
             </p>
@@ -185,12 +185,12 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             style={{ backgroundColor: `${projectColor}15`, padding: '4px 10px', borderRadius: '6px', border: '1px solid #27272a', width: 'fit-content' }}
           >
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: projectColor }} aria-hidden="true" />
-            <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: projectColor }}>
+            <span className="text-xs font-semibold" style={{ color: projectColor }}>
               {gigData.go_projects?.name || 'Projeto Desconhecido'}
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-white leading-tight">
             {gigData.title}
           </h1>
 
@@ -212,7 +212,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                 {gigData.end_time && (
                   <>
                     {' '}– {new Date(gigData.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}
-                    <span className="ml-2 px-1.5 py-0.5 bg-zinc-800 text-[10px] font-bold text-zinc-400 rounded uppercase tracking-wider">
+                    <span className="ml-2 px-1.5 py-0.5 bg-zinc-800 text-xs font-medium text-zinc-400 rounded">
                       {(() => {
                         const diffMs = new Date(gigData.end_time).getTime() - new Date(gigData.start_time).getTime();
                         if (diffMs <= 0) return '';
@@ -265,11 +265,11 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
       {/* Financial Summary Card */}
       <section className="mb-10">
-        <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase mb-4 px-1">Resumo Financeiro</h2>
+        <h2 className="text-sm font-semibold text-zinc-200 mb-4 px-1">Resumo Financeiro</h2>
         <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Cachê Bruto</span>
+              <span className="text-xs font-medium text-zinc-500">Cachê Bruto</span>
               <span className="text-xl md:text-2xl font-bold text-zinc-50">R$ {gigData.gross_value.toFixed(2)}</span>
             </div>
 
@@ -277,7 +277,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               <>
                 <div className="hidden md:block w-px h-12 bg-zinc-800" />
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Músicos (Escala)</span>
+                   <span className="text-xs font-medium text-zinc-500">Músicos (Escala)</span>
                   <span className="text-xl md:text-2xl font-bold text-red-400">− R$ {lineupCost.toFixed(2)}</span>
                 </div>
               </>
@@ -287,7 +287,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               <>
                 <div className="hidden md:block w-px h-12 bg-zinc-800" />
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] uppercase tracking-wider text-amber-500/80 font-semibold">Custo do Som</span>
+                   <span className="text-xs font-medium text-amber-500/80">Custo do Som</span>
                   <span className="text-xl md:text-2xl font-bold text-amber-400">− R$ {soundCost.toFixed(2)}</span>
                 </div>
               </>
@@ -298,28 +298,28 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
             {role === 'admin' ? (
               adminMyLineup ? (
                 <div className="flex flex-col gap-1.5 md:items-end">
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Seu Cachê</span>
-                  <span className="text-2xl md:text-3xl font-black tracking-tight text-emerald-400">
+                   <span className="text-xs font-semibold text-emerald-500">Seu Cachê</span>
+                   <span className="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">
                     R$ {adminMyLineup.fee_amount.toFixed(2)}
                   </span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5 md:items-end">
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Lucro Líquido</span>
-                  <span className={`text-2xl md:text-3xl font-black tracking-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                   <span className="text-xs font-semibold text-emerald-500">Lucro Líquido</span>
+                   <span className={`text-2xl md:text-3xl font-bold tracking-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                     R$ {netProfit.toFixed(2)}
                   </span>
                 </div>
               )
             ) : (
               <div className="flex flex-col gap-1.5 md:items-end">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Meu Cachê</span>
+                 <span className="text-xs font-semibold text-emerald-500">Meu Cachê</span>
                 {!viewerNotScheduled ? (
-                  <span className="text-2xl md:text-3xl font-black tracking-tight text-emerald-400">
-                    R$ {viewerFee.toFixed(2)}
-                  </span>
-                ) : (
-                  <span className="text-lg md:text-xl font-black tracking-tight text-zinc-500 uppercase mt-1 md:mt-2">
+                   <span className="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">
+                     R$ {viewerFee.toFixed(2)}
+                   </span>
+                 ) : (
+                   <span className="text-lg md:text-xl font-medium tracking-tight text-zinc-500 mt-1 md:mt-2">
                     Não Escalado
                   </span>
                 )}
@@ -336,7 +336,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
         <section className="mb-10">
           <div className="flex items-center gap-2 mb-4 px-1">
             <StickyNote className="w-4 h-4 text-zinc-500" />
-            <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase">Observações</h2>
+            <h2 className="text-sm font-semibold text-zinc-200">Observações</h2>
           </div>
           <div className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-5 md:p-6 shadow-sm">
             <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-wrap">
@@ -350,7 +350,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       <section>
         {role === 'admin' && (
           <div className="flex items-end justify-between mb-4 px-1">
-            <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
               Escala de Músicos
             </h2>
             <span className="text-xs font-bold px-2 py-1 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg">
@@ -384,7 +384,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       {gigData.bring_sound && gigData.sound_cost > 0 && (
         <section className="mt-10">
           <div className="flex items-end justify-between mb-4 px-1">
-            <h2 className="text-sm font-bold tracking-wide text-zinc-300 uppercase flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
               Equipamento / Som
             </h2>
           </div>
@@ -396,7 +396,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                 <span className="font-bold text-zinc-50 text-base truncate">
                   {soundPerson?.name || 'Equipamento de Som'}
                 </span>
-                <span className="text-xs font-medium text-amber-500/70 uppercase tracking-wider">
+                <span className="text-xs font-medium text-amber-500/70">
                   Fornecedor de Som
                 </span>
               </div>

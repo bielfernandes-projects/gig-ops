@@ -128,7 +128,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
             <form onSubmit={handleSave} className="flex flex-col gap-4">
               {/* Title */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="gig-title" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="gig-title" className="text-xs font-medium text-zinc-400">
                   Título do Show
                 </label>
                 <input
@@ -143,7 +143,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
 
               {/* Project */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="gig-project" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="gig-project" className="text-xs font-medium text-zinc-400">
                   Formato / Projeto
                 </label>
                 <select
@@ -176,7 +176,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
 
               {/* Location */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="gig-location" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="gig-location" className="text-xs font-medium text-zinc-400">
                   Endereço / Local
                 </label>
                 <input
@@ -191,7 +191,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
 
               {/* Gross Value */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="gig-gross" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="gig-gross" className="text-xs font-medium text-zinc-400">
                   Cachê Bruto
                 </label>
                 <div className="relative">
@@ -244,7 +244,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                   <div className="mt-4 flex flex-col gap-3">
                     {/* Sound cost */}
                     <div className="flex flex-col gap-1.5">
-                      <label htmlFor="gig-sound-cost" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                      <label htmlFor="gig-sound-cost" className="text-xs font-medium text-zinc-400">
                         Custo do Som
                       </label>
                       <div className="relative">
@@ -266,7 +266,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
 
                     {/* Sound person */}
                     <div className="flex flex-col gap-1.5">
-                      <label htmlFor="gig-sound-person" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                      <label htmlFor="gig-sound-person" className="text-xs font-medium text-zinc-400">
                         Responsável pelo Som
                       </label>
                       <select
@@ -287,7 +287,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                     {/* Sound Payment Status */}
                     <div className="mt-2 flex items-center justify-between bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
                       <div className="flex flex-col">
-                        <span className="text-xs font-bold text-amber-500/80 uppercase tracking-wider">Status Financeiro</span>
+                        <span className="text-xs font-medium text-amber-500/80">Status Financeiro</span>
                         <span className="text-sm font-semibold text-zinc-300">Som Pago?</span>
                       </div>
                       <button
@@ -308,7 +308,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
 
               {/* Notes */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="gig-notes" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                <label htmlFor="gig-notes" className="text-xs font-medium text-zinc-400">
                   Observações <span className="text-zinc-600 normal-case font-normal">(opcional)</span>
                 </label>
                 <textarea 
@@ -343,13 +343,13 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
               {/* Divider */}
               <div className="flex items-center gap-3 my-1">
                 <div className="flex-1 h-px bg-zinc-800" />
-                <span className="text-xs text-zinc-600 uppercase tracking-widest">Zona de Perigo</span>
+                <span className="text-xs font-medium text-zinc-600">Zona de Perigo</span>
                 <div className="flex-1 h-px bg-zinc-800" />
               </div>
 
               {gig.recurrence_group_id && (
                 <div className="flex flex-col gap-2 bg-zinc-900 border border-red-500/20 p-3 rounded-lg text-left">
-                  <label className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Este show se repete</label>
+                  <label className="text-xs font-medium text-red-400">Este show se repete</label>
                   <label className="flex items-center gap-2 text-xs font-semibold text-zinc-300 hover:text-white cursor-pointer">
                     <input type="radio" name="deleteMode" value="single" checked={deleteMode === 'single'} onChange={() => setDeleteMode('single')} className="accent-red-500" />
                     Apagar apenas este

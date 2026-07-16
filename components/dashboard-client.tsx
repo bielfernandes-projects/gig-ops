@@ -142,7 +142,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
   return (
     <div className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
       <header>
-        <h1 className="text-3xl md:text-5xl font-black tracking-tight text-zinc-50 mb-2 font-display">Dashboard</h1>
+        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50 mb-2">Dashboard</h1>
         <p className="text-zinc-400 text-sm md:text-base">Visão geral da sua agenda e finanças.</p>
       </header>
 
@@ -157,10 +157,10 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
               <CalendarDays className="w-24 h-24 text-zinc-100" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Próximo Show</h3>
+              <h3 className="text-sm font-semibold text-zinc-200 mb-4">Próximo Show</h3>
               {nextGig ? (
                 <>
-                  <h4 className="text-xl font-black text-zinc-100 leading-tight mb-2 line-clamp-2">{nextGig.title}</h4>
+                   <h4 className="text-xl font-bold text-zinc-100 leading-tight mb-2 line-clamp-2">{nextGig.title}</h4>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: nextGig.go_projects?.color_hex || '#71717a' }} />
                     <span className="text-sm font-bold text-zinc-400" style={{ color: nextGig.go_projects?.color_hex || '#71717a' }}>{nextGig.go_projects?.name || 'Sem Projeto'}</span>
@@ -174,7 +174,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
               )}
             </div>
             {nextGig && (
-              <Link href={`/gigs/${nextGig.id}`} className="mt-6 flex items-center gap-2 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-widest">
+               <Link href={`/gigs/${nextGig.id}`} className="mt-6 flex items-center gap-2 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
                 Ver Detalhes <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
@@ -186,9 +186,9 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
               <AlertTriangle className="w-24 h-24 text-amber-500" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Gigs Pendentes</h3>
+              <h3 className="text-sm font-semibold text-zinc-200 mb-4">Gigs Pendentes</h3>
               <div className="flex items-end gap-3">
-                <span className={`text-5xl font-black leading-none ${pendingGigsCount > 0 ? 'text-amber-500' : 'text-zinc-600'}`}>
+                <span className={`text-5xl font-bold leading-none ${pendingGigsCount > 0 ? 'text-amber-500' : 'text-zinc-600'}`}>
                   {pendingGigsCount}
                 </span>
                 <span className="text-sm text-zinc-400 font-medium mb-1">
@@ -197,7 +197,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
               </div>
             </div>
             {pendingGigsCount > 0 && (
-              <Link href="/agenda" className="mt-6 flex items-center gap-2 text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors uppercase tracking-widest">
+               <Link href="/agenda" className="mt-6 flex items-center gap-2 text-xs font-semibold text-amber-500 hover:text-amber-400 transition-colors">
                 Resolver Agora <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
@@ -215,9 +215,9 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
 
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <div className="flex w-full sm:w-auto bg-zinc-950 rounded-xl p-1 border border-zinc-800">
-                <button onClick={() => setPieFilter('month')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors ${pieFilter === 'month' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Mês</button>
-                <button onClick={() => setPieFilter('all')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors ${pieFilter === 'all' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Total</button>
-                <button onClick={() => setPieFilter('custom')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-colors ${pieFilter === 'custom' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Personalizado</button>
+                <button onClick={() => setPieFilter('month')} className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${pieFilter === 'month' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Mês</button>
+                <button onClick={() => setPieFilter('all')} className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${pieFilter === 'all' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Total</button>
+                <button onClick={() => setPieFilter('custom')} className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${pieFilter === 'custom' ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'}`}>Personalizado</button>
               </div>
 
               {pieFilter === 'custom' && (
@@ -238,7 +238,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
               )}
             </div>
 
-            <div className="flex-1 min-h-[300px] flex items-center justify-center relative">
+            <div className="flex-1 min-h-[300px] flex items-center justify-center relative" role="img" aria-label={`Gráfico de pizza: Meu cachê por projeto. Total recebido: R$ ${totalPieProfit.toFixed(2)}`}>
               {pieChartData.length > 0 ? (
                 <>
                   <ResponsiveContainer width="100%" height="100%" minHeight={300}>
@@ -266,7 +266,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-[-24px]">
-                    <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">Total Recebido</span>
+                    <span className="text-zinc-500 text-xs font-medium">Total Recebido</span>
                     <span className="text-zinc-100 font-bold text-2xl leading-none mt-1">R$ {totalPieProfit.toFixed(0)}</span>
                   </div>
                 </>
@@ -293,7 +293,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
                     <button 
                       key={name} 
                       onClick={() => toggleProject(name)} 
-                      className={`px-3 py-1.5 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider rounded-lg border transition-all ${isActive ? 'bg-zinc-800 text-zinc-100 border-zinc-700' : 'bg-zinc-950 text-zinc-500 border-zinc-800 opacity-50 hover:opacity-80'}`}
+                       className={`px-3 py-1.5 flex items-center gap-2 text-xs font-semibold rounded-lg border transition-all ${isActive ? 'bg-zinc-800 text-zinc-100 border-zinc-700' : 'bg-zinc-950 text-zinc-500 border-zinc-800 opacity-50 hover:opacity-80'}`}
                     >
                       <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }}></span>
                       {name}
@@ -303,7 +303,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
               </div>
             )}
 
-            <div className="flex-1 min-h-[300px] flex items-center justify-center relative">
+            <div className="flex-1 min-h-[300px] flex items-center justify-center relative" role="img" aria-label="Gráfico de linha: Quantidade de shows por projeto ao longo do tempo">
             {lineChartData.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height="100%" minHeight={300}>

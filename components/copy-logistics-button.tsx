@@ -71,7 +71,7 @@ export function CopyLogisticsButton({ gig }: CopyLogisticsButtonProps) {
     <button
       onClick={handleCopy}
       title="Copiar logística para o WhatsApp"
-      className={`p-1.5 rounded-lg transition-all select-none ${
+      className={`p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all select-none ${
         copied
           ? 'text-emerald-400 bg-emerald-500/10'
           : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800'

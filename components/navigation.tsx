@@ -28,12 +28,15 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
-                isActive ? 'text-zinc-50' : 'text-zinc-500 hover:text-zinc-300'
+              className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors relative ${
+                isActive ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-emerald-400 rounded-full" />
+              )}
               <Icon className={`w-5 h-5 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
-              <span className="text-[10px] font-medium tracking-wide">{item.name}</span>
+              <span className="text-[11px] font-medium">{item.name}</span>
             </Link>
           );
         })}
@@ -48,7 +51,7 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
         <div className="relative w-8 h-8">
           <Image 
             src="/logo.svg" 
-            alt="Logo" 
+            alt="Minha Banda" 
             fill
             className="invert brightness-200"
           />

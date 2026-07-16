@@ -122,6 +122,14 @@ O sistema resolve o conflito clássico de horários entre servidor e cliente:
 Para otimizar o uso em celulares:
 * **Hiding Navigation:** Ao abrir modais de alta interação (Cadastro de Gig), o sistema oculta a barra de menu inferior via CSS (`modal-open`). Isso expande a área útil e evita obstrução de botões críticos de salvamento.
 
+### 6.3. Sistema de Tema (Dark / Light Mode)
+O app possui alternância manual entre modo escuro e claro, com persistência via `localStorage`.
+
+* **Componente `ThemeToggle`:** Botão fixo no canto superior direito de todas as páginas (`components/theme-toggle.tsx`). Exibe ícone de sol (☀️) no modo escuro e lua (🌙) no modo claro. Alterna a classe `.dark` no `<html>` e salva a preferência em `localStorage.theme`.
+* **Script anti-flash:** Um `<script>` inline no `layout.tsx` lê `localStorage.theme` antes do React hidratar, adicionando ou removendo a classe `.dark` para evitar flash de tema errado.
+* **CSS Override System (`globals.css`):** Em vez de usar o prefixo `dark:` do Tailwind em cada componente, o sistema aplica overrides globais via seletor `:root:not(.dark)`. Classes como `.bg-zinc-950`, `.bg-zinc-900`, `.bg-zinc-800`, `.text-zinc-50`, `.border-zinc-800`, `.hover\:bg-zinc-800`, etc. são redefinidas para suas equivalentes claras quando `.dark` não está presente. Isso permite que todo o app (incluindo componentes de terceiros como Sonner/Toast e Recharts) se adapte ao tema sem modificar cada componente individualmente.
+* **Toaster Reactivo (`components/theme-toaster.tsx`):** Wrapper do Sonner que observa mudanças na classe `.dark` via `MutationObserver` e ajusta as cores do toast (`background`, `border`, `color`) em tempo real.
+
 ### 6.3. Segurança Nativa (RLS)
 * **Row Level Security:** Camada de segurança ativa no PostgreSQL (Supabase). Se um usuário `viewer` tentar burlar o front-end e acessar a API diretamente para ver o cachê bruto de um show, o banco de dados bloqueia o retorno das colunas proibidas com base no ID do usuário autenticado.
 

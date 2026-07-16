@@ -39,10 +39,16 @@ export default async function MembersPage() {
 
       {error && (
         <div className="p-4 text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">
-          <h2 className="font-bold mb-2">Erro ao carregar os dados:</h2>
-          <pre className="text-xs overflow-auto p-4 bg-black/50 rounded-lg">
-            {JSON.stringify(error, null, 2)}
-          </pre>
+          <h2 className="font-bold mb-2">Erro ao carregar músicos</h2>
+          <p className="text-sm text-red-400/80 mb-3">
+            Não foi possível carregar a equipe. Verifique sua conexão e tente novamente.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-xs font-semibold text-red-400 hover:text-red-300 transition-colors"
+          >
+            Tentar novamente
+          </button>
         </div>
       )}
 

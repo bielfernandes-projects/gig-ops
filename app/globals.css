@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
+  --color-background: #fafafa;
+  --color-foreground: #09090b;
+}
+
+.dark {
   --color-background: #09090b;
   --color-foreground: #fafafa;
 }
@@ -12,6 +19,83 @@
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* ─── Light mode overrides ──────────────────────────────────────────────── */
+/* Apply when .dark is NOT on <html> — works regardless of OS preference.   */
+
+:root:not(.dark) {
+  color-scheme: light;
+}
+
+/* Surfaces */
+:root:not(.dark) .bg-zinc-950 { background-color: #f4f4f5; }
+:root:not(.dark) .bg-zinc-900 { background-color: #ffffff; }
+:root:not(.dark) .bg-zinc-900\/80 { background-color: rgba(255,255,255,0.8); }
+:root:not(.dark) .bg-zinc-900\/50 { background-color: rgba(255,255,255,0.5); }
+:root:not(.dark) .bg-zinc-900\/40 { background-color: rgba(255,255,255,0.4); }
+:root:not(.dark) .bg-zinc-900\/20 { background-color: rgba(255,255,255,0.2); }
+:root:not(.dark) .bg-zinc-950\/50 { background-color: rgba(244,244,245,0.5); }
+:root:not(.dark) .bg-zinc-950\/80 { background-color: rgba(244,244,245,0.8); }
+:root:not(.dark) .bg-zinc-800 { background-color: #e4e4e7; }
+:root:not(.dark) .bg-zinc-800\/80 { background-color: rgba(228,228,231,0.8); }
+:root:not(.dark) .bg-zinc-800\/50 { background-color: rgba(228,228,231,0.5); }
+:root:not(.dark) .bg-black\/50 { background-color: rgba(0,0,0,0.1); }
+
+/* Borders */
+:root:not(.dark) .border-zinc-800 { border-color: #e4e4e7; }
+:root:not(.dark) .border-zinc-800\/80 { border-color: rgba(228,228,231,0.8); }
+:root:not(.dark) .border-zinc-800\/60 { border-color: rgba(228,228,231,0.6); }
+:root:not(.dark) .border-zinc-800\/50 { border-color: rgba(228,228,231,0.5); }
+:root:not(.dark) .border-zinc-700 { border-color: #d4d4d8; }
+:root:not(.dark) .border-zinc-700\/50 { border-color: rgba(212,212,216,0.5); }
+:root:not(.dark) .divide-zinc-800 > :not([hidden]) ~ :not([hidden]) { border-color: #e4e4e7; }
+
+/* Text */
+:root:not(.dark) .text-zinc-50 { color: #09090b; }
+:root:not(.dark) .text-zinc-100 { color: #18181b; }
+:root:not(.dark) .text-zinc-200 { color: #27272a; }
+:root:not(.dark) .text-zinc-300 { color: #3f3f46; }
+:root:not(.dark) .text-zinc-400 { color: #52525b; }
+:root:not(.dark) .text-zinc-500 { color: #71717a; }
+:root:not(.dark) .text-zinc-600 { color: #a1a1aa; }
+:root:not(.dark) .text-zinc-700 { color: #d4d4d8; }
+:root:not(.dark) .text-white { color: #09090b; }
+
+/* Hover states */
+:root:not(.dark) .hover\:bg-zinc-800:hover { background-color: #f4f4f5; }
+:root:not(.dark) .hover\:bg-zinc-900:hover { background-color: #f4f4f5; }
+:root:not(.dark) .hover\:bg-zinc-800\/50:hover { background-color: rgba(244,244,245,0.5); }
+:root:not(.dark) .hover\:bg-zinc-700:hover { background-color: #d4d4d8; }
+:root:not(.dark) .hover\:text-zinc-100:hover { color: #18181b; }
+:root:not(.dark) .hover\:text-zinc-200:hover { color: #27272a; }
+:root:not(.dark) .hover\:text-zinc-300:hover { color: #3f3f46; }
+:root:not(.dark) .hover\:border-zinc-700:hover { border-color: #d4d4d8; }
+:root:not(.dark) .hover\:text-white:hover { color: #09090b; }
+
+/* Active states */
+:root:not(.dark) .active\:scale-\[0\.98\]:active { transform: scale(0.98); }
+
+/* Ring */
+:root:not(.dark) .ring-zinc-600 { --tw-ring-color: #a1a1aa; }
+:root:not(.dark) .ring-zinc-700 { --tw-ring-color: #d4d4d8; }
+
+/* Shadows */
+:root:not(.dark) .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+:root:not(.dark) .shadow-xl { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); }
+:root:not(.dark) .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+
+/* Nav bar */
+:root:not(.dark) .bg-zinc-950\/90 { background-color: rgba(250,250,250,0.9); }
+:root:not(.dark) .backdrop-blur-md { backdrop-filter: blur(12px); }
+
+/* Sidebar */
+:root:not(.dark) .border-r { border-right-color: #e4e4e7; }
+
+/* Toast */
+:root:not(.dark) [data-sonner-toaster] { --normal-bg: #ffffff; --normal-border: #e4e4e7; --normal-text: #09090b; }
+
+/* Recharts */
+:root:not(.dark) .recharts-default-tooltip { background-color: #ffffff !important; border-color: #e4e4e7 !important; color: #09090b !important; }
 
 @layer utilities {
   .pb-safe {

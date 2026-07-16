@@ -133,7 +133,7 @@ export function AddToCalendarButton({ title, projectName, start_time, end_time, 
         onClick={() => setOpen(!open)}
         className={`flex items-center justify-center gap-1.5 font-bold rounded-lg transition-colors ${
           compact
-            ? 'p-2 bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 hover:text-indigo-300 border border-indigo-500/20'
+            ? 'p-2 min-w-[44px] min-h-[44px] bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 hover:text-indigo-300 border border-indigo-500/20'
             : fullWidth
             ? 'w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm shadow-md'
             : 'px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm shadow-md'
