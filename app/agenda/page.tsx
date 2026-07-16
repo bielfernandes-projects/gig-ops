@@ -94,8 +94,13 @@ export default async function Home({
   // Multi-tenant isolation: every read is scoped to a single "tenant admin id".
   //   - Admins own themselves (userId).
   //   - Viewers are scoped to the admin who invited them (invitedBy).
-  //   - Without a tenant id we return nothing (defensive).
+  //   - Without a tenant id we MUST return nothing (defense in depth).
+  //     Using a sentinel UUID that no row can match (Postgres "all-0" UUID)
+  //     ensures RLS-equivalent isolation at the application layer even when
+  //     the viewer is unlinked.
+  const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
   const tenantAdminId = role === 'admin' ? userId : invitedBy;
+  const effectiveTenantId = tenantAdminId ?? SENTINEL_NO_TENANT;
 
   // Build queries with tenant-admin isolation
   let gigsQuery = supabase
@@ -105,23 +110,20 @@ export default async function Home({
       bring_sound, sound_cost, sound_person_id, notes, is_sound_paid,
       go_projects ( name, color_hex )
     `)
+    .eq('admin_id', effectiveTenantId)
     .order('start_time', { ascending: true });
 
   let projectsQuery = supabase
     .from('go_projects')
     .select('*')
+    .eq('admin_id', effectiveTenantId)
     .order('name', { ascending: true });
 
   let membersQuery = supabase
     .from('go_members')
     .select('*')
+    .eq('admin_id', effectiveTenantId)
     .order('name', { ascending: true });
-
-  if (tenantAdminId) {
-    gigsQuery = gigsQuery.eq('admin_id', tenantAdminId);
-    projectsQuery = projectsQuery.eq('admin_id', tenantAdminId);
-    membersQuery = membersQuery.eq('admin_id', tenantAdminId);
-  }
 
   // Parallel data fetching — all queries run simultaneously
   const [gigsResult, projectsResult, cloneResult, membersResult] = await Promise.all([

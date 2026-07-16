@@ -10,22 +10,20 @@ export const revalidate = 0;
 export default async function ProjectsPage() {
   const { role, userId, invitedBy } = await getUserInfo();
 
-  // Multi-tenant isolation: scope reads to the tenant admin.
+  // Multi-tenant isolation: scope reads to the tenant admin. If unlinked,
+  // use a sentinel UUID so the .eq() filter matches nothing.
+  const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
   const tenantAdminId = role === 'admin' ? userId : invitedBy;
+  const effectiveTenantId = tenantAdminId ?? SENTINEL_NO_TENANT;
 
-  let projectsResult;
-  if (tenantAdminId) {
-    projectsResult = await supabase
-      .from('go_projects')
-      .select('*')
-      .order('name', { ascending: true })
-      .eq('admin_id', tenantAdminId);
-  } else {
-    projectsResult = { data: [] as GoProject[], error: null as PostgrestError | null };
-  }
+  const projectsResult = await supabase
+    .from('go_projects')
+    .select('*')
+    .order('name', { ascending: true })
+    .eq('admin_id', effectiveTenantId) as unknown as { data: GoProject[] | null, error: PostgrestError | null };
 
-  const projects = (projectsResult as unknown as { data: GoProject[] | null, error: PostgrestError | null }).data || [];
-  const error = (projectsResult as unknown as { data: GoProject[] | null, error: PostgrestError | null }).error;
+  const projects = projectsResult.data || [];
+  const error = projectsResult.error;
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">

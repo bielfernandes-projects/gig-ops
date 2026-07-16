@@ -19,10 +19,16 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
 
-  // Multi-tenant isolation
+  // Multi-tenant isolation. With no tenant (e.g. an unlinked viewer) we
+  // use a sentinel UUID so the .eq('admin_id', ...) filter matches nothing
+  // and the gig becomes "não encontrado" — not "acessible to other tenant".
+  const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
   const tenantAdminId = role === 'admin' ? userId : invitedBy;
+  const effectiveTenantId = tenantAdminId ?? SENTINEL_NO_TENANT;
 
-  // Fetch Gig with Project Join (must happen first — we need the gig data)
+  // Fetch Gig with Project Join (must happen first — we need the gig data).
+  // We filter by admin_id at the SQL layer so an unlinked viewer can never
+  // even discover a gig from another tenant by ID.
   const { data: gigData, error: gigError } = await supabase
     .from('go_gigs')
     .select(`
@@ -42,6 +48,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       go_projects ( * )
     `)
     .eq('id', id)
+    .eq('admin_id', effectiveTenantId)
     .single() as { data: (GigWithProject & { admin_id?: string }) | null, error: PostgrestError | null };
 
   if (gigError || !gigData) {
@@ -61,20 +68,17 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   }
 
   // Build admin-scoped queries for members and projects
-  let membersQuery = supabase
+  const membersQuery = supabase
     .from('go_members')
     .select('*')
+    .eq('admin_id', effectiveTenantId)
     .order('name', { ascending: true });
 
-  let projectsQuery = supabase
+  const projectsQuery = supabase
     .from('go_projects')
     .select('*')
+    .eq('admin_id', effectiveTenantId)
     .order('name', { ascending: true });
-
-  if (tenantAdminId) {
-    membersQuery = membersQuery.eq('admin_id', tenantAdminId);
-    projectsQuery = projectsQuery.eq('admin_id', tenantAdminId);
-  }
 
   // Parallel data fetching — lineup, members, projects, and sound person all at once
   const [lineupResult, membersResult, projectsResult, soundPersonResult] = await Promise.all([

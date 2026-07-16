@@ -60,20 +60,40 @@ export async function updateInvitedBy(formData: FormData) {
 
   if (!settingsData) return { error: 'Código de convite inválido.' };
 
-  // Link viewer's profile to the new admin (idempotent — keeps role/email intact)
-  const { error } = await supabase
+  // UPDATE the existing profile row. We use update (not upsert) because
+  // go_profiles.email is NOT NULL — an upsert without email/role would
+  // fail with a constraint violation. The profile row must exist for a
+  // signed-in user (it's created by the Supabase auth trigger or signup).
+  const { error: updateError } = await supabase
     .from('go_profiles')
-    .upsert(
-      { id: user.id, invited_by: settingsData.admin_id },
-      { onConflict: 'id' }
-    );
+    .update({ invited_by: settingsData.admin_id })
+    .eq('id', user.id);
 
-  if (error) {
-    console.error('Error updating invited_by:', error);
-    return { error: 'Erro ao alterar banda.' };
+  if (updateError) {
+    console.error('Error updating invited_by:', updateError);
+    // Fallback: if the row is missing entirely, do an upsert with all
+    // required NOT NULL fields so the user can still recover.
+    if (updateError.code === 'PGRST116') {
+      const { error: upsertError } = await supabase
+        .from('go_profiles')
+        .upsert(
+          { id: user.id, email: user.email ?? '', role: 'viewer', invited_by: settingsData.admin_id },
+          { onConflict: 'id' }
+        );
+      if (upsertError) {
+        console.error('Error upserting invited_by (fallback):', upsertError);
+        return { error: 'Erro ao alterar banda.' };
+      }
+    } else {
+      return { error: 'Erro ao alterar banda.' };
+    }
   }
 
   revalidatePath('/profile');
+  revalidatePath('/agenda');
+  revalidatePath('/dashboard');
+  revalidatePath('/members');
+  revalidatePath('/projects');
   return { success: true };
 }
 
