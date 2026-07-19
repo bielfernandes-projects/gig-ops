@@ -101,6 +101,8 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 * **Gatilho de Cancelamento:** Ao cancelar um show com justificativa, todos os músicos impactados recebem o motivo em real-time.
 * **Aviso de Novo Cadastro:** Admins são notificados sempre que um novo usuário entra na plataforma utilizando o código de convite da banda.
 * **Ativar / Desativar:** Em `/profile`, o usuário pode tanto **ativar** quanto **desativar** as notificações. A desativação remove a subscription via `pushManager.unsubscribe()` no cliente e deleta o registro em `go_push_subscriptions` no servidor (`removePushSubscription` em `app/actions/push-actions.ts`).
+* **iOS / Safari:** O iOS só suporta Web Push em PWA standalone (adicionado à Tela de Início). O `start_url` do manifesto é `/dashboard` (evita redirect `'/' → '/dashboard'` que quebra escopo do service worker no iOS). `app/manifest.ts` e `profile-client.tsx` incluem detecção de iOS + modo standalone — se o usuário estiver no Safari (não-PWA), o toast orienta a adicionar à Tela de Início.
+* **Middleware:** O matcher em `proxy.ts` exclui `sw.js` e `manifest` para evitar que o auth middleware (que redireciona não-autenticados) bloqueie a requisição do service worker ou do manifesto.
 
 ### 5.5. Lembretes Push (Agendados)
 * **Configuração na Criação:** Ao criar uma gig, o admin pode selecionar lembretes push com presets: 1 semana, 2 dias, 1 dia, 12 horas, 3 horas, 1 hora antes do evento.

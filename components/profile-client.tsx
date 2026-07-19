@@ -169,6 +169,12 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
                   toast.error('Este navegador não suporta Push Notifications.');
                   return;
                 }
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+                if (isIOS && !isStandalone) {
+                  toast.error('No iOS, as notificações Push só funcionam pelo App adicionado à Tela de Início. Use o Safari, toque em Compartilhar > Adicionar à Tela de Início.');
+                  return;
+                }
                 setPushStatus('loading');
                 try {
                   if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
@@ -180,7 +186,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
                   const permission = await Notification.requestPermission();
                   if (permission !== 'granted') {
                     setPushStatus('denied');
-                    toast.error('Permissão negada pelo dispositivo.');
+                    toast.error('Permissão negada pelo dispositivo. Verifique as configurações de notificação nas Ajustes do iOS.');
                     return;
                   }
                   const reg = await navigator.serviceWorker.ready;

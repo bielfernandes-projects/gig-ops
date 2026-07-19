@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Minha Banda',
     short_name: 'Minha Banda',
     description: 'Gestão Logística e Financeira Musical',
-    start_url: '/',
+    start_url: '/dashboard',
     display: 'standalone',
     background_color: '#09090b',
     theme_color: '#09090b',
