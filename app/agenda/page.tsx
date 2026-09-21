@@ -10,6 +10,7 @@ import { AlertTriangle } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { getUserInfo } from '@/lib/auth';
 import { Suspense } from 'react';
+import { AgendaCalendar } from '@/components/agenda-calendar';
 
 export const revalidate = 0;
 
@@ -94,9 +95,27 @@ function formatDuration(startIso: string, endIso: string): string {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; from?: string; to?: string; cloneId?: string; project?: string }>;
+  searchParams: Promise<{ tab?: string; from?: string; to?: string; cloneId?: string; project?: string; view?: string; mes?: string }>;
 }) {
-  const { tab = '7days', from, to, cloneId, project = 'all' } = await searchParams;
+  const sp = await searchParams;
+  const { tab = '7days', from, to, cloneId, project = 'all' } = sp;
+  const calendarView = sp.view !== 'detalhado';
+  const [nowY, nowM] = brYMD(new Date());
+  const mesMatch = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(sp.mes ?? '');
+  const calYear = mesMatch ? Number(mesMatch[1]) : nowY;
+  const calMonth = mesMatch ? Number(mesMatch[2]) : nowM;
+
+  // links that keep the current filters and only change the view / month
+  const hrefWith = (changes: Record<string, string | null>) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries({ tab: sp.tab, from: sp.from, to: sp.to, project: sp.project, view: sp.view, mes: sp.mes })) if (v) q.set(k, v);
+    for (const [k, v] of Object.entries(changes)) {
+      if (v === null) q.delete(k);
+      else q.set(k, v);
+    }
+    const str = q.toString();
+    return str ? `/agenda?${str}` : '/agenda';
+  };
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const { role, memberId: userMemberId, bandId } = await getUserInfo();
@@ -272,9 +291,19 @@ export default async function Home({
           </div>
         </div>
 
+        {/* View toggle */}
+        <div className="mb-3 inline-flex gap-1 rounded-xl border border-zinc-800 bg-zinc-900 p-1 text-xs font-semibold" role="tablist">
+          <Link href={hrefWith({ view: null })} role="tab" aria-selected={calendarView} className={`rounded-lg px-4 py-1.5 transition-colors ${calendarView ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-500 hover:text-zinc-300'}`}>
+            Calendário
+          </Link>
+          <Link href={hrefWith({ view: 'detalhado' })} role="tab" aria-selected={!calendarView} className={`rounded-lg px-4 py-1.5 transition-colors ${!calendarView ? 'bg-zinc-100 text-zinc-950' : 'text-zinc-500 hover:text-zinc-300'}`}>
+            Detalhado
+          </Link>
+        </div>
+
         {/* Filter Tabs */}
         <Suspense>
-          <FilterTabs projects={projects} />
+          <FilterTabs projects={projects} onlyProject={calendarView} />
         </Suspense>
       </header>
 
@@ -293,8 +322,12 @@ export default async function Home({
         </div>
       )}
 
+      {calendarView && !error && (
+        <AgendaCalendar gigs={visibleGigs} year={calYear} month={calMonth} monthHref={(y, m) => hrefWith({ mes: `${y}-${String(m).padStart(2, '0')}` })} />
+      )}
+
       {/* Timeline */}
-      <main className="flex flex-col gap-8 pb-32">
+      <main className={`flex flex-col gap-8 pb-32 ${calendarView ? 'hidden' : ''}`}>
         {filtered.length === 0 && !error ? (
           <div className="w-full py-20 flex flex-col items-center justify-center text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
             <p className="text-zinc-400 font-medium tracking-wide">Nenhum show neste período.</p>

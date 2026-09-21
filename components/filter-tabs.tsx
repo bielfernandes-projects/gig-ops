@@ -10,7 +10,7 @@ const FILTERS = [
   { key: 'custom', label: 'Personalizado' },
 ] as const;
 
-export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
+export function FilterTabs({ projects = [], onlyProject = false }: { projects?: GoProject[]; onlyProject?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -38,7 +38,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <div className="flex-1 flex gap-1.5 p-1 bg-zinc-900 border border-zinc-800 rounded-xl select-none overflow-x-auto hide-scrollbar" role="tablist">
+        {onlyProject ? <div className="flex-1" /> : <div className="flex-1 flex gap-1.5 p-1 bg-zinc-900 border border-zinc-800 rounded-xl select-none overflow-x-auto hide-scrollbar" role="tablist">
           {FILTERS.map(({ key, label }) => {
             const isActive = active === key;
             return (
@@ -57,7 +57,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
               </button>
             );
           })}
-        </div>
+        </div>}
         <select 
           value={project}
           onChange={(e) => handleParamChange('project', e.target.value)}
@@ -70,7 +70,7 @@ export function FilterTabs({ projects = [] }: { projects?: GoProject[] }) {
         </select>
       </div>
 
-      {active === 'custom' && (
+      {!onlyProject && active === 'custom' && (
         <div className="flex gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex-1 flex flex-col gap-1">
             <label className="text-xs font-medium text-zinc-500 px-1">De</label>
