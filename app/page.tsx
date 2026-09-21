@@ -41,7 +41,7 @@ const adminSees = [
 
 const musicianSees = ['Só os shows em que está escalado', 'Só o próprio cachê', 'Nenhum valor dos colegas'];
 
-const priceItems = ['30 dias grátis, sem cartão', 'Músicos ilimitados na banda', 'Pagamento por Pix', 'Cancele quando quiser'];
+const priceItems = ['30 dias grátis, sem cartão', 'Músicos ilimitados na banda', 'Assinatura no cartão de crédito', 'Cancele quando quiser'];
 
 export default async function Landing() {
   let founders = 0;
