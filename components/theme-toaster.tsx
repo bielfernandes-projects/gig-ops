@@ -10,7 +10,7 @@ export function ThemeToaster() {
     const saved = localStorage.getItem('theme');
     if (saved === 'light') setTheme('light');
     else if (saved === 'dark') setTheme('dark');
-    else setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    else setTheme('dark');
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'theme') {

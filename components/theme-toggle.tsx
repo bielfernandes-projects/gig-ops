@@ -9,7 +9,7 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const saved = localStorage.getItem('theme');
-    const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const dark = saved !== 'light';
     setIsDark(dark);
     setMounted(true);
   }, []);

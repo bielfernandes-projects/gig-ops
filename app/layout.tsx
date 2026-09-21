@@ -27,10 +27,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
-    { media: '(prefers-color-scheme: light)', color: '#fafafa' },
-  ],
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#09090b',
 };
 
 export default function RootLayout({
@@ -45,16 +44,9 @@ export default function RootLayout({
           (function() {
             var d = document.documentElement;
             try {
-              var saved = localStorage.getItem('theme');
-              if (saved === 'light') {
-                d.classList.remove('dark');
-              } else if (saved === 'dark') {
-                d.classList.add('dark');
-              } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-                d.classList.remove('dark');
-              } else {
-                d.classList.add('dark');
-              }
+              // dark is the default; only an explicit choice of light turns it off
+              if (localStorage.getItem('theme') === 'light') d.classList.remove('dark');
+              else d.classList.add('dark');
             } catch(e) {
               d.classList.add('dark');
             }
