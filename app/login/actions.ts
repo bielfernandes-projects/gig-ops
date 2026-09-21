@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { sendPushToAdmins } from '@/app/actions/push-actions';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { sendPushToAdmins } from '@/lib/push';
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -32,10 +33,11 @@ export async function signup(formData: FormData) {
   const password = formData.get('password') as string;
 
   // Validate invite code (find which admin owns this code)
-  const { data: settingsData } = await supabase
+  const admin = createAdminClient();
+  const { data: settingsData } = await admin
     .from('go_settings')
     .select('admin_id')
-    .eq('invite_code', inviteCode.toUpperCase())
+    .eq('invite_code', (inviteCode || '').trim().toUpperCase())
     .maybeSingle();
 
   if (!settingsData) {
@@ -62,7 +64,7 @@ export async function signup(formData: FormData) {
   // Supabase trigger already created a row or not, and never clobbers an
   // existing role/email.
   if (data.user) {
-    const { error: profileError } = await supabase
+    const { error: profileError } = await admin
       .from('go_profiles')
       .upsert(
         { id: data.user.id, role: 'viewer', email, invited_by: adminId },
@@ -76,7 +78,7 @@ export async function signup(formData: FormData) {
 
   // Notify admins of new registration (fire & forget — never blocks signup)
   try {
-    await sendPushToAdmins({
+    await sendPushToAdmins(adminId, {
       title: 'Novo Músico Registado! 🎸',
       body: 'Um novo membro acabou de se registar na plataforma.',
     });
@@ -106,7 +108,8 @@ export async function adminSignup(formData: FormData) {
   if (!data.user) return { error: 'Erro ao criar usuário.' };
 
   // Create or update profile with admin role (trigger may already create a row)
-  const { error: profileError } = await supabase
+  const admin = createAdminClient();
+  const { error: profileError } = await admin
     .from('go_profiles')
     .upsert({ id: data.user.id, role: 'admin', email }, { onConflict: 'id' });
 
@@ -118,7 +121,7 @@ export async function adminSignup(formData: FormData) {
 
   // Create go_settings with auto-generated calendar_token for the new admin
   const calendarToken = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-  await supabase
+  await admin
     .from('go_settings')
     .upsert(
       { admin_id: data.user.id, calendar_token: calendarToken },

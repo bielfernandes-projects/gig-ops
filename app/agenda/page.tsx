@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { QuickAddGig } from '@/components/quick-add-gig';
 import { FilterTabs } from '@/components/filter-tabs';
 import { CopyLogisticsButton } from '@/components/copy-logistics-button';
@@ -90,6 +90,7 @@ export default async function Home({
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
+  const supabase = await createClient();
 
   // Multi-tenant isolation: every read is scoped to a single "tenant admin id".
   //   - Admins own themselves (userId).

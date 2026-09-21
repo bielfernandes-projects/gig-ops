@@ -16,7 +16,7 @@ const navItems = [
 export function Navigation({ isMobile }: { isMobile: boolean }) {
   const pathname = usePathname();
 
-  if (pathname === '/login' || pathname.startsWith('/auth')) return null;
+  if (['/', '/login', '/termos', '/privacidade'].includes(pathname) || pathname.startsWith('/auth')) return null;
 
   if (isMobile) {
     return (

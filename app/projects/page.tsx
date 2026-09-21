@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import { AddProjectModal } from '@/components/add-project-modal';
@@ -9,6 +9,7 @@ export const revalidate = 0;
 
 export default async function ProjectsPage() {
   const { role, userId, invitedBy } = await getUserInfo();
+  const supabase = await createClient();
 
   // Multi-tenant isolation: scope reads to the tenant admin. If unlinked,
   // use a sentinel UUID so the .eq() filter matches nothing.

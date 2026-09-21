@@ -1,5 +1,5 @@
 import { getUserInfo } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { GigWithProject, GoLineup } from '@/lib/types';
 import DashboardClient from '@/components/dashboard-client';
 
@@ -9,6 +9,7 @@ const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
 
 export default async function DashboardPage() {
   const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
+  const supabase = await createClient();
 
   // Multi-tenant isolation. With no tenant (e.g. an unlinked viewer) we use
   // a sentinel UUID so the .eq('admin_id', ...) filter matches nothing,

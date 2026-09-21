@@ -1,21 +1,14 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
-import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { sendPushToMember } from './push-actions';
-
-async function requireAdmin() {
-  const client = await createClient();
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) return null;
-  return user.id;
-}
+import { sendPushToMember } from '@/lib/push';
 
 export async function addQuickGig(formData: FormData) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
@@ -58,7 +51,8 @@ export async function addQuickGig(formData: FormData) {
   // Recupera propriedades completas da gig original em caso de clone profundo
   let originalGig = null;
   if (clone_id) {
-    const { data } = await supabase.from('go_gigs').select('*').eq('id', clone_id).single();
+    const { data } = await supabase.from('go_gigs').select('*').eq('id', clone_id).eq('admin_id', adminId).single();
+    if (!data) return { error: 'Show original não encontrado.' };
     originalGig = data;
   }
 
@@ -178,8 +172,9 @@ export async function addQuickGig(formData: FormData) {
 }
 
 export async function updateGig(formData: FormData) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const id = formData.get('id') as string;
   const title = formData.get('title') as string;
@@ -217,8 +212,9 @@ export async function updateGig(formData: FormData) {
 }
 
 export async function cancelGig(gigId: string, reason: string, deleteMode: 'single' | 'future' | 'all' = 'single') {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const { data: currentGig } = await supabase.from('go_gigs').select('*').eq('id', gigId).eq('admin_id', adminId).single();
   if (!currentGig) return { error: 'Show não encontrado.' };
@@ -275,8 +271,9 @@ export async function cancelGig(gigId: string, reason: string, deleteMode: 'sing
 }
 
 export async function addMemberToLineup(formData: FormData) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const gig_id = formData.get('gig_id') as string;
   let member_id = formData.get('musician_id') as string | null;
@@ -331,8 +328,9 @@ export async function addMemberToLineup(formData: FormData) {
 }
 
 export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolean) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const newStatus = targetIsPaid ? 'pago' : 'pendente';
   
@@ -379,8 +377,9 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
 }
 
 export async function removeFromLineup(lineupId: string, gigId: string) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   // Verify gig belongs to admin
   const { data: gig } = await supabase.from('go_gigs').select('id').eq('id', gigId).eq('admin_id', adminId).single();
@@ -401,8 +400,9 @@ export async function removeFromLineup(lineupId: string, gigId: string) {
 }
 
 export async function updateLineupFee(formData: FormData) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const lineupId = formData.get('lineup_id') as string;
   const gigId = formData.get('gig_id') as string;
@@ -433,8 +433,9 @@ export async function updateLineupFee(formData: FormData) {
 }
 
 export async function toggleSoundPayment(gigId: string, targetIsPaid: boolean) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const { error } = await supabase
     .from('go_gigs')

@@ -1,13 +1,15 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { supabase } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
 export async function saveInviteCode(formData: FormData) {
-  const client = await createClient();
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const user = { id: admin.adminId };
+  const supabase = createAdminClient();
 
   const code = formData.get('inviteCode') as string;
 
@@ -47,6 +49,7 @@ export async function updateInvitedBy(formData: FormData) {
   const client = await createClient();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return { error: 'Não autenticado.' };
+  const supabase = createAdminClient();
 
   const code = formData.get('inviteCode') as string;
   if (!code) return { error: 'Código de convite inválido.' };
@@ -106,8 +109,8 @@ export async function updatePassword(formData: FormData) {
     return { error: 'As senhas não coincidem.' };
   }
 
-  if (password.length < 6) {
-    return { error: 'A senha deve ter pelo menos 6 caracteres.' };
+  if (password.length < 8) {
+    return { error: 'A senha deve ter pelo menos 8 caracteres.' };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
@@ -120,14 +123,15 @@ export async function updatePassword(formData: FormData) {
 }
 
 export async function removeProfile(id: string) {
-  const supabase = await createClient();
-  
-  // Notice: This only removes the public profile. 
-  // It effectively distances them from the app data logic without deleting Auth user if privileges are lacking.
-  const { error } = await supabase
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+
+  // Only profiles that this admin invited can be removed.
+  const { error } = await createAdminClient()
     .from('go_profiles')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('invited_by', admin.adminId);
 
   if (error) {
     return { error: error.message };

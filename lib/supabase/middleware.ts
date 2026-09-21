@@ -27,22 +27,27 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Fetch auth session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getClaims validates the JWT locally when the project uses asymmetric keys
+  // (no round trip to Supabase Auth on every request); falls back to the server otherwise.
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const user = claimsData?.claims ?? null
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/auth/reset-password'
+  const path = request.nextUrl.pathname
+  const isAuthRoute = path.startsWith('/login') || path === '/auth/reset-password'
+  const isPublic =
+    path === '/' ||
+    path === '/termos' ||
+    path === '/privacidade' ||
+    path.startsWith('/api/calendar/') || // token-protected iCal feed
+    path.startsWith('/api/cron/') // protected by CRON_SECRET
 
-  if (!user && !isAuthRoute) {
-    // If not authenticated and trying to access a protected route
+  if (!user && !isAuthRoute && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  if (user && isAuthRoute) {
-    // If authenticated and trying to access login page, redirect to home
+  if (user && (isAuthRoute || path === '/')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

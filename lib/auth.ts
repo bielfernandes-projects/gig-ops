@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 
 export type UserRole = 'admin' | 'viewer';
@@ -19,9 +20,11 @@ export type UserInfo = {
  * If `invited_by` is null (unlinked viewer), we fall back to a same-email match
  * across all admin owners, then by the profile's own user.id (last-ditch).
  */
-export async function getUserInfo(): Promise<UserInfo> {
+export const getUserInfo = cache(async (): Promise<UserInfo> => {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
+  const user = claims ? { id: claims.sub, email: claims.email as string | undefined } : null;
   if (!user) return { role: 'viewer', email: undefined, memberId: null, userId: null, invitedBy: null };
 
   const email = user.email;
@@ -63,15 +66,21 @@ export async function getUserInfo(): Promise<UserInfo> {
     userId: user.id,
     invitedBy,
   };
-}
+});
 
-// Backwards-compatible exports
-export async function getUserRole(): Promise<UserRole> {
-  const { role } = await getUserInfo();
-  return role;
-}
-
-export async function getUserEmail(): Promise<string | undefined> {
-  const { email } = await getUserInfo();
-  return email;
+/**
+ * For server actions: returns the session-bound client + the caller's id,
+ * only if the caller is an admin. Writes go through this client so RLS applies.
+ */
+export async function requireAdmin() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profile } = await supabase
+    .from('go_profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (profile?.role !== 'admin') return null;
+  return { supabase, adminId: user.id };
 }

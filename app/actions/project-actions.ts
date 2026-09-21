@@ -1,19 +1,12 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
-import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
-async function requireAdmin() {
-  const client = await createClient();
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) return null;
-  return user.id;
-}
-
 export async function addProject(formData: FormData) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const name = formData.get('name') as string;
   const color_hex = formData.get('color_hex') as string;
@@ -38,8 +31,9 @@ export async function addProject(formData: FormData) {
 }
 
 export async function updateProject(formData: FormData) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const id = formData.get('id') as string;
   const name = formData.get('name') as string;

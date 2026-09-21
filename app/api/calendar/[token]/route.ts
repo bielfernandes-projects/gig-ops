@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import * as ics from 'ics';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -12,35 +12,36 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     return new NextResponse('Token is required or invalid', { status: 400 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  // Calendars are fetched anonymously via URL (like a password token). We use the service_role safely in this isolated route to bypass RLS since bots can't authenticate.
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!; 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  // Anonymous feed (calendar apps can't log in): the token acts as the password, so we use the service role here.
+  const supabase = createAdminClient();
 
   // First, check if it's the ADMIN global token
   const { data: settingsData } = await supabase
     .from('go_settings')
-    .select('id')
+    .select('admin_id')
     .eq('calendar_token', token)
-    .single();
+    .maybeSingle();
 
   let targetMemberId: string | null = null;
+  let scopeAdminId: string | null = null;
   let isAdmin = false;
 
   if (settingsData) {
     isAdmin = true;
+    scopeAdminId = settingsData.admin_id;
   } else {
     // If not admin, check if it's a specific musician's token
     const { data: memberData } = await supabase
       .from('go_members')
-      .select('id')
+      .select('id, admin_id')
       .eq('calendar_token', token)
-      .single();
+      .maybeSingle();
 
     if (!memberData) {
       return new NextResponse('Invalid calendar token', { status: 401 });
     }
     targetMemberId = memberData.id;
+    scopeAdminId = memberData.admin_id;
   }
 
   // Build the gigs query
@@ -49,7 +50,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     .select(`
       id, title, location, start_time, end_time, notes,
       go_projects (name)
-    `);
+    `)
+    .eq('admin_id', scopeAdminId!); // never leak gigs across bands
 
   // If simple viewer, filter to show only Gigs where the member is enrolled
   if (!isAdmin && targetMemberId) {

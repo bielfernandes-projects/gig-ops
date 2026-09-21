@@ -1,19 +1,12 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
-import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
-async function requireAdmin() {
-  const client = await createClient();
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) return null;
-  return user.id;
-}
-
 export async function addMember(formData: FormData) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const name = formData.get('name') as string;
   const instrument = formData.get('instrument') as string;
@@ -51,8 +44,9 @@ export async function addMember(formData: FormData) {
 }
 
 export async function updateMember(formData: FormData) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   const id = formData.get('id') as string;
   const name = formData.get('name') as string;
@@ -89,8 +83,9 @@ export async function updateMember(formData: FormData) {
 }
 
 export async function deleteMember(memberId: string) {
-  const adminId = await requireAdmin();
-  if (!adminId) return { error: 'Não autenticado.' };
+  const admin = await requireAdmin();
+  if (!admin) return { error: 'Sem permissão.' };
+  const { supabase, adminId } = admin;
 
   if (!memberId) return { error: 'ID do músico inválido.' };
 

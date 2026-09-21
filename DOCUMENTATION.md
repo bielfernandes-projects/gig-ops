@@ -278,3 +278,16 @@ WHERE p.role = 'viewer'
 
 Viewers sem `go_members` correspondente (ex: admin não os cadastrou como músicos com o mesmo email) precisarão re-linkar via `/profile` → "Trocar de banda", informando o código de convite.
 
+
+---
+
+## 12. Segurança e go-live (set/2026)
+
+* **Escritas com sessão:** server actions usam `requireAdmin()` (`lib/auth.ts`), que devolve o cliente da sessão e exige `role = 'admin'`. Páginas leem com `createClient()` (sessão); não existe mais cliente anônimo global.
+* **Service role (`lib/supabase/admin.ts`):** só no servidor, sem fallback para a anon key. Usado em cadastro/convite, push, iCal e cron.
+* **Push (`lib/push.ts`):** funções de envio internas (fora de `'use server'`). `savePushSubscription`/`removePushSubscription` exigem `userId` igual ao da sessão. Aviso de novo cadastro vai só ao admin dono do código.
+* **Rotas públicas (proxy):** `/`, `/termos`, `/privacidade`, `/api/calendar/*` (token) e `/api/cron/*` (`CRON_SECRET`). O feed iCal filtra por `admin_id`.
+* **Performance:** `proxy.ts` usa `getClaims()` (validação local do JWT) e `getUserInfo` é memoizado por requisição.
+* **RLS:** migration `20260921000001_enable_rls.sql` (helpers em schema `private`). Admin vê o tenant; músico vê só os shows em que está escalado. `go_profiles`, `go_settings` e `go_push_subscriptions` só são escritos pelo servidor.
+* **Assinatura (Pix manual):** `go_settings.subscription_status` (`trial`/`active`/`expired`), `trial_ends_at`, `paid_until`. Ativar: `UPDATE go_settings SET subscription_status='active', paid_until=now()+interval '30 days' WHERE admin_id='<uuid>';`.
+* **Landing:** `/` pública com preço e CTA; `/termos` e `/privacidade`.

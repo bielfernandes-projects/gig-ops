@@ -1,5 +1,6 @@
 import { getUserInfo } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import ProfileClient from '@/components/profile-client';
 import { GoProfile, GoSettings } from '@/lib/types';
 
@@ -7,6 +8,7 @@ export const revalidate = 0;
 
 export default async function ProfilePage() {
   const { role, email, userId } = await getUserInfo();
+  const supabase = await createClient();
 
   let settingsQuery = Promise.resolve({ data: null as GoSettings | null });
   let profilesQuery = Promise.resolve({ data: null as GoProfile[] | null });
@@ -44,7 +46,8 @@ export default async function ProfilePage() {
   let viewerInviteCode: string | null = null;
   const viewerInvitedBy = viewerProfileResult.data?.invited_by || null;
   if (role !== 'admin' && viewerInvitedBy) {
-    const { data: adminSettings } = await supabase
+    // go_settings is admin-only under RLS; expose just the invite code to the viewer.
+    const { data: adminSettings } = await createAdminClient()
       .from('go_settings')
       .select('invite_code')
       .eq('admin_id', viewerInvitedBy)

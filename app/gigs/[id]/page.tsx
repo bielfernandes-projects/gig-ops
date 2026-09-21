@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { GigWithProject, LineupWithMember, GoMember, GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import { ArrowLeft, Clock, MapPin, Volume2, StickyNote, Calendar } from 'lucide-react';
@@ -18,6 +18,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
+  const supabase = await createClient();
 
   // Multi-tenant isolation. With no tenant (e.g. an unlinked viewer) we
   // use a sentinel UUID so the .eq('admin_id', ...) filter matches nothing
