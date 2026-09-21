@@ -2,6 +2,11 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Logo } from '@/components/logo';
 import { Setlist } from '@/components/landing-setlist';
+import { createAdminClient } from '@/lib/supabase/admin';
+
+export const revalidate = 3600;
+
+const FOUNDER_LIMIT = 50;
 
 export const metadata: Metadata = {
   title: 'Gigueiros: agenda, escala e cachês da sua banda',
@@ -38,7 +43,14 @@ const musicianSees = ['Só os shows em que está escalado', 'Só o próprio cach
 
 const priceItems = ['30 dias grátis, sem cartão', 'Músicos ilimitados na banda', 'Pagamento por Pix', 'Cancele quando quiser'];
 
-export default function Landing() {
+export default async function Landing() {
+  let founders = 0;
+  try {
+    const { count } = await createAdminClient().from('subscriptions').select('band_id', { count: 'exact', head: true }).eq('price_plan', 'founder');
+    founders = count ?? 0;
+  } catch {}
+  const left = Math.max(0, FOUNDER_LIMIT - founders);
+
   return (
     <div className="landing fixed inset-0 z-[999] overflow-y-auto bg-[var(--l-bg)] text-[var(--l-fg)]">
       <header className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
@@ -130,8 +142,14 @@ export default function Landing() {
         <section className="border-t-2 border-[var(--l-fg)]">
           <div className="mx-auto grid w-full max-w-6xl items-end gap-10 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:py-32">
             <div>
-              <p className="text-[clamp(4.5rem,15vw,9rem)] font-black leading-[0.85] tracking-[-0.04em] tabular-nums">R$ 19</p>
+              <p className="text-[clamp(4.5rem,15vw,9rem)] font-black leading-[0.85] tracking-[-0.04em] tabular-nums">R$ 49,90</p>
               <p className="mt-4 text-xl font-semibold sm:text-2xl">por mês, por banda.</p>
+              {left > 0 && (
+                <p className="mt-6 border-2 border-[var(--l-fg)] p-4 text-base sm:text-lg">
+                  <strong>Fundadores:</strong> as {FOUNDER_LIMIT} primeiras bandas pagam <strong>R$ 24,90</strong> para sempre. Restam {left}.
+                </p>
+              )}
+              <p className="mt-4 text-sm text-[var(--l-mute)]">Músico solo: R$ 19,90 por mês.</p>
             </div>
             <ul className="space-y-3 text-base sm:text-lg">
               {priceItems.map((item) => (
