@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:transpose": "node scripts/check-transpose.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

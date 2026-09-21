@@ -1,6 +1,8 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { X, ExternalLink } from 'lucide-react';
+import { transposeChart } from '@/lib/transpose';
 
 export type SongView = {
   title: string;
@@ -16,6 +18,12 @@ export type SongView = {
 /** Full-screen reader for a song's chart/lyrics (the text the musician pasted). */
 export function SongViewer({ song, onClose }: { song: SongView; onClose: () => void }) {
   const key = song.requested_key || song.original_key;
+  const changed = !!(song.requested_key && song.original_key && song.requested_key !== song.original_key);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const text = useMemo(
+    () => (song.chart_text && !showOriginal ? transposeChart(song.chart_text, song.original_key, song.requested_key) : song.chart_text),
+    [song.chart_text, song.original_key, song.requested_key, showOriginal]
+  );
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-zinc-950" role="dialog" aria-modal="true" aria-label={song.title}>
@@ -31,6 +39,11 @@ export function SongViewer({ song, onClose }: { song: SongView; onClose: () => v
               </span>
             )}
             {song.bpm && <span>{song.bpm} BPM</span>}
+            {changed && song.chart_text && (
+              <button type="button" onClick={() => setShowOriginal((v) => !v)} className="underline underline-offset-4 hover:text-zinc-200">
+                {showOriginal ? `Ver no tom ${song.requested_key}` : 'Ver no tom original'}
+              </button>
+            )}
             {song.source_url && (
               <a href={song.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-zinc-200">
                 Abrir fonte <ExternalLink className="h-3.5 w-3.5" />
@@ -45,8 +58,8 @@ export function SongViewer({ song, onClose }: { song: SongView; onClose: () => v
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
-        {song.chart_text ? (
-          <pre className="mx-auto max-w-4xl whitespace-pre-wrap break-words font-mono text-lg leading-relaxed text-zinc-100 md:text-xl">{song.chart_text}</pre>
+        {text ? (
+          <pre className="mx-auto max-w-4xl whitespace-pre-wrap break-words font-mono text-lg leading-relaxed text-zinc-100 md:text-xl">{text}</pre>
         ) : (
           <p className="mx-auto max-w-md pt-16 text-center text-zinc-500">
             Esta música ainda não tem cifra ou letra. Edite a música no catálogo e cole o texto.

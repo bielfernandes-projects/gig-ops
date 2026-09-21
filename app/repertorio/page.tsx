@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { CatalogClient, type CatalogSong } from '@/components/catalog-client';
+import { PersonalSetlists } from '@/components/personal-setlists';
 
 export const revalidate = 0;
 
@@ -23,10 +24,10 @@ export default async function RepertorioPage() {
   }
 
   const supabase = await createClient();
-  const [songsResult, gigsResult] = await Promise.all([
+  const [songsResult, gigsResult, personalResult] = await Promise.all([
     supabase
       .from('songs')
-      .select('id, title, artist, original_key, bpm, source_url, chart_text, created_by')
+      .select('id, title, artist, original_key, bpm, source_url, chart_text, created_by, scope')
       .eq('band_id', info.bandId)
       .order('title', { ascending: true }),
     supabase
@@ -36,9 +37,17 @@ export default async function RepertorioPage() {
       .gte('start_time', new Date().toISOString())
       .order('start_time', { ascending: true })
       .limit(8),
+    supabase
+      .from('setlists')
+      .select('id, name')
+      .eq('band_id', info.bandId)
+      .eq('scope', 'personal')
+      .eq('owner_user_id', info.userId)
+      .order('created_at', { ascending: false }),
   ]);
 
   const songs = (songsResult.data ?? []) as CatalogSong[];
+  const personalLists = (personalResult.data ?? []) as { id: string; name: string }[];
   const gigs = (gigsResult.data ?? []) as unknown as { id: string; title: string; start_time: string; setlists: { id: string }[] | null }[];
 
   return (
@@ -72,6 +81,8 @@ export default async function RepertorioPage() {
           </ul>
         )}
       </section>
+
+      <PersonalSetlists lists={personalLists} />
 
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="text-sm font-semibold text-zinc-200">Catálogo da banda</h2>

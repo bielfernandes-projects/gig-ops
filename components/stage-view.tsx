@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, X, Minus, Plus } from 'lucide-react';
+import { transposeChart } from '@/lib/transpose';
 
 export type StageItem = {
   id: string;
@@ -73,6 +74,7 @@ export function StageView({ name, items, backHref }: { name: string; items: Stag
   }, [go]);
 
   const item = items[index];
+  const chart = useMemo(() => (item?.chart ? transposeChart(item.chart, item.originalKey, item.key) : null), [item]);
   const changed = item?.key && item.originalKey && item.key !== item.originalKey;
 
   if (!item) {
@@ -117,8 +119,8 @@ export function StageView({ name, items, backHref }: { name: string; items: Stag
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {item.chart ? (
-          <pre className="whitespace-pre-wrap break-words font-mono leading-relaxed text-zinc-50" style={{ fontSize: SIZES[size] }}>{item.chart}</pre>
+        {chart ? (
+          <pre className="whitespace-pre-wrap break-words font-mono leading-relaxed text-zinc-50" style={{ fontSize: SIZES[size] }}>{chart}</pre>
         ) : (
           <p className="pt-10 text-center text-zinc-500">Sem cifra ou letra cadastrada para esta música.</p>
         )}

@@ -17,6 +17,7 @@ export type CatalogSong = {
   source_url: string | null;
   chart_text: string | null;
   created_by: string | null;
+  scope?: 'band' | 'personal';
 };
 
 const inputCls =
@@ -96,7 +97,13 @@ function SongForm({ song, onDone }: { song: CatalogSong | null; onDone: () => vo
           className={`${inputCls} font-mono`}
         />
       </label>
-      <p className="text-xs text-zinc-500">O texto colado é de sua responsabilidade e fica visível só para a sua banda.</p>
+      {!song && (
+        <label className="flex items-center gap-2 text-xs font-medium text-zinc-300">
+          <input type="checkbox" name="scope" value="personal" className="h-4 w-4 accent-zinc-100" />
+          Só eu vejo (música pessoal, para os meus repertórios)
+        </label>
+      )}
+      <p className="text-xs text-zinc-500">O texto colado é de sua responsabilidade. Músicas da banda ficam visíveis só para a sua banda.</p>
 
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onDone} className="rounded-md px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200">
@@ -151,13 +158,13 @@ export function CatalogClient({ songs, userId, isOwner }: { songs: CatalogSong[]
 
       <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900">
         {filtered.map((s) => {
-          const canEdit = isOwner || s.created_by === userId;
+          const canEdit = s.scope === 'personal' ? s.created_by === userId : isOwner || s.created_by === userId;
           return (
             <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3">
               <button type="button" onClick={() => setViewing(s)} className="min-w-0 flex-1 text-left" title="Abrir cifra">
                 <p className="truncate text-sm font-semibold text-zinc-100">{s.title}</p>
                 <p className="truncate text-xs text-zinc-500">
-                  {[s.artist, s.original_key && `Tom ${s.original_key}`, s.bpm && `${s.bpm} BPM`].filter(Boolean).join(' · ') || 'Sem detalhes'}
+                  {[s.scope === 'personal' && 'Pessoal', s.artist, s.original_key && `Tom ${s.original_key}`, s.bpm && `${s.bpm} BPM`].filter(Boolean).join(' · ') || 'Sem detalhes'}
                   {s.chart_text ? '' : ' · sem cifra'}
                 </p>
               </button>

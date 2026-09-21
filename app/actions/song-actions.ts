@@ -36,7 +36,15 @@ export async function addSong(formData: FormData) {
   const problem = invalid(song);
   if (problem) return { error: problem };
 
-  const { error } = await ctx.supabase.from('songs').insert({ ...song, band_id: ctx.bandId, created_by: ctx.userId });
+  // "Só eu vejo": a personal song, visible only to its creator (used in personal setlists)
+  const personal = formData.get('scope') === 'personal';
+  const { error } = await ctx.supabase.from('songs').insert({
+    ...song,
+    band_id: ctx.bandId,
+    created_by: ctx.userId,
+    scope: personal ? 'personal' : 'band',
+    owner_user_id: personal ? ctx.userId : null,
+  });
   if (error) return { error: 'Não foi possível salvar a música.' };
 
   revalidatePath('/repertorio');

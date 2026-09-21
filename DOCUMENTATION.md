@@ -335,4 +335,6 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * **Modo palco** (`/palco/[id]`): tela escura de alto contraste, uma música por vez, botões grandes, tamanho de letra ajustável e tela sempre ligada (Wake Lock).
 * **Link público** (`/s/[token]`, `setlist_share_links`): somente leitura, sem login, mostra só ordem e tons. O token (64 caracteres) só é lido pelo servidor e o dono pode revogar.
 * **Módulo por plano:** as ações exigem `subscriptions.module_repertorio` (`requireBand('repertorio')` / `requireOwner('repertorio')`).
-* **Ainda não feito:** transposição automática de tom sobre o texto colado, repertórios pessoais, leitura offline dos próximos shows.
+* **Transposição** (`lib/transpose.ts`, teste em `npm run check:transpose`): o texto colado é transposto do tom original para o tom pedido no repertório (linhas de acordes e acordes entre colchetes), mantendo o alinhamento; escolhe bemóis ou sustenidos conforme o tom de destino. O visualizador oferece "Ver no tom original".
+* **Repertórios pessoais** (`setlists.scope = 'personal'`, `songs.scope = 'personal'`): qualquer membro cria os seus em `/repertorio`; só quem criou vê e edita (nem os donos da banda). Repertórios pessoais podem usar músicas da banda e as próprias; repertórios oficiais de show só usam músicas da banda.
+* **Ainda não feito:** leitura offline dos próximos shows.

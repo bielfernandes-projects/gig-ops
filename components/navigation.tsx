@@ -38,7 +38,7 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-emerald-400 rounded-full" />
               )}
               <Icon className={`w-5 h-5 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
-              <span className="text-[11px] font-medium">{item.name}</span>
+              <span className="w-full truncate text-center text-[10px] font-medium tracking-tight">{item.name}</span>
             </Link>
           );
         })}
