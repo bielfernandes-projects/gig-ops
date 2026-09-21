@@ -1,6 +1,7 @@
 'use server';
 
 import { requireOwner } from '@/lib/auth';
+import { findConflicts } from '@/lib/conflicts';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { sendPushToMember } from '@/lib/push';
@@ -17,6 +18,7 @@ export async function addQuickGig(formData: FormData) {
   const grossValueStr = formData.get('gross_value') as string;
   const location = (formData.get('location') as string) || 'A definir';
   const notes = (formData.get('notes') as string) || null;
+  const event_type = ((formData.get('event_type') as string) || '').trim() || null;
   const clone_id = formData.get('clone_id') as string;
   const recurrence = formData.get('recurrence') as string;
   const recurrence_end = formData.get('recurrence_end') as string;
@@ -47,6 +49,7 @@ export async function addQuickGig(formData: FormData) {
   }
 
   const gross_value = parseFloat(grossValueStr) || 0;
+  let warnings: string[] = [];
 
   // Recupera propriedades completas da gig original em caso de clone profundo
   let originalGig = null;
@@ -93,6 +96,7 @@ export async function addQuickGig(formData: FormData) {
       sound_cost: originalGig ? originalGig.sound_cost : sound_cost,
       sound_person_id: originalGig ? originalGig.sound_person_id : sound_person_id,
       notes,
+      event_type,
       is_sound_paid: false,
       recurrence_group_id,
       band_id: bandId,
@@ -151,6 +155,14 @@ export async function addQuickGig(formData: FormData) {
       status: 'pendente' as const,
     }));
     await supabase.from('go_lineup').insert(newLineups);
+
+    // Double-booking warnings (never block the gig)
+    try {
+      const memberIds = newLineups.map((l) => l.member_id).filter(Boolean) as string[];
+      warnings = Object.values(await findConflicts(targetGigId, memberIds)).map((w) => w[0]);
+    } catch (e) {
+      console.warn('Conflict check failed:', e);
+    }
   }
 
   // Create reminder entries for the first gig (recurrence creates reminders per gig)
@@ -168,7 +180,7 @@ export async function addQuickGig(formData: FormData) {
 
   revalidatePath('/agenda');
   revalidatePath('/dashboard');
-  return { success: true };
+  return { success: true, warnings };
 }
 
 export async function updateGig(formData: FormData) {
@@ -188,6 +200,7 @@ export async function updateGig(formData: FormData) {
   const rawSoundPerson = formData.get('sound_person_id') as string;
   const sound_person_id = bring_sound && rawSoundPerson ? rawSoundPerson : null;
   const notes = (formData.get('notes') as string) || null;
+  const event_type = ((formData.get('event_type') as string) || '').trim() || null;
   const is_sound_paid = formData.get('is_sound_paid') === 'true';
 
   if (!id || !title || !project_id || !start_time) {
@@ -196,7 +209,7 @@ export async function updateGig(formData: FormData) {
 
   const { error } = await supabase
     .from('go_gigs')
-    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes, is_sound_paid })
+    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes, event_type, is_sound_paid })
     .eq('id', id)
     .eq('band_id', bandId);
 
@@ -311,6 +324,16 @@ export async function addMemberToLineup(formData: FormData) {
   revalidatePath(`/gigs/${gig_id}`);
   revalidatePath('/agenda');
 
+  // Double-booking warning (never blocks the lineup)
+  let warning: string | undefined;
+  if (member_id) {
+    try {
+      warning = (await findConflicts(gig_id, [member_id]))[member_id]?.[0];
+    } catch (e) {
+      console.warn('Conflict check failed:', e);
+    }
+  }
+
   // Fire push notification non-blocking (never breaks main flow)
   if (member_id) {
     try {
@@ -324,7 +347,7 @@ export async function addMemberToLineup(formData: FormData) {
     }
   }
 
-  return { success: true };
+  return { success: true, warning };
 }
 
 export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolean) {

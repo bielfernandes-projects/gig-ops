@@ -9,6 +9,9 @@ import { ToggleSoundPaymentButton } from './toggle-sound-payment-button';
 import { BackButton } from '@/components/back-button';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
 import { getUserInfo } from '@/lib/auth';
+import { GigFinance, type ExpenseRow, type PaymentRow } from '@/components/gig-finance';
+import { brl } from '@/lib/finance';
+import { PresenceControl } from '@/components/presence-control';
 
 export const revalidate = 0;
 
@@ -43,6 +46,8 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       sound_cost, 
       sound_person_id,
       notes,
+      event_type,
+      track_receipts,
       recurrence_group_id,
       band_id,
       go_projects ( * )
@@ -81,7 +86,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     .order('name', { ascending: true });
 
   // Parallel data fetching — lineup, members, projects, and sound person all at once
-  const [lineupResult, membersResult, projectsResult, soundPersonResult] = await Promise.all([
+  const [lineupResult, membersResult, projectsResult, soundPersonResult, expensesResult, paymentsResult] = await Promise.all([
     supabase
       .from('go_lineup')
       .select(`*, go_members ( name, instrument )`)
@@ -95,9 +100,18 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           .eq('id', gigData.sound_person_id)
           .single() as unknown as Promise<{ data: { name: string; instrument: string } | null }>
       : Promise.resolve({ data: null }),
+    role === 'admin'
+      ? supabase.from('gig_expenses').select('id, category, description, amount').eq('gig_id', id).order('created_at') as unknown as Promise<{ data: ExpenseRow[] | null }>
+      : Promise.resolve({ data: null as ExpenseRow[] | null }),
+    role === 'admin'
+      ? supabase.from('gig_payments').select('id, amount, paid_at, note').eq('gig_id', id).order('paid_at') as unknown as Promise<{ data: PaymentRow[] | null }>
+      : Promise.resolve({ data: null as PaymentRow[] | null }),
   ]);
 
   const lineup = lineupResult.data || [];
+  const expenses = (expensesResult.data || []).map((e) => ({ ...e, amount: Number(e.amount) }));
+  const payments = (paymentsResult.data || []).map((p) => ({ ...p, amount: Number(p.amount) }));
+  const expensesTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
   const members = membersResult.data || [];
   const projects = projectsResult.data || [];
   const soundPerson = soundPersonResult.data;
@@ -140,7 +154,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
   const lineupCost = lineup.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const soundCost = gigData.bring_sound ? (gigData.sound_cost ?? 0) : 0;
-  const totalCost = lineupCost + soundCost;
+  const totalCost = lineupCost + soundCost + expensesTotal;
   const netProfit = gigData.gross_value - totalCost;
 
   let viewerFee = 0;
@@ -229,6 +243,13 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               </span>
             </div>
 
+            {gigData.event_type && (
+              <div className="flex items-center gap-3">
+                <StickyNote className="w-5 h-5 stroke-[1.5] text-zinc-500" />
+                <span className="text-zinc-300">{gigData.event_type}</span>
+              </div>
+            )}
+
             {/* Location */}
             <div className="flex items-center gap-3">
               <MapPin className="w-5 h-5 stroke-[1.5] text-zinc-500" />
@@ -293,6 +314,16 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               </>
             )}
 
+            {role === 'admin' && expensesTotal > 0 && (
+              <>
+                <div className="hidden md:block w-px h-12 bg-zinc-800" />
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-zinc-500">Despesas</span>
+                  <span className="text-xl md:text-2xl font-bold text-red-400">− {brl(expensesTotal)}</span>
+                </div>
+              </>
+            )}
+
             <div className="hidden md:block w-px h-12 bg-zinc-800" />
 
             {role === 'admin' ? (
@@ -330,6 +361,20 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           <div className="md:hidden h-px w-full bg-zinc-800/60" />
         </div>
       </section>
+
+      {myLineup && (
+        <PresenceControl lineupId={myLineup.id} status={(myLineup.confirmation ?? 'pending') as 'pending' | 'confirmed' | 'declined'} />
+      )}
+
+      {role === 'admin' && (
+        <GigFinance
+          gigId={id}
+          gross={gigData.gross_value}
+          trackReceipts={!!gigData.track_receipts}
+          expenses={expenses}
+          payments={payments}
+        />
+      )}
 
       {/* Notes Section */}
       {gigData.notes && role === 'admin' && (

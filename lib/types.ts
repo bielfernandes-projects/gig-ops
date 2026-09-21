@@ -29,6 +29,8 @@ export type GoGig = {
   notes: string | null;
   is_sound_paid: boolean;
   recurrence_group_id?: string | null;
+  event_type?: string | null;
+  track_receipts?: boolean;
   band_id?: string;
 };
 
@@ -40,6 +42,7 @@ export type GoLineup = {
   status: string; // 'pago' | 'pendente' or similar
   custom_name?: string | null;
   custom_instrument?: string | null;
+  confirmation?: 'pending' | 'confirmed' | 'declined';
 };
 
 // Joined types for easy consumption

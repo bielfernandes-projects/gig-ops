@@ -313,3 +313,14 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * **Segurança:** `calendar_token` da banda não é legível pelo cliente (privilégio por coluna). Membros e assinaturas só são escritos pelo servidor (service role).
 * **Perfil:** trocar de banda, entrar em outra banda por código, criar nova banda, renomear, código de convite, promover ou rebaixar donos e remover músicos.
 * **Backup da migração:** schema `backup_fase0` no próprio banco.
+
+---
+
+## 15. Gestão melhorada (Fase 1 do plano unificado)
+
+* **Tipo de evento** (`go_gigs.event_type`, texto livre com sugestões em `lib/finance.ts`): escolhido ao criar e editar o show, usado no relatório.
+* **Despesas do show** (`gig_expenses`): categoria, descrição e valor, visíveis só aos donos. O lucro do show passa a descontar músicos, som **e** despesas.
+* **Recebimento do contratante** (`gig_payments`, `go_gigs.track_receipts`): opcional por show. Sem o controle, o cachê bruto conta como recebido por inteiro (comportamento anterior). Com o controle, registra sinal e restante e calcula o pendente. Regra em `gigFinance()` (`lib/finance.ts`).
+* **Relatório** (`/relatorio`): para donos, faturamento, recebido, pendente, custos e lucro por mês, gráfico dos últimos 6 meses, faturamento por tipo de evento, custos por categoria e shows com recebimento pendente. Para músicos, "Meus cachês" somando o que têm a receber em todas as bandas (donos alternam entre as duas visões).
+* **Confirmação de presença** (`go_lineup.confirmation`): o músico confirma ou recusa na página do show; o dono vê o status na escala e recebe push quando alguém recusa. Só a ação do servidor altera o campo.
+* **Conflito de agenda** (`lib/conflicts.ts`): ao escalar, avisa quando o músico já tem outro show no mesmo horário. Na mesma banda mostra o título; em outra banda só informa que há compromisso, para uma banda nunca ver os detalhes da outra.

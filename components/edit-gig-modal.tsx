@@ -1,5 +1,6 @@
 'use client';
 
+import { EVENT_TYPES } from '@/lib/finance';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Loader2, Trash2, Settings, Volume2, VolumeX, Copy } from 'lucide-react';
@@ -155,6 +156,24 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                 >
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Event type */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="gig-event-type" className="text-xs font-medium text-zinc-400">
+                  Tipo de evento
+                </label>
+                <select
+                  id="gig-event-type"
+                  name="event_type"
+                  defaultValue={(gig as { event_type?: string | null }).event_type ?? ''}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none"
+                >
+                  <option value="">Não informado</option>
+                  {EVENT_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               </div>

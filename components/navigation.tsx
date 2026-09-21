@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
-import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard } from 'lucide-react';
+import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3 } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Agenda', href: '/agenda', icon: CalendarDays },
   { name: 'Projetos', href: '/projects', icon: FolderOpen },
   { name: 'Músicos', href: '/members', icon: Users },
+  { name: 'Relatório', href: '/relatorio', icon: BarChart3 },
   { name: 'Perfil', href: '/profile', icon: UserRound },
 ];
 

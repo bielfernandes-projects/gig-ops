@@ -63,6 +63,15 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
           </span>
           <span className="text-xs font-medium text-zinc-500">
             {freela.go_members?.instrument || freela.custom_instrument || 'Instrumento'}
+            {role === 'admin' && freela.member_id && (
+              <span
+                className={`ml-2 font-semibold ${
+                  freela.confirmation === 'confirmed' ? 'text-zinc-300' : freela.confirmation === 'declined' ? 'text-red-400' : 'text-amber-300'
+                }`}
+              >
+                {freela.confirmation === 'confirmed' ? '· confirmado' : freela.confirmation === 'declined' ? '· não pode' : '· aguardando'}
+              </span>
+            )}
           </span>
         </div>
 

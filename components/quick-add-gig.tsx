@@ -1,5 +1,6 @@
 'use client';
 
+import { EVENT_TYPES } from '@/lib/finance';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, X, Loader2, Copy, Volume2, VolumeX, Users, Trash2, Bell } from 'lucide-react';
@@ -137,6 +138,7 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
       setLineup([]);
       setRecurrence('none');
       toast.success(isClone ? 'Gig duplicada com sucesso!' : 'Gig agendada com sucesso!');
+      res.warnings?.forEach((w) => toast.warning(w));
       if (isClone) router.push('/agenda');
     }
   };
@@ -212,6 +214,23 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
                   <option value="" disabled>Selecione o Projeto</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="event_type" className="text-xs font-medium text-zinc-400">
+                  Tipo de evento
+                </label>
+                <select
+                  id="event_type"
+                  name="event_type"
+                  defaultValue={(cloneData as { event_type?: string | null } | null | undefined)?.event_type ?? ''}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none"
+                >
+                  <option value="">Não informado</option>
+                  {EVENT_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               </div>

@@ -56,6 +56,7 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
       setIsPending(false);
       reset();
       toast.success('Músico escalado com sucesso!');
+      if (res.warning) toast.warning(res.warning);
     }
   };
 
