@@ -6,6 +6,27 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
+// Offline read: network first; the last successful copy of these pages is the fallback with no signal.
+const CACHE = 'gg-pages-v1';
+const OFFLINE_PATHS = /^\/(dashboard|agenda|gigs\/[^/]+|repertorio(\/.*)?|palco\/[^/]+)$/;
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET' || req.mode !== 'navigate') return;
+  if (!OFFLINE_PATHS.test(new URL(req.url).pathname)) return;
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        if (res.ok && !res.redirected) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req).then((hit) => hit || new Response('Sem conexão e esta página ainda não foi aberta neste aparelho.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })))
+  );
+});
+
 self.addEventListener('push', function (event) {
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'Nova Gig!';

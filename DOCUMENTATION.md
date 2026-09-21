@@ -348,3 +348,6 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
 ## 18. Indicação por crédito
 - `bands.referred_by`: ao criar banda (onboarding), o campo opcional "Código de indicação" aceita o código de convite de outra banda. Se válido, a banda indicadora ganha +30 dias (trial ou período pago) via `grantReferralCredit` em `lib/bands.ts` (service role, best effort). Código inválido bloqueia a criação com mensagem.
+
+## 19. Leitura offline
+`public/sw.js` guarda a última cópia (network-first) de `/dashboard`, `/agenda`, `/gigs/[id]`, `/repertorio/*` e `/palco/[id]` e a serve sem sinal. `components/offline-setup.tsx` registra o SW e limpa o cache ao abrir `/login` (logout/aparelho compartilhado). Só páginas já visitadas funcionam offline; escrita exige conexão.

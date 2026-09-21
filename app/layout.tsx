@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Navigation } from '@/components/navigation';
+import { OfflineSetup } from '@/components/offline-setup';
 import { ThemeToaster } from '@/components/theme-toaster';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -77,6 +78,7 @@ export default function RootLayout({
         </div>
 
         <ThemeToaster />
+        <OfflineSetup />
       </body>
     </html>
   );
