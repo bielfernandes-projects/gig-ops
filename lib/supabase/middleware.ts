@@ -38,6 +38,7 @@ export async function updateSession(request: NextRequest) {
     path === '/' ||
     path === '/termos' ||
     path === '/privacidade' ||
+    path.startsWith('/s/') || // public read-only setlist link (token)
     path === '/auth/callback' || // OAuth return; the session does not exist yet
     path.startsWith('/api/calendar/') || // token-protected iCal feed
     path.startsWith('/api/cron/') // protected by CRON_SECRET

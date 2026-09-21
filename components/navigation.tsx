@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
-import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3 } from 'lucide-react';
+import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3, Music } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Agenda', href: '/agenda', icon: CalendarDays },
   { name: 'Projetos', href: '/projects', icon: FolderOpen },
   { name: 'Músicos', href: '/members', icon: Users },
+  { name: 'Repertório', href: '/repertorio', icon: Music },
   { name: 'Relatório', href: '/relatorio', icon: BarChart3 },
   { name: 'Perfil', href: '/profile', icon: UserRound },
 ];
@@ -17,7 +18,7 @@ const navItems = [
 export function Navigation({ isMobile }: { isMobile: boolean }) {
   const pathname = usePathname();
 
-  if (['/', '/login', '/onboarding', '/termos', '/privacidade'].includes(pathname) || pathname.startsWith('/auth')) return null;
+  if (['/', '/login', '/onboarding', '/termos', '/privacidade'].includes(pathname) || pathname.startsWith('/auth') || pathname.startsWith('/palco') || pathname.startsWith('/s/')) return null;
 
   if (isMobile) {
     return (

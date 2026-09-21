@@ -12,6 +12,8 @@ import { getUserInfo } from '@/lib/auth';
 import { GigFinance, type ExpenseRow, type PaymentRow } from '@/components/gig-finance';
 import { brl } from '@/lib/finance';
 import { PresenceControl } from '@/components/presence-control';
+import { GigSetlist, type SetlistTree, type CatalogOption } from '@/components/gig-setlist';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const revalidate = 0;
 
@@ -20,7 +22,8 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const id = resolvedParams.id;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId, bandId } = await getUserInfo();
+  const info = await getUserInfo();
+  const { role, memberId: userMemberId, bandId } = info;
   const supabase = await createClient();
 
   // Multi-tenant isolation. With no tenant (e.g. an unlinked viewer) we
@@ -86,7 +89,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     .order('name', { ascending: true });
 
   // Parallel data fetching — lineup, members, projects, and sound person all at once
-  const [lineupResult, membersResult, projectsResult, soundPersonResult, expensesResult, paymentsResult] = await Promise.all([
+  const [lineupResult, membersResult, projectsResult, soundPersonResult, expensesResult, paymentsResult, setlistResult, catalogResult] = await Promise.all([
     supabase
       .from('go_lineup')
       .select(`*, go_members ( name, instrument )`)
@@ -106,7 +109,22 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     role === 'admin'
       ? supabase.from('gig_payments').select('id, amount, paid_at, note').eq('gig_id', id).order('paid_at') as unknown as Promise<{ data: PaymentRow[] | null }>
       : Promise.resolve({ data: null as PaymentRow[] | null }),
+    supabase
+      .from('setlists')
+      .select('id, name, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text)))')
+      .eq('gig_id', id)
+      .maybeSingle() as unknown as Promise<{ data: SetlistTree | null }>,
+    role === 'admin'
+      ? supabase.from('songs').select('id, title, artist, original_key').eq('band_id', effectiveTenantId).order('title') as unknown as Promise<{ data: CatalogOption[] | null }>
+      : Promise.resolve({ data: null as CatalogOption[] | null }),
   ]);
+
+  const setlist = setlistResult.data;
+  let shareToken: string | null = null;
+  if (role === 'admin' && setlist) {
+    const { data: link } = await createAdminClient().from('setlist_share_links').select('token').eq('setlist_id', setlist.id).is('revoked_at', null).limit(1).maybeSingle();
+    shareToken = link?.token ?? null;
+  }
 
   const lineup = lineupResult.data || [];
   const expenses = (expensesResult.data || []).map((e) => ({ ...e, amount: Number(e.amount) }));
@@ -374,6 +392,10 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           expenses={expenses}
           payments={payments}
         />
+      )}
+
+      {info.modules.repertorio && (
+        <GigSetlist gigId={id} setlist={setlist} catalog={catalogResult.data ?? []} isOwner={role === 'admin'} shareToken={shareToken} />
       )}
 
       {/* Notes Section */}

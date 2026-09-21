@@ -21,6 +21,8 @@ export type UserInfo = {
   bandName: string | null;
   memberships: Membership[];
   subscription: SubscriptionState | null;
+  /** Modules the band's plan includes. */
+  modules: { gestao: boolean; repertorio: boolean };
 };
 
 const EMPTY: UserInfo = {
@@ -32,6 +34,7 @@ const EMPTY: UserInfo = {
   bandName: null,
   memberships: [],
   subscription: null,
+  modules: { gestao: true, repertorio: true },
 };
 
 type MembershipRow = { band_id: string; role: 'owner' | 'member'; bands: { name: string } | { name: string }[] | null };
@@ -82,9 +85,9 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
     memberQuery as unknown as Promise<{ data: { id: string } | null }>,
     supabase
       .from('subscriptions')
-      .select('status, trial_ends_at, paid_until')
+      .select('status, trial_ends_at, paid_until, module_gestao, module_repertorio')
       .eq('band_id', current.bandId)
-      .maybeSingle() as unknown as Promise<{ data: SubscriptionRow | null }>,
+      .maybeSingle() as unknown as Promise<{ data: (SubscriptionRow & { module_gestao: boolean; module_repertorio: boolean }) | null }>,
   ]);
 
   return {
@@ -96,23 +99,40 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
     bandName: current.name,
     memberships,
     subscription: subscriptionState(sub),
+    modules: { gestao: sub?.module_gestao ?? true, repertorio: sub?.module_repertorio ?? true },
   };
 });
+
+export type BandModule = 'gestao' | 'repertorio';
+
+export type BandContext =
+  | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; bandId: string; userId: string; role: 'owner' | 'member' }
+  | { ok: false; error: string };
+
+/**
+ * For server actions that change a band's data: the caller must belong to the current band, the
+ * subscription must be usable and (optionally) the plan must include the module. Writes go through
+ * the session client, so RLS applies as well.
+ */
+export async function requireBand(module?: BandModule): Promise<BandContext> {
+  const info = await getUserInfo();
+  if (!info.userId) return { ok: false, error: 'Não autenticado.' };
+  if (!info.bandId) return { ok: false, error: 'Você não faz parte de nenhuma banda.' };
+  if (info.subscription?.state === 'expired') {
+    return { ok: false, error: 'A assinatura desta banda expirou. Os dados estão preservados; renove para voltar a editar.' };
+  }
+  if (module && !info.modules[module]) return { ok: false, error: 'Este módulo não está incluído no plano da banda.' };
+  return { ok: true, supabase: await createClient(), bandId: info.bandId, userId: info.userId, role: info.role === 'admin' ? 'owner' : 'member' };
+}
 
 export type OwnerContext =
   | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; bandId: string; userId: string }
   | { ok: false; error: string };
 
-/**
- * For server actions that change a band's data: the caller must own the current band and the
- * subscription must be usable. Writes go through the session client, so RLS applies as well.
- */
-export async function requireOwner(): Promise<OwnerContext> {
-  const info = await getUserInfo();
-  if (!info.userId) return { ok: false, error: 'Não autenticado.' };
-  if (info.role !== 'admin' || !info.bandId) return { ok: false, error: 'Sem permissão.' };
-  if (info.subscription?.state === 'expired') {
-    return { ok: false, error: 'A assinatura desta banda expirou. Os dados estão preservados; renove para voltar a editar.' };
-  }
-  return { ok: true, supabase: await createClient(), bandId: info.bandId, userId: info.userId };
+/** Same as requireBand, but only band owners pass. */
+export async function requireOwner(module?: BandModule): Promise<OwnerContext> {
+  const ctx = await requireBand(module);
+  if (!ctx.ok) return ctx;
+  if (ctx.role !== 'owner') return { ok: false, error: 'Sem permissão.' };
+  return { ok: true, supabase: ctx.supabase, bandId: ctx.bandId, userId: ctx.userId };
 }

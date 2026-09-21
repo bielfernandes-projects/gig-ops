@@ -324,3 +324,15 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * **Relatório** (`/relatorio`): para donos, faturamento, recebido, pendente, custos e lucro por mês, gráfico dos últimos 6 meses, faturamento por tipo de evento, custos por categoria e shows com recebimento pendente. Para músicos, "Meus cachês" somando o que têm a receber em todas as bandas (donos alternam entre as duas visões).
 * **Confirmação de presença** (`go_lineup.confirmation`): o músico confirma ou recusa na página do show; o dono vê o status na escala e recebe push quando alguém recusa. Só a ação do servidor altera o campo.
 * **Conflito de agenda** (`lib/conflicts.ts`): ao escalar, avisa quando o músico já tem outro show no mesmo horário. Na mesma banda mostra o título; em outra banda só informa que há compromisso, para uma banda nunca ver os detalhes da outra.
+
+---
+
+## 16. Módulo Repertório (Fase 2 do plano unificado)
+
+* **Sem raspagem.** O app não busca cifra em site nenhum. O músico cola o texto da cifra ou da letra (campo `songs.chart_text`, visível só à banda) e pode guardar o link da fonte; o formulário oferece um atalho "Procurar no Cifra Club" que apenas abre a busca do site.
+* **Catálogo da banda** (`songs`, página `/repertorio`): qualquer membro adiciona; edita e apaga quem criou ou um dono. Tom original, BPM, link e texto.
+* **Repertório do show** (`setlists`, `blocks`, `block_songs`): um por show, montado só por donos na página do show (blocos, ordem, tom pedido, observação e nota de passagem). Músicos escalados no show leem; os demais não.
+* **Modo palco** (`/palco/[id]`): tela escura de alto contraste, uma música por vez, botões grandes, tamanho de letra ajustável e tela sempre ligada (Wake Lock).
+* **Link público** (`/s/[token]`, `setlist_share_links`): somente leitura, sem login, mostra só ordem e tons. O token (64 caracteres) só é lido pelo servidor e o dono pode revogar.
+* **Módulo por plano:** as ações exigem `subscriptions.module_repertorio` (`requireBand('repertorio')` / `requireOwner('repertorio')`).
+* **Ainda não feito:** transposição automática de tom sobre o texto colado, repertórios pessoais, leitura offline dos próximos shows.

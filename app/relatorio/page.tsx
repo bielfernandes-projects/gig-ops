@@ -30,7 +30,7 @@ function Kpi({ label, value, tone = '' }: { label: string; value: string; tone?:
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
       <p className="text-xs font-medium text-zinc-500">{label}</p>
-      <p className={`mt-1 text-xl font-bold tabular-nums md:text-2xl ${tone || 'text-zinc-50'}`}>{value}</p>
+      <p className={`mt-1 whitespace-nowrap text-lg font-bold tabular-nums md:text-xl ${tone || 'text-zinc-50'}`}>{value}</p>
     </div>
   );
 }
@@ -259,7 +259,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 pb-32 md:p-10">
       {header}
 
-      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Shows" value={String(month.length)} />
         <Kpi label="Faturamento" value={brl(revenue)} />
         <Kpi label="Recebido" value={brl(received)} />
