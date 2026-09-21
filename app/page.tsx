@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { CalendarDays, Wallet, BellRing, Users } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Minha Banda — agenda, escala e cachês da sua banda',
+  title: 'Gigueiros — agenda, escala e cachês da sua banda',
   description:
     'Chega de planilha e grupo de WhatsApp. Organize shows, escala de músicos, cachês e lembretes em um app feito para bandas.',
 };
@@ -20,7 +20,7 @@ export default function Landing() {
     <div className="fixed inset-0 z-[999] overflow-y-auto bg-zinc-950 text-zinc-100">
       <main className="mx-auto flex max-w-3xl flex-col gap-14 px-5 py-16">
         <header className="flex flex-col gap-5">
-          <span className="text-sm font-semibold text-emerald-400">Minha Banda</span>
+          <span className="text-sm font-semibold text-emerald-400">Gigueiros</span>
           <h1 className="text-4xl font-bold leading-tight tracking-tight">
             A agenda e o financeiro da sua banda, sem planilha e sem bagunça no WhatsApp.
           </h1>

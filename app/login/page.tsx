@@ -77,7 +77,7 @@ export default function LoginPage() {
         <div className="mb-4 relative w-24 h-24 md:w-40 md:h-40 shrink-0">
           <Image
             src="/logo.svg"
-            alt="Minha Banda Logo"
+            alt="Gigueiros Logo"
             fill
             className="invert brightness-200 object-contain"
             priority
@@ -86,10 +86,10 @@ export default function LoginPage() {
 
         {!successMsg && (
           <>
-            <h1 className="text-xl md:text-2xl font-bold text-zinc-50 mb-1 tracking-tight text-center">Minha Banda App</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-zinc-50 mb-1 tracking-tight text-center">Gigueiros</h1>
             <p className="text-xs md:text-sm text-zinc-400 mb-6 font-medium text-center">
               {isLogin
-                ? 'Bem-vindo ao Minha Banda. Faça login para gerenciar sua agenda.'
+                ? 'Bem-vindo ao Gigueiros. Faça login para gerenciar sua agenda.'
                 : isAdminSignup
                   ? 'Crie sua própria banda e gerencie seus shows, músicos e projetos.'
                   : 'Cadastre-se na banda da qual foi convidado.'}
@@ -212,7 +212,7 @@ export default function LoginPage() {
                     disabled={isLoading || (!isLogin && !isPasswordValid(password))}
                     className="w-full bg-zinc-100 hover:bg-white text-zinc-900 font-bold py-2.5 mt-2 rounded-lg text-sm transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? 'Autenticando...' : isLogin ? 'Entrar' : isAdminSignup ? 'Criar Minha Banda' : 'Registrar'}
+                    {isLoading ? 'Autenticando...' : isLogin ? 'Entrar' : isAdminSignup ? 'Criar minha banda' : 'Registrar'}
                   </button>
 
                   {isAdminSignup && (
@@ -272,7 +272,7 @@ export default function LoginPage() {
                       }}
                       className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-md text-sm transition-all active:scale-[0.98]"
                     >
-                      Criar Minha Banda
+                      Criar minha banda
                     </button>
                     <p className="text-[11px] text-zinc-500 font-medium text-center mt-1.5 max-w-[220px] leading-tight">
                       Seja o administrador da sua própria agenda.

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export const metadata = { title: 'Termos de uso — Minha Banda' };
+export const metadata = { title: 'Termos de uso — Gigueiros' };
 
 export default function Termos() {
   return (
@@ -8,7 +8,7 @@ export default function Termos() {
       <main className="mx-auto max-w-2xl space-y-4 px-5 py-12 text-sm leading-relaxed">
         <Link href="/" className="text-emerald-400">← Voltar</Link>
         <h1 className="text-2xl font-bold text-zinc-100">Termos de uso</h1>
-        <p>O Minha Banda é um aplicativo para organizar agenda, escala e cachês de bandas e projetos musicais.</p>
+        <p>O Gigueiros é um aplicativo para organizar agenda, escala e cachês de bandas e projetos musicais.</p>
         <h2 className="font-semibold text-zinc-100">Conta e responsabilidade</h2>
         <p>Você é responsável pelas informações que cadastra e por manter sua senha em segurança. O administrador da banda decide quem entra e o que cada músico pode ver.</p>
         <h2 className="font-semibold text-zinc-100">Teste e cobrança</h2>

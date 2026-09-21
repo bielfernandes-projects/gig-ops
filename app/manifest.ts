@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Minha Banda',
-    short_name: 'Minha Banda',
+    name: 'Gigueiros',
+    short_name: 'Gigueiros',
     description: 'Gestão Logística e Financeira Musical',
     start_url: '/dashboard',
     display: 'standalone',

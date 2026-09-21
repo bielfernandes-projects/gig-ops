@@ -1,7 +1,7 @@
-# Documentação Oficial: Minha Banda (GigOps)
+# Documentação Oficial: Gigueiros (GigOps)
 
 ## 1. Visão Geral do Produto
-O **Minha Banda** é um SaaS (Software as a Service) Mobile-First construído em formato PWA (Progressive Web App). Seu objetivo é centralizar a logística, a agenda e a gestão financeira de bandas e projetos musicais, eliminando a dependência de grupos de WhatsApp e planilhas de Excel.
+O **Gigueiros** é um SaaS (Software as a Service) Mobile-First construído em formato PWA (Progressive Web App). Seu objetivo é centralizar a logística, a agenda e a gestão financeira de bandas e projetos musicais, eliminando a dependência de grupos de WhatsApp e planilhas de Excel.
 
 ## 2. Arquitetura Técnica (Tech Stack)
 * **Front-end:** React + Next.js (App Router, Turbopack)
@@ -139,7 +139,7 @@ O app possui alternância manual entre modo escuro e claro, com persistência vi
 * **Conceito:** As tabelas `go_gigs`, `go_members` e `go_projects` possuem a coluna `admin_id` (FK para `go_profiles.id`). Todo INSERT carimba o UUID do admin logado.
 * **Filtro obrigatório:** SELECTs de admin são SEMPRE filtrados por `.eq('admin_id', userId)`. Viewers continuam vendo dados via `go_lineup`.
 * **Server Actions:** Todas as actions de criação, atualização e exclusão verificam `admin_id` para garantir ownership.
-* **Fluxo "Criar Minha Banda":** Novo admin se cadastra e já ganha um perfil com `role='admin'` em `go_profiles`, entrando em ambiente isolado.
+* **Fluxo "Criar minha banda":** Novo admin se cadastra e já ganha um perfil com `role='admin'` em `go_profiles`, entrando em ambiente isolado.
 
 ### 6.5. Multi-Tenant Seam (`tenantAdminId`)
 
@@ -291,3 +291,11 @@ Viewers sem `go_members` correspondente (ex: admin não os cadastrou como músic
 * **RLS:** migration `20260921000001_enable_rls.sql` (helpers em schema `private`). Admin vê o tenant; músico vê só os shows em que está escalado. `go_profiles`, `go_settings` e `go_push_subscriptions` só são escritos pelo servidor.
 * **Assinatura (Pix manual):** `go_settings.subscription_status` (`trial`/`active`/`expired`), `trial_ends_at`, `paid_until`. Ativar: `UPDATE go_settings SET subscription_status='active', paid_until=now()+interval '30 days' WHERE admin_id='<uuid>';`.
 * **Landing:** `/` pública com preço e CTA; `/termos` e `/privacidade`.
+
+## 13. Backlog pós-go-live
+
+* **Logo e ícones do PWA** (`public/logo.svg`, `icon-*.png`, `apple-touch-icon.png`, `badge-icon.png`) ainda trazem o nome antigo "Minha Banda"; refazer como Gigueiros.
+* **Domínio:** ao registrar `gigueiros.com.br`, adicionar na Vercel, atualizar `NEXT_PUBLIC_SITE_URL`, Site URL/redirects do Supabase Auth e substituir as menções a `minhabanda.*` neste documento (seção 10).
+* **Bloqueio por assinatura:** `requireAdmin()` ainda não checa `subscription_status`/`trial_ends_at`.
+* **Banco:** hospedado em São Paulo (`ggjfhipruemkxavhwglm`), função Vercel em `gru1`. O projeto antigo (Oregon) fica como backup até ser desativado.
+* **Auth:** ativar "leaked password protection" se o plano do Supabase permitir.

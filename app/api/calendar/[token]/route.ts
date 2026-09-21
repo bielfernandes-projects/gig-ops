@@ -135,7 +135,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
   return new NextResponse(value, {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': `attachment; filename="agenda-minha-banda.ics"`,
+      'Content-Disposition': `attachment; filename="agenda-gigueiros.ics"`,
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
       'Pragma': 'no-cache',
       'Expires': '0',
@@ -145,7 +145,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
 
 function generateEmptyCalendar() {
   return new NextResponse(
-    'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Minha Banda App//Calendar//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR', 
+    'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Gigueiros//Calendar//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR', 
     { headers: { 'Content-Type': 'text/calendar; charset=utf-8' } }
   );
 }

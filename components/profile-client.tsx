@@ -101,7 +101,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
               : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
           }`}>
             {role === 'admin' ? (
-              <><ShieldCheck className="w-3.5 h-3.5" /> Admin Minha Banda</>
+              <><ShieldCheck className="w-3.5 h-3.5" /> Admin Gigueiros</>
             ) : (
               <><ShieldAlert className="w-3.5 h-3.5" /> Músico / Visualizador</>
             )}
@@ -295,7 +295,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
                   <PenLine className="w-4 h-4" />
                 </button>
                 <p className="text-xs text-zinc-500 max-w-[200px]">
-                  Envie este código aos seus músicos para que eles possam criar conta no Minha Banda.
+                  Envie este código aos seus músicos para que eles possam criar conta no Gigueiros.
                 </p>
               </div>
             )}
@@ -331,7 +331,7 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
         <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6 flex flex-col gap-6">
           <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
             <Users className="w-5 h-5 text-indigo-400" />
-            <h3 className="text-zinc-100 font-bold">Minha Banda</h3>
+            <h3 className="text-zinc-100 font-bold">Gigueiros</h3>
           </div>
 
           <div>

@@ -51,12 +51,12 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
         <div className="relative w-8 h-8">
           <Image 
             src="/logo.svg" 
-            alt="Minha Banda" 
+            alt="Gigueiros" 
             fill
             className="invert brightness-200"
           />
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-zinc-100">Minha Banda</h1>
+        <h1 className="text-xl font-bold tracking-tight text-zinc-100">Gigueiros</h1>
       </div>
       <nav className="flex-1 px-4 space-y-2 mt-4">
         {navItems.map((item) => {

@@ -8,7 +8,7 @@ import { ThemeToaster } from '@/components/theme-toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Minha Banda',
+  title: 'Gigueiros',
   description: 'Gestão Logística e Financeira Musical',
   icons: {
     icon: '/favicon.ico',
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Minha Banda',
+    title: 'Gigueiros',
   },
   formatDetection: {
     telephone: false,

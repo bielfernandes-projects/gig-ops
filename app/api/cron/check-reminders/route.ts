@@ -126,7 +126,7 @@ export async function GET(req: Request) {
         // Send to all subscriptions
         const webpush = (await import('web-push')).default;
         webpush.setVapidDetails(
-          process.env.VAPID_ADMIN_EMAIL || 'mailto:admin@minhabanda.app',
+          process.env.VAPID_ADMIN_EMAIL || 'mailto:contato@gigueiros.com.br',
           process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
           process.env.VAPID_PRIVATE_KEY!
         );

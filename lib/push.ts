@@ -2,7 +2,7 @@ import webpush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 webpush.setVapidDetails(
-  process.env.VAPID_ADMIN_EMAIL || 'mailto:admin@minhabanda.app',
+  process.env.VAPID_ADMIN_EMAIL || 'mailto:contato@gigueiros.com.br',
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!
 );

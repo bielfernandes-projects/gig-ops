@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export const metadata = { title: 'Privacidade — Minha Banda' };
+export const metadata = { title: 'Privacidade — Gigueiros' };
 
 export default function Privacidade() {
   return (

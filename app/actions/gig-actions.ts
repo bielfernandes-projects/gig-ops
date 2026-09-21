@@ -363,7 +363,7 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
     try {
       await sendPushToMember(lineupData.member_id, {
         title: 'Cachê na conta! 💸',
-        body: `Seu pagamento do show ${gigTitle} foi confirmado no Minha Banda.`,
+        body: `Seu pagamento do show ${gigTitle} foi confirmado no Gigueiros.`,
         url: `/gigs/${lineupData.gig_id}`,
       });
     } catch (e) {

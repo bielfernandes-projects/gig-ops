@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
         <div className="mb-4 relative w-28 h-28 shrink-0">
           <Image 
             src="/logo.svg" 
-            alt="Minha Banda Logo" 
+            alt="Gigueiros Logo" 
             fill
             className="invert brightness-200 object-contain"
             priority
