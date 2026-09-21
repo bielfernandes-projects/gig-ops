@@ -1,5 +1,6 @@
 'use client';
 
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useState } from 'react';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
@@ -141,9 +142,12 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
 
   return (
     <div className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
-      <header>
-        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50 mb-2">Dashboard</h1>
-        <p className="text-zinc-400 text-sm md:text-base">Visão geral da sua agenda e finanças.</p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50 mb-2">Dashboard</h1>
+          <p className="text-zinc-400 text-sm md:text-base">Visão geral da sua agenda e finanças.</p>
+        </div>
+        <ThemeToggle />
       </header>
 
       {/* Grid Layout para Desktop */}
@@ -166,7 +170,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
                     <span className="text-sm font-bold text-zinc-400" style={{ color: nextGig.go_projects?.color_hex || '#71717a' }}>{nextGig.go_projects?.name || 'Sem Projeto'}</span>
                   </div>
                   <p className="text-sm text-zinc-300 mt-3 font-medium">
-                    {new Date(nextGig.start_time).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).toUpperCase()}
+                    {new Date(nextGig.start_time).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }).toUpperCase()}
                   </p>
                 </>
               ) : (

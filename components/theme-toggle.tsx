@@ -31,7 +31,7 @@ export function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
-      className="fixed top-4 right-4 z-[60] p-2.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+      className="shrink-0 p-2.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
     >
       {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
     </button>

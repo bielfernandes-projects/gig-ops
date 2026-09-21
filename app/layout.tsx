@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Navigation } from '@/components/navigation';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { ThemeToaster } from '@/components/theme-toaster';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -62,7 +61,6 @@ export default function RootLayout({
         `}} />
       </head>
       <body className={`${inter.className} min-h-screen bg-background text-foreground flex flex-col antialiased select-none overscroll-y-auto`}>
-        <ThemeToggle />
         {/* Desktop Sidebar (hidden on mobile) */}
         <div className="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-zinc-800 bg-zinc-950 z-50 dark:bg-zinc-950">
           <Navigation isMobile={false} />

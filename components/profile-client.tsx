@@ -1,5 +1,6 @@
 'use client';
 
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useState, useEffect } from 'react';
 import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Bell, BellOff, Clipboard, ClipboardCheck, PenLine, X, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -87,12 +88,6 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
       {/* ─── SECTION A: MEU PERFIL ─── */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">
         <div className="p-6 flex flex-col items-center text-center border-b border-zinc-800/80">
-          <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4 border border-zinc-700">
-            <span className="text-xl font-bold uppercase text-zinc-300">
-              {email ? email.substring(0, 2) : '??'}
-            </span>
-          </div>
-          
           <h2 className="text-zinc-100 font-bold text-lg mb-1">{email}</h2>
           
           <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
@@ -107,7 +102,13 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
             )}
           </div>
         </div>
-        
+        <div className="p-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-zinc-100 text-sm font-semibold">Aparência</p>
+            <p className="text-zinc-500 text-xs">Alternar entre tema claro e escuro.</p>
+          </div>
+          <ThemeToggle />
+        </div>
       </section>
 
       {/* ─── SECTION: AGENDA E NOTIFICAÇÕES ─── */}

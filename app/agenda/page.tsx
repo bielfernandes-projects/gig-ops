@@ -14,14 +14,26 @@ export const revalidate = 0;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+const TZ = 'America/Sao_Paulo';
+
+// Y/M/D as seen in Brasília, independent of the server timezone (Vercel runs in UTC).
+function brYMD(d: Date): [number, number, number] {
+  const [y, m, day] = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(d).split('-').map(Number);
+  return [y, m, day];
+}
+
+// 00:00 of today in Brasília (UTC-3, no DST since 2019).
+function startOfTodayBR(): Date {
+  const [y, m, d] = brYMD(new Date());
+  return new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
+}
+
 function filterGigs(gigs: GigWithProject[], tab: string, from?: string, to?: string): GigWithProject[] {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  const now = startOfTodayBR();
 
   if (tab === '7days') {
-    const end = new Date(now);
-    end.setDate(end.getDate() + 7);
-    end.setHours(23, 59, 59, 999);
+    const end = new Date(now.getTime() + 8 * 86400000 - 1);
     return gigs.filter((g) => {
       const d = new Date(g.start_time);
       return d >= now && d <= end;
@@ -29,19 +41,16 @@ function filterGigs(gigs: GigWithProject[], tab: string, from?: string, to?: str
   }
 
   if (tab === 'month') {
-    const y = now.getFullYear();
-    const m = now.getMonth();
+    const [y, m] = brYMD(new Date());
     return gigs.filter((g) => {
-      const d = new Date(g.start_time);
-      return d.getFullYear() === y && d.getMonth() === m;
+      const [gy, gm] = brYMD(new Date(g.start_time));
+      return gy === y && gm === m;
     });
   }
 
   if (tab === 'custom' && from && to) {
-    const start = new Date(from);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(to);
-    end.setHours(23, 59, 59, 999);
+    const start = new Date(`${from.slice(0, 10)}T00:00:00-03:00`);
+    const end = new Date(`${to.slice(0, 10)}T23:59:59.999-03:00`);
     return gigs.filter((g) => {
       const d = new Date(g.start_time);
       return d >= start && d <= end;
@@ -365,7 +374,7 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
   const projectColor = gig.go_projects?.color_hex || '#71717a';
 
   const gigDate = new Date(gig.start_time);
-  const day = gigDate.getDate().toString().padStart(2, '0');
+  const day = gigDate.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: TZ });
   const weekday = gigDate.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '').toUpperCase();
 
   const startStr = formatTime(gig.start_time);
