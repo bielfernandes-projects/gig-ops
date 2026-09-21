@@ -345,3 +345,6 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - `go_gigs.client_name`: campo "Contratante" no cadastro/edição do show; aparece no recibo.
 - Recibo: `/gigs/[id]/recibo` (só donos), valor por extenso (`lib/extenso.ts`), `?p=<id do pagamento>` emite recibo de uma parcela. Imprime/salva em PDF via `window.print()`; menu lateral e navegação móvel têm `print:hidden`.
 - Verificações: `npm run check:finance`, `check:extenso`, `check:transpose`.
+
+## 18. Indicação por crédito
+- `bands.referred_by`: ao criar banda (onboarding), o campo opcional "Código de indicação" aceita o código de convite de outra banda. Se válido, a banda indicadora ganha +30 dias (trial ou período pago) via `grantReferralCredit` em `lib/bands.ts` (service role, best effort). Código inválido bloqueia a criação com mensagem.

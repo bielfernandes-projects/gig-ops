@@ -216,6 +216,10 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
             )}
           </div>
 
+          <p className="text-xs text-zinc-500">
+            Indique outra banda: quando ela criar a conta usando o código <strong className="text-zinc-300">{inviteCode || 'N/A'}</strong> no campo de indicação, você ganha 30 dias grátis.
+          </p>
+
           <div className="border-t border-zinc-800/80 pt-6">
             <h4 className="text-sm font-bold text-zinc-300 mb-1">Quem participa da banda</h4>
             <p className="text-xs text-zinc-500 mb-4">Donos têm os mesmos direitos: financeiro, membros, convites e assinatura.</p>

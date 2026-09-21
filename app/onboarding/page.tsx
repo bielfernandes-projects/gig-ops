@@ -51,6 +51,7 @@ export default function OnboardingPage() {
           <p className="text-xs text-zinc-400">Crie sua banda e gerencie shows, escala e cachês.</p>
           <form onSubmit={handleCreate} className="mt-2 flex flex-col gap-2">
             <input name="bandName" required maxLength={60} autoComplete="off" placeholder="Nome da banda" className={inputCls} />
+            <input name="referral" autoComplete="off" maxLength={5} placeholder="Código de indicação (opcional)" className={`${inputCls} uppercase`} />
             <button
               type="submit"
               disabled={loading !== null}

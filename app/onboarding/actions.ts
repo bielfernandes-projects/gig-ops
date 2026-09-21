@@ -22,7 +22,7 @@ export async function createBand(formData: FormData) {
   const user = await currentUser();
   if (!user) redirect('/login');
 
-  const created = await createBandFor(user.id, String(formData.get('bandName') ?? ''));
+  const created = await createBandFor(user.id, String(formData.get('bandName') ?? ''), String(formData.get('referral') ?? ''));
   if ('error' in created) return { error: created.error };
 
   await rememberBand(created.bandId);
