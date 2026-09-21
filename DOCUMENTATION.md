@@ -354,3 +354,4 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
 ## 20. Nome de visualização
 `go_profiles.display_name` (até 40 caracteres, opcional), editado no Perfil pelo lápis ao lado de "Nome" (`setDisplayName`, service role); o Perfil também mostra o e-mail (só leitura) e a banda selecionada (lápis para donos, `renameBand`). A notificação "entrou na banda" usa o nome (`nameOf`). Aparece no cabeçalho do Perfil (e-mail em menor), na lista de membros e na divisão de lucro do relatório; sem nome, cai para o e-mail.
+- Relatório da banda: o card "A receber de shows já realizados" soma, em qualquer mês, o que falta receber dos shows passados com acompanhamento de recebimento (`track_receipts`); lista cada show com o valor devido.

@@ -4,6 +4,9 @@ import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { brl, gigFinance, splitProfit } from '@/lib/finance';
 
+type GigRow = { id: string; title: string; start_time: string; gross_value: number; bring_sound: boolean | null; sound_cost: number | null; event_type: string | null; track_receipts: boolean | null };
+type OverdueRow = { id: string; title: string; start_time: string; gross_value: number; gig_payments: { amount: number }[] | null };
+
 export const revalidate = 0;
 
 const TZ = 'America/Sao_Paulo';
@@ -184,13 +187,28 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   }
 
   // ───────────────────────── Relatório da banda (dono) ─────────────────────────
-  const { data: gigs } = await supabase
-    .from('go_gigs')
-    .select('id, title, start_time, gross_value, bring_sound, sound_cost, event_type, track_receipts')
-    .eq('band_id', info.bandId)
-    .gte('start_time', seriesStart.toISOString())
-    .lt('start_time', end.toISOString())
-    .order('start_time', { ascending: true });
+  const [{ data: gigs }, { data: overdueRows }] = await Promise.all([
+    supabase
+      .from('go_gigs')
+      .select('id, title, start_time, gross_value, bring_sound, sound_cost, event_type, track_receipts')
+      .eq('band_id', info.bandId)
+      .gte('start_time', seriesStart.toISOString())
+      .lt('start_time', end.toISOString())
+      .order('start_time', { ascending: true }) as unknown as Promise<{ data: GigRow[] | null }>,
+    // every show already played whose cachê is still (partly) unpaid, in any month
+    supabase
+      .from('go_gigs')
+      .select('id, title, start_time, gross_value, gig_payments(amount)')
+      .eq('band_id', info.bandId)
+      .eq('track_receipts', true)
+      .lt('start_time', new Date().toISOString())
+      .order('start_time', { ascending: true }) as unknown as Promise<{ data: OverdueRow[] | null }>,
+  ]);
+
+  const overdue = (overdueRows ?? [])
+    .map((g) => ({ g, owed: Number(g.gross_value) - (g.gig_payments ?? []).reduce((s, p) => s + Number(p.amount), 0) }))
+    .filter((o) => o.owed > 0.004);
+  const overdueTotal = overdue.reduce((s, o) => s + o.owed, 0);
 
   const gigList = gigs ?? [];
   const ids = gigList.map((g) => g.id);
@@ -265,6 +283,28 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 pb-32 md:p-10">
       {header}
+
+      {overdue.length > 0 && (
+        <section className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold text-zinc-200">A receber de shows já realizados</h2>
+            <p className="text-2xl font-black tabular-nums text-amber-300">{brl(overdueTotal)}</p>
+          </div>
+          <ul className="mt-3 divide-y divide-zinc-800">
+            {overdue.map(({ g, owed }) => (
+              <li key={g.id}>
+                <Link href={`/gigs/${g.id}`} className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-white">
+                  <span className="min-w-0 truncate text-zinc-300">
+                    {g.title}
+                    <span className="ml-2 text-xs text-zinc-500">{new Date(g.start_time).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'America/Sao_Paulo' })}</span>
+                  </span>
+                  <span className="shrink-0 font-semibold tabular-nums text-amber-300">{brl(owed)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Shows" value={String(month.length)} />
