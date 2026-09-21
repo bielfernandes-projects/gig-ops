@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { BAND_COOKIE } from '@/lib/auth';
-import { createBandFor, joinBandByCode } from '@/lib/bands';
+import { createBandFor, joinBandByCode, nameOf } from '@/lib/bands';
 import { sendPushToBandOwners } from '@/lib/push';
 
 async function currentUser() {
@@ -39,7 +39,7 @@ export async function joinBand(formData: FormData) {
 
   await sendPushToBandOwners(joined.bandId, {
     title: 'Novo músico na banda',
-    body: `${user.email ?? 'Um músico'} entrou usando o código de convite.`,
+    body: `${await nameOf(user.id, user.email)} entrou usando o código de convite.`,
   });
 
   await rememberBand(joined.bandId);

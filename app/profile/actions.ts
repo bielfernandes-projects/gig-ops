@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { BAND_COOKIE, getUserInfo, requireOwner } from '@/lib/auth';
-import { createBandFor, joinBandByCode } from '@/lib/bands';
+import { createBandFor, joinBandByCode, nameOf } from '@/lib/bands';
 import { sendPushToBandOwners } from '@/lib/push';
 
 const revalidateAll = () => revalidatePath('/', 'layout');
@@ -62,7 +62,7 @@ export async function joinAnotherBand(formData: FormData) {
 
   await sendPushToBandOwners(joined.bandId, {
     title: 'Novo músico na banda',
-    body: `${info.email ?? 'Um músico'} entrou usando o código de convite.`,
+    body: `${await nameOf(info.userId, info.email)} entrou usando o código de convite.`,
   });
 
   await rememberBand(joined.bandId);

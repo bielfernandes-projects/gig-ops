@@ -66,3 +66,9 @@ export async function joinBandByCode(
 
   return { bandId: band.id, bandName: band.name };
 }
+
+/** Name to show for a person: their display name, else their e-mail. */
+export async function nameOf(userId: string, fallbackEmail?: string | null): Promise<string> {
+  const { data } = await createAdminClient().from('go_profiles').select('display_name').eq('id', userId).maybeSingle();
+  return (data?.display_name as string | null) || fallbackEmail || 'Um músico';
+}
