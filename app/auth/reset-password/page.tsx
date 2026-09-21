@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { Logo } from '@/components/logo';
 import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -82,15 +82,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-zinc-950 z-[999] px-4 overflow-hidden pt-safe pb-safe">
       <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 flex flex-col items-center max-h-[98%] overflow-y-auto no-scrollbar">
-        <div className="mb-4 relative w-28 h-28 shrink-0">
-          <Image 
-            src="/logo.svg" 
-            alt="Gigueiros Logo" 
-            fill
-            className="invert brightness-200 object-contain"
-            priority
-          />
-        </div>
+        <Logo className="mb-4 h-auto w-44 shrink-0" priority />
 
         <h1 className="text-xl md:text-2xl font-bold text-zinc-50 mb-1 tracking-tight text-center">Redefinir senha</h1>
         <p className="text-xs md:text-sm text-zinc-400 mb-6 font-medium text-center">

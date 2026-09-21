@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { Logo } from '@/components/logo';
 import { CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { login, signup, forgotPassword, adminSignup } from './actions';
+import { createClient } from '@/lib/supabase/client';
 import { PasswordStrengthIndicator, isPasswordValid } from '@/components/password-strength-indicator';
 
 export default function LoginPage() {
@@ -51,6 +52,18 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogle = async () => {
+    setErrorMsg('');
+    const { error } = await createClient().auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+    if (error) setErrorMsg('Não foi possível iniciar o login com Google.');
+  };
+
   const handleForgotSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsForgotLoading(true);
@@ -74,19 +87,11 @@ export default function LoginPage() {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-zinc-950 z-[999] px-4 overflow-hidden pt-safe pb-safe">
       <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 flex flex-col items-center max-h-[98%] overflow-y-auto no-scrollbar">
-        <div className="mb-4 relative w-24 h-24 md:w-40 md:h-40 shrink-0">
-          <Image
-            src="/logo.svg"
-            alt="Gigueiros Logo"
-            fill
-            className="invert brightness-200 object-contain"
-            priority
-          />
-        </div>
+        <Logo className="mb-4 h-auto w-48 shrink-0 md:w-56" priority />
 
         {!successMsg && (
           <>
-            <h1 className="text-xl md:text-2xl font-bold text-zinc-50 mb-1 tracking-tight text-center">Gigueiros</h1>
+            <h1 className="sr-only">Gigueiros</h1>
             <p className="text-xs md:text-sm text-zinc-400 mb-6 font-medium text-center">
               {isLogin
                 ? 'Bem-vindo ao Gigueiros. Faça login para gerenciar sua agenda.'
@@ -228,6 +233,25 @@ export default function LoginPage() {
                     </button>
                   )}
                 </form>
+
+                <div className="w-full flex items-center gap-3 my-4">
+                  <span className="h-px flex-1 bg-zinc-800" />
+                  <span className="text-xs text-zinc-500 font-medium">ou</span>
+                  <span className="h-px flex-1 bg-zinc-800" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  className="w-full py-2.5 px-3 bg-white hover:bg-zinc-100 border border-zinc-300 text-zinc-800 font-semibold rounded-lg flex items-center justify-center gap-2.5 text-sm transition-transform active:scale-[0.98]"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
+                    <path fill="#FBBC05" d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z"/>
+                    <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+                  </svg>
+                  Continuar com Google
+                </button>
 
                 {isLogin && (
                   <button

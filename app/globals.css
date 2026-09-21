@@ -117,3 +117,45 @@
     display: none;
   }
 }
+
+/* Logo: light-ink version by default, white-ink version when the .dark theme is on */
+.logo-dark { display: none; }
+:root.dark .logo-dark { display: block; }
+:root.dark .logo-light { display: none; }
+
+/* ─── Landing: monochrome poster tokens (follow the .dark theme) ─── */
+.landing {
+  --l-bg: #fafafa;
+  --l-fg: #0a0a0a;
+  --l-mute: #52525b;
+  --l-line: #d4d4d8;
+  --l-card: #ffffff;
+  --l-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+:root.dark .landing {
+  --l-bg: #09090b;
+  --l-fg: #fafafa;
+  --l-mute: #a1a1aa;
+  --l-line: #27272a;
+  --l-card: #111114;
+}
+.landing a:focus-visible,
+.landing button:focus-visible {
+  outline: 2px solid var(--l-fg);
+  outline-offset: 3px;
+}
+
+/* Setlist: rows go from "pendente" to "pago" one by one (armed by JS; final state is the default) */
+.setlist .st { position: relative; display: inline-grid; justify-items: end; }
+.setlist .st > span { grid-area: 1 / 1; transition: opacity 350ms var(--l-ease), transform 350ms var(--l-ease); }
+.setlist .st-pend { opacity: 0; transform: translateY(6px); }
+.setlist .tot-due { opacity: 0; transform: translateY(6px); }
+.setlist .tot > span { grid-area: 1 / 1; transition: opacity 450ms var(--l-ease), transform 450ms var(--l-ease); }
+.setlist[data-armed] .row:not([data-paid]) .st-pend { opacity: 1; transform: none; }
+.setlist[data-armed] .row:not([data-paid]) .st-paid { opacity: 0; transform: translateY(-6px); }
+.setlist[data-armed] .row:not([data-paid]) .fee { color: var(--l-mute); }
+.setlist[data-armed]:not([data-done]) .tot-due { opacity: 1; transform: none; }
+.setlist[data-armed]:not([data-done]) .tot-done { opacity: 0; transform: translateY(-6px); }
+@media (prefers-reduced-motion: reduce) {
+  .setlist .st > span, .setlist .tot > span { transition: none; }
+}

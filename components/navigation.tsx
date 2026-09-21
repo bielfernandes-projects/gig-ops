@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
+import { Logo } from '@/components/logo';
 import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard } from 'lucide-react';
 
 const navItems = [
@@ -16,7 +16,7 @@ const navItems = [
 export function Navigation({ isMobile }: { isMobile: boolean }) {
   const pathname = usePathname();
 
-  if (['/', '/login', '/termos', '/privacidade'].includes(pathname) || pathname.startsWith('/auth')) return null;
+  if (['/', '/login', '/onboarding', '/termos', '/privacidade'].includes(pathname) || pathname.startsWith('/auth')) return null;
 
   if (isMobile) {
     return (
@@ -47,16 +47,8 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
   // Desktop Component
   return (
     <div className="flex flex-col w-full h-full">
-      <div className="p-6 flex items-center gap-3">
-        <div className="relative w-8 h-8">
-          <Image 
-            src="/logo.svg" 
-            alt="Gigueiros" 
-            fill
-            className="invert brightness-200"
-          />
-        </div>
-        <h1 className="text-xl font-bold tracking-tight text-zinc-100">Gigueiros</h1>
+      <div className="p-6">
+        <Logo className="h-auto w-40" priority />
       </div>
       <nav className="flex-1 px-4 space-y-2 mt-4">
         {navItems.map((item) => {
