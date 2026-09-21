@@ -209,8 +209,11 @@ Sem o passo 2, o `memberId` do viewer seria `null` e ele não veria nenhum show 
 
 ## 10. Configuração do Supabase Auth
 
-* **Site URL:** `https://minhabanda.vercel.app/`
-* **URI Allow List:** `http://localhost:3000/*`, `https://minhabanda.vercel.app/*`
+* **Domínio de produção:** `https://www.gigueiros.com.br` (o apex `gigueiros.com.br` redireciona 308 para o `www`; ambos ligados ao projeto `gig-ops` na Vercel). `minhabanda.bf.dev.br` continua ativo como alias antigo.
+* **Site URL:** `https://www.gigueiros.com.br`
+* **URI Allow List:** `http://localhost:3000/*`, `https://minhabanda.bf.dev.br/*`, `https://www.gigueiros.com.br/*`, `https://gigueiros.com.br/*`
+* **Google OAuth (cliente "Gigueiros Web"):** origens JavaScript `minhabanda.bf.dev.br`, `www.gigueiros.com.br`, `gigueiros.com.br`; redirect URI é o callback do Supabase.
+* **Vercel:** `NEXT_PUBLIC_SITE_URL=https://www.gigueiros.com.br` (production e preview).
 * **Email autoconfirm:** Ativado (não precisa confirmar email)
 * **Senha:** Mínimo 8 caracteres, maiúscula + minúscula + número + especial
 
@@ -295,7 +298,7 @@ Viewers sem `go_members` correspondente (ex: admin não os cadastrou como músic
 ## 13. Backlog pós-go-live
 
 * **Logo e ícones do PWA** (`public/logo.svg`, `icon-*.png`, `apple-touch-icon.png`, `badge-icon.png`) ainda trazem o nome antigo "Minha Banda"; refazer como Gigueiros.
-* **Domínio:** ao registrar `gigueiros.com.br`, adicionar na Vercel, atualizar `NEXT_PUBLIC_SITE_URL`, Site URL/redirects do Supabase Auth e substituir as menções a `minhabanda.*` neste documento (seção 10).
+* **Domínio:** `gigueiros.com.br` já configurado (seção 10). Falta decidir se o apex vira o principal (hoje o `www` é) e quando remover o alias `minhabanda.bf.dev.br`.
 * **Bloqueio por assinatura:** `requireAdmin()` ainda não checa `subscription_status`/`trial_ends_at`.
 * **Banco:** hospedado em São Paulo (`ggjfhipruemkxavhwglm`), função Vercel em `gru1`. O projeto antigo (Oregon) fica como backup até ser desativado.
 * **Auth:** ativar "leaked password protection" se o plano do Supabase permitir.
