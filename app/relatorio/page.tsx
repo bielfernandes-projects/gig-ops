@@ -258,8 +258,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   // profit split among the band owners (only when there is more than one)
   const { data: ownerRows } = await supabase.from('band_members').select('user_id, profit_share').eq('band_id', info.bandId).eq('role', 'owner');
   const owners = (ownerRows ?? []) as { user_id: string; profit_share: number | null }[];
-  const { data: ownerProfiles } = owners.length > 1 ? await supabase.from('go_profiles').select('id, email').in('id', owners.map((o) => o.user_id)) : { data: [] };
-  const emailOf = new Map((ownerProfiles ?? []).map((p) => [p.id as string, p.email as string]));
+  const { data: ownerProfiles } = owners.length > 1 ? await supabase.from('go_profiles').select('id, email, display_name').in('id', owners.map((o) => o.user_id)) : { data: [] };
+  const emailOf = new Map((ownerProfiles ?? []).map((p) => [p.id as string, ((p.display_name as string | null) || p.email) as string]));
   const split = owners.length > 1 ? splitProfit(profit, owners.map((o) => ({ id: o.user_id, share: o.profit_share === null ? null : Number(o.profit_share) }))) : [];
 
   return (

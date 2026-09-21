@@ -14,6 +14,20 @@ async function rememberBand(bandId: string) {
   (await cookies()).set(BAND_COOKIE, bandId, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
 }
 
+/** Name shown instead of the e-mail (empty clears it). Written with the service role: the profile row is otherwise read-only for the browser. */
+export async function setDisplayName(name: string) {
+  const info = await getUserInfo();
+  if (!info.userId) return { error: 'Não autenticado.' };
+  const clean = name.trim().replace(/\s+/g, ' ');
+  if (clean.length > 40) return { error: 'Use até 40 caracteres.' };
+
+  const { error } = await createAdminClient().from('go_profiles').update({ display_name: clean || null }).eq('id', info.userId);
+  if (error) return { error: 'Não foi possível salvar o nome.' };
+
+  revalidateAll();
+  return { success: true };
+}
+
 /** Switch the band the user is working in (must be one they belong to). */
 export async function switchBand(bandId: string) {
   const info = await getUserInfo();

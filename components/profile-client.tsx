@@ -4,7 +4,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { useState, useEffect } from 'react';
 import { ShieldAlert, ShieldCheck, LogOut, KeyRound, Bell, BellOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { updatePassword } from '@/app/profile/actions';
+import { updatePassword, setDisplayName } from '@/app/profile/actions';
 import { savePushSubscription, removePushSubscription } from '@/app/actions/push-actions';
 import { signout } from '@/app/login/actions';
 import { BandSections, type BandMemberView } from '@/components/band-sections';
@@ -13,6 +13,7 @@ import type { BandOption } from '@/components/band-switcher';
 type Props = {
   role: 'admin' | 'viewer';
   email: string | null | undefined;
+  displayName: string | null;
   bandId: string | null;
   bandName: string | null;
   memberships: BandOption[];
@@ -21,7 +22,7 @@ type Props = {
   subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
 };
 
-export default function ProfileClient({ role, email, bandId, bandName, memberships, inviteCode, members, subscription }: Props) {
+export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription }: Props) {
   const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
 
   useEffect(() => {
@@ -43,7 +44,28 @@ export default function ProfileClient({ role, email, bandId, bandName, membershi
       {/* ─── SECTION A: MEU PERFIL ─── */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">
         <div className="p-6 flex flex-col items-center text-center border-b border-zinc-800/80">
-          <h2 className="text-zinc-100 font-bold text-lg mb-1">{email}</h2>
+          <h2 className="text-zinc-100 font-bold text-lg">{displayName || email}</h2>
+          {displayName && <p className="text-xs text-zinc-500 mb-1">{email}</p>}
+          <form
+            className="mt-3 flex w-full max-w-xs gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const value = String(new FormData(e.currentTarget).get('displayName') ?? '');
+              const res = await setDisplayName(value);
+              if (res?.error) toast.error(res.error);
+              else toast.success(value.trim() ? 'Nome salvo.' : 'Nome removido.');
+            }}
+          >
+            <input
+              name="displayName"
+              defaultValue={displayName ?? ''}
+              maxLength={40}
+              placeholder="Nome de visualização"
+              aria-label="Nome de visualização"
+              className="min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
+            />
+            <button type="submit" className="rounded-lg bg-zinc-100 px-3 py-2 text-sm font-bold text-zinc-900 hover:bg-white">Salvar</button>
+          </form>
           
           <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
             role === 'admin' 

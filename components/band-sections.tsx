@@ -17,7 +17,7 @@ import {
 } from '@/app/profile/actions';
 import type { BandOption } from '@/components/band-switcher';
 
-export type BandMemberView = { userId: string; email: string; role: 'owner' | 'member'; isSelf: boolean; share: number | null };
+export type BandMemberView = { userId: string; email: string; label: string; role: 'owner' | 'member'; isSelf: boolean; share: number | null };
 
 type Props = {
   role: 'admin' | 'viewer';
@@ -227,7 +227,7 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
               {members.map((m) => (
                 <div key={m.userId} className="flex items-center justify-between gap-3 bg-zinc-950 border border-zinc-800 p-3 rounded-lg">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-zinc-200">{m.email}{m.isSelf ? ' (você)' : ''}</p>
+                    <p className="truncate text-sm font-bold text-zinc-200">{m.label}{m.isSelf ? ' (você)' : ''}</p>
                     <p className={`text-xs font-medium ${m.role === 'owner' ? 'text-amber-500' : 'text-zinc-500'}`}>
                       {m.role === 'owner' ? 'Dono' : 'Músico'}
                     </p>
@@ -242,7 +242,7 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
                           step="0.5"
                           defaultValue={m.share ?? ''}
                           placeholder="igual"
-                          aria-label={`Percentual do lucro de ${m.email}`}
+                          aria-label={`Percentual do lucro de ${m.label}`}
                           onBlur={async (e) => {
                             const raw = e.currentTarget.value.trim();
                             const value = raw === '' ? null : Number(raw);
@@ -264,7 +264,7 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
                         type="button"
                         title="Tornar dono"
                         onClick={() => {
-                          if (confirm(`Tornar ${m.email} dono da banda? Ele terá os mesmos direitos que você, inclusive o financeiro.`)) {
+                          if (confirm(`Tornar ${m.label} dono da banda? Ele terá os mesmos direitos que você, inclusive o financeiro.`)) {
                             run(() => setMemberRole(m.userId, 'owner'), 'Agora é dono da banda.');
                           }
                         }}
@@ -287,7 +287,7 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
                         type="button"
                         title="Remover da banda"
                         onClick={() => {
-                          if (confirm(`Remover ${m.email} da banda?`)) run(() => removeMember(m.userId), 'Removido da banda.');
+                          if (confirm(`Remover ${m.label} da banda?`)) run(() => removeMember(m.userId), 'Removido da banda.');
                         }}
                         className="p-2 rounded-md text-red-500 hover:bg-red-500/10"
                       >

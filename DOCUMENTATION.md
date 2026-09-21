@@ -351,3 +351,6 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
 ## 19. Leitura offline
 `public/sw.js` guarda a última cópia (network-first) de `/dashboard`, `/agenda`, `/gigs/[id]`, `/repertorio/*` e `/palco/[id]` e a serve sem sinal. `components/offline-setup.tsx` registra o SW e limpa o cache ao abrir `/login` (logout/aparelho compartilhado). Só páginas já visitadas funcionam offline; escrita exige conexão.
+
+## 20. Nome de visualização
+`go_profiles.display_name` (até 40 caracteres, opcional), editado no Perfil (`setDisplayName`, service role). Aparece no cabeçalho do Perfil (e-mail em menor), na lista de membros e na divisão de lucro do relatório; sem nome, cai para o e-mail.
