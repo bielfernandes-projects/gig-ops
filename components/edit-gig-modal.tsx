@@ -178,6 +178,20 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                 </select>
               </div>
 
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="gig-client-name" className="text-xs font-medium text-zinc-400">
+                  Contratante (aparece no recibo)
+                </label>
+                <input
+                  type="text"
+                  id="gig-client-name"
+                  name="client_name"
+                  defaultValue={(gig as { client_name?: string | null }).client_name ?? ''}
+                  placeholder="Nome de quem contratou"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
+                />
+              </div>
+
               {/* Date / Start */}
               <DateTimePicker
                 name="start_time"

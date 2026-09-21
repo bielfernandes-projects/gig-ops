@@ -19,6 +19,7 @@ export async function addQuickGig(formData: FormData) {
   const location = (formData.get('location') as string) || 'A definir';
   const notes = (formData.get('notes') as string) || null;
   const event_type = ((formData.get('event_type') as string) || '').trim() || null;
+  const client_name = ((formData.get('client_name') as string) || '').trim() || null;
   const clone_id = formData.get('clone_id') as string;
   const recurrence = formData.get('recurrence') as string;
   const recurrence_end = formData.get('recurrence_end') as string;
@@ -97,6 +98,7 @@ export async function addQuickGig(formData: FormData) {
       sound_person_id: originalGig ? originalGig.sound_person_id : sound_person_id,
       notes,
       event_type,
+      client_name,
       is_sound_paid: false,
       recurrence_group_id,
       band_id: bandId,
@@ -201,6 +203,7 @@ export async function updateGig(formData: FormData) {
   const sound_person_id = bring_sound && rawSoundPerson ? rawSoundPerson : null;
   const notes = (formData.get('notes') as string) || null;
   const event_type = ((formData.get('event_type') as string) || '').trim() || null;
+  const client_name = ((formData.get('client_name') as string) || '').trim() || null;
   const is_sound_paid = formData.get('is_sound_paid') === 'true';
 
   if (!id || !title || !project_id || !start_time) {
@@ -209,7 +212,7 @@ export async function updateGig(formData: FormData) {
 
   const { error } = await supabase
     .from('go_gigs')
-    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes, event_type, is_sound_paid })
+    .update({ title, project_id, start_time, end_time, location, gross_value, bring_sound, sound_cost, sound_person_id, notes, event_type, client_name, is_sound_paid })
     .eq('id', id)
     .eq('band_id', bandId);
 

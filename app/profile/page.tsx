@@ -16,13 +16,13 @@ export default async function ProfilePage() {
     const [bandResult, membersResult] = await Promise.all([
       supabase.from('bands').select('invite_code').eq('id', info.bandId).maybeSingle(),
       info.role === 'admin'
-        ? supabase.from('band_members').select('user_id, role').eq('band_id', info.bandId)
+        ? supabase.from('band_members').select('user_id, role, profit_share').eq('band_id', info.bandId)
         : Promise.resolve({ data: null }),
     ]);
 
     inviteCode = bandResult.data?.invite_code ?? null;
 
-    const rows = (membersResult.data ?? []) as { user_id: string; role: 'owner' | 'member' }[];
+    const rows = (membersResult.data ?? []) as { user_id: string; role: 'owner' | 'member'; profit_share: number | null }[];
     if (rows.length > 0) {
       const { data: profiles } = await supabase
         .from('go_profiles')
@@ -36,6 +36,7 @@ export default async function ProfilePage() {
           email: emailById.get(r.user_id) ?? 'sem e-mail',
           role: r.role,
           isSelf: r.user_id === info.userId,
+          share: r.profit_share === null ? null : Number(r.profit_share),
         }))
         .sort((a, b) => Number(b.role === 'owner') - Number(a.role === 'owner') || a.email.localeCompare(b.email));
     }

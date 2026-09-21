@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:transpose": "node scripts/check-transpose.ts"
+    "check:transpose": "node scripts/check-transpose.ts",
+    "check:finance": "node scripts/check-finance.ts",
+    "check:extenso": "node scripts/check-extenso.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

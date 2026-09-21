@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { brl, gigFinance } from '@/lib/finance';
+import { brl, gigFinance, splitProfit } from '@/lib/finance';
 
 export const revalidate = 0;
 
@@ -255,6 +255,13 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
 
   const pendingGigs = month.filter((r) => r.fin.pending > 0).sort((a, b) => b.fin.pending - a.fin.pending);
 
+  // profit split among the band owners (only when there is more than one)
+  const { data: ownerRows } = await supabase.from('band_members').select('user_id, profit_share').eq('band_id', info.bandId).eq('role', 'owner');
+  const owners = (ownerRows ?? []) as { user_id: string; profit_share: number | null }[];
+  const { data: ownerProfiles } = owners.length > 1 ? await supabase.from('go_profiles').select('id, email').in('id', owners.map((o) => o.user_id)) : { data: [] };
+  const emailOf = new Map((ownerProfiles ?? []).map((p) => [p.id as string, p.email as string]));
+  const split = owners.length > 1 ? splitProfit(profit, owners.map((o) => ({ id: o.user_id, share: o.profit_share === null ? null : Number(o.profit_share) }))) : [];
+
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 pb-32 md:p-10">
       {header}
@@ -297,6 +304,24 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           <Bars rows={[...costByCategory.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value)} />
         </section>
       </div>
+
+      {split.length > 0 && (
+        <section className="mb-6 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-200">Divisão do lucro entre os donos</h2>
+          <p className="mb-4 text-xs text-zinc-500">Sobre o lucro previsto do mês. Ajuste os percentuais no Perfil; sem percentual, a divisão é igual.</p>
+          <ul className="divide-y divide-zinc-800">
+            {split.map((r) => (
+              <li key={r.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                <span className="min-w-0 truncate text-zinc-300">{emailOf.get(r.id) ?? 'Dono'}</span>
+                <span className="shrink-0 tabular-nums">
+                  <span className="mr-3 text-zinc-500">{r.percent.toFixed(1).replace('.', ',')}%</span>
+                  <span className={`font-semibold ${r.amount < 0 ? 'text-red-400' : 'text-zinc-100'}`}>{brl(r.amount)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
         <h2 className="mb-4 text-sm font-semibold text-zinc-200">Shows com recebimento pendente</h2>

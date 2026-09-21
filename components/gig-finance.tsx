@@ -77,6 +77,9 @@ export function GigFinance({ gigId, gross, trackReceipts, expenses, payments }: 
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     <span className="font-semibold tabular-nums text-zinc-100">{brl(p.amount)}</span>
+                    <a href={`/gigs/${gigId}/recibo?p=${p.id}`} className="text-xs text-zinc-500 underline underline-offset-4 hover:text-zinc-200">
+                      Recibo
+                    </a>
                     <button
                       type="button"
                       title="Remover"

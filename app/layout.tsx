@@ -62,17 +62,17 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} min-h-screen bg-background text-foreground flex flex-col antialiased select-none overscroll-y-auto`}>
         {/* Desktop Sidebar (hidden on mobile) */}
-        <div className="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-zinc-800 bg-zinc-950 z-50 dark:bg-zinc-950">
+        <div className="hidden md:flex print:!hidden fixed inset-y-0 left-0 w-64 border-r border-zinc-800 bg-zinc-950 z-50 dark:bg-zinc-950">
           <Navigation isMobile={false} />
         </div>
 
         {/* Main Content Area */}
-        <main className="flex-1 md:pl-64 w-full flex flex-col pb-20 md:pb-0 select-text overflow-x-hidden">
+        <main className="flex-1 md:pl-64 print:!pl-0 print:!pb-0 w-full flex flex-col pb-20 md:pb-0 select-text overflow-x-hidden">
           {children}
         </main>
 
         {/* Mobile Bottom Navigation (hidden on desktop) */}
-        <div className="mobile-nav md:hidden fixed bottom-0 left-0 w-full bg-zinc-950/90 backdrop-blur-md border-t border-zinc-800/80 z-50 pb-safe">
+        <div className="mobile-nav md:hidden print:!hidden fixed bottom-0 left-0 w-full bg-zinc-950/90 backdrop-blur-md border-t border-zinc-800/80 z-50 pb-safe">
           <Navigation isMobile={true} />
         </div>
 

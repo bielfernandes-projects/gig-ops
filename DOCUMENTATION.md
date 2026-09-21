@@ -338,3 +338,10 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * **Transposição** (`lib/transpose.ts`, teste em `npm run check:transpose`): o texto colado é transposto do tom original para o tom pedido no repertório (linhas de acordes e acordes entre colchetes), mantendo o alinhamento; escolhe bemóis ou sustenidos conforme o tom de destino. O visualizador oferece "Ver no tom original".
 * **Repertórios pessoais** (`setlists.scope = 'personal'`, `songs.scope = 'personal'`): qualquer membro cria os seus em `/repertorio`; só quem criou vê e edita (nem os donos da banda). Repertórios pessoais podem usar músicas da banda e as próprias; repertórios oficiais de show só usam músicas da banda.
 * **Ainda não feito:** leitura offline dos próximos shows.
+
+## 17. Rateio entre sócios, contratante e recibo (Fase 3)
+
+- `band_members.profit_share` (0–100, nulo = divisão igual): definido pelos donos no Perfil (`setProfitShare`). O `/relatorio` mostra "Divisão do lucro entre os donos" quando há mais de um dono (`splitProfit` em `lib/finance.ts`; o último dono absorve o arredondamento).
+- `go_gigs.client_name`: campo "Contratante" no cadastro/edição do show; aparece no recibo.
+- Recibo: `/gigs/[id]/recibo` (só donos), valor por extenso (`lib/extenso.ts`), `?p=<id do pagamento>` emite recibo de uma parcela. Imprime/salva em PDF via `window.print()`; menu lateral e navegação móvel têm `print:hidden`.
+- Verificações: `npm run check:finance`, `check:extenso`, `check:transpose`.

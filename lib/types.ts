@@ -30,6 +30,7 @@ export type GoGig = {
   is_sound_paid: boolean;
   recurrence_group_id?: string | null;
   event_type?: string | null;
+  client_name?: string | null;
   track_receipts?: boolean;
   band_id?: string;
 };

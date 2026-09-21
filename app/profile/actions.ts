@@ -115,6 +115,26 @@ export async function setMemberRole(userId: string, role: 'owner' | 'member') {
   return { success: true };
 }
 
+/** Percentage of the band's profit an owner receives in the report (null = split equally with the others). */
+export async function setProfitShare(userId: string, percent: number | null) {
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
+  if (percent !== null && (!Number.isFinite(percent) || percent < 0 || percent > 100)) return { error: 'Informe um percentual entre 0 e 100.' };
+
+  const { data, error } = await createAdminClient()
+    .from('band_members')
+    .update({ profit_share: percent })
+    .eq('band_id', ctx.bandId)
+    .eq('user_id', userId)
+    .eq('role', 'owner')
+    .select('user_id');
+  if (error || !data?.length) return { error: 'Não foi possível salvar o percentual.' };
+
+  revalidatePath('/profile');
+  revalidatePath('/relatorio');
+  return { success: true };
+}
+
 /** Owner removes someone from the band (their account is untouched; the band data stays). */
 export async function removeMember(userId: string) {
   const ctx = await requireOwner();

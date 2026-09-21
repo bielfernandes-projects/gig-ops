@@ -13,10 +13,11 @@ import {
   joinAnotherBand,
   createAnotherBand,
   switchBand,
+  setProfitShare,
 } from '@/app/profile/actions';
 import type { BandOption } from '@/components/band-switcher';
 
-export type BandMemberView = { userId: string; email: string; role: 'owner' | 'member'; isSelf: boolean };
+export type BandMemberView = { userId: string; email: string; role: 'owner' | 'member'; isSelf: boolean; share: number | null };
 
 type Props = {
   role: 'admin' | 'viewer';
@@ -228,6 +229,32 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    {m.role === 'owner' && (
+                      <label className="mr-1 flex items-center gap-1 text-xs text-zinc-500" title="Percentual do lucro no relatório. Vazio = divisão igual.">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.5"
+                          defaultValue={m.share ?? ''}
+                          placeholder="igual"
+                          aria-label={`Percentual do lucro de ${m.email}`}
+                          onBlur={async (e) => {
+                            const raw = e.currentTarget.value.trim();
+                            const value = raw === '' ? null : Number(raw);
+                            if (value === m.share) return;
+                            const res = await setProfitShare(m.userId, value);
+                            if (res?.error) toast.error(res.error);
+                            else {
+                              toast.success('Percentual salvo.');
+                              router.refresh();
+                            }
+                          }}
+                          className="w-16 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
+                        />
+                        %
+                      </label>
+                    )}
                     {m.role === 'member' ? (
                       <button
                         type="button"

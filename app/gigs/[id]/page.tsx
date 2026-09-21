@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { GigWithProject, LineupWithMember, GoMember, GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
@@ -50,6 +51,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       sound_person_id,
       notes,
       event_type,
+      client_name,
       track_receipts,
       recurrence_group_id,
       band_id,
@@ -206,6 +208,11 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           <div className="flex items-center gap-2">
             {/* Edit Gig Button — admin only */}
             {role === 'admin' && (
+              <Link href={`/gigs/${id}/recibo`} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">
+                Recibo
+              </Link>
+            )}
+            {role === 'admin' && (
               <EditGigModal gig={gigData} projects={projects} members={members} />
             )}
           </div>
@@ -265,6 +272,13 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               <div className="flex items-center gap-3">
                 <StickyNote className="w-5 h-5 stroke-[1.5] text-zinc-500" />
                 <span className="text-zinc-300">{gigData.event_type}</span>
+              </div>
+            )}
+
+            {role === 'admin' && gigData.client_name && (
+              <div className="flex items-center gap-3">
+                <StickyNote className="w-5 h-5 stroke-[1.5] text-zinc-500" />
+                <span className="text-zinc-300">Contratante: {gigData.client_name}</span>
               </div>
             )}
 
