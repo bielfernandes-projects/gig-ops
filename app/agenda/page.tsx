@@ -7,6 +7,7 @@ import { GigWithProject, GoProject, GoLineup, GoMember } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
+import { redirect } from 'next/navigation';
 import { getUserInfo } from '@/lib/auth';
 import { Suspense } from 'react';
 
@@ -98,19 +99,19 @@ export default async function Home({
   const { tab = '7days', from, to, cloneId, project = 'all' } = await searchParams;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
+  const { role, memberId: userMemberId, bandId } = await getUserInfo();
+  if (!bandId) redirect('/onboarding');
   const supabase = await createClient();
 
   // Multi-tenant isolation: every read is scoped to a single "tenant admin id".
   //   - Admins own themselves (userId).
-  //   - Viewers are scoped to the admin who invited them (invitedBy).
+  //   - Everyone is scoped to the band they are currently working in (bandId).
   //   - Without a tenant id we MUST return nothing (defense in depth).
   //     Using a sentinel UUID that no row can match (Postgres "all-0" UUID)
   //     ensures RLS-equivalent isolation at the application layer even when
   //     the viewer is unlinked.
   const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
-  const tenantAdminId = role === 'admin' ? userId : invitedBy;
-  const effectiveTenantId = tenantAdminId ?? SENTINEL_NO_TENANT;
+  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
 
   // Build queries with tenant-admin isolation
   let gigsQuery = supabase
@@ -120,31 +121,31 @@ export default async function Home({
       bring_sound, sound_cost, sound_person_id, notes, is_sound_paid,
       go_projects ( name, color_hex )
     `)
-    .eq('admin_id', effectiveTenantId)
+    .eq('band_id', effectiveTenantId)
     .order('start_time', { ascending: true });
 
   let projectsQuery = supabase
     .from('go_projects')
     .select('*')
-    .eq('admin_id', effectiveTenantId)
+    .eq('band_id', effectiveTenantId)
     .order('name', { ascending: true });
 
   let membersQuery = supabase
     .from('go_members')
     .select('*')
-    .eq('admin_id', effectiveTenantId)
+    .eq('band_id', effectiveTenantId)
     .order('name', { ascending: true });
 
   // Parallel data fetching — all queries run simultaneously
   const [gigsResult, projectsResult, cloneResult, membersResult] = await Promise.all([
     gigsQuery as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
     projectsQuery as unknown as Promise<{ data: GoProject[] | null }>,
-    cloneId && tenantAdminId
+    cloneId && bandId
       ? supabase
           .from('go_gigs')
           .select('id, project_id, title, location, gross_value, bring_sound, sound_cost, sound_person_id, notes')
           .eq('id', cloneId)
-          .eq('admin_id', tenantAdminId)
+          .eq('band_id', bandId)
           .single() as unknown as Promise<{ data: Partial<GigWithProject> | null }>
       : Promise.resolve({ data: null }),
     membersQuery as unknown as Promise<{ data: GoMember[] | null }>,

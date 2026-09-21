@@ -2,7 +2,7 @@ export type GoProject = {
   id: string; // uuid
   name: string;
   color_hex: string;
-  admin_id?: string;
+  band_id?: string;
 };
 
 export type GoMember = {
@@ -12,21 +12,7 @@ export type GoMember = {
   phone: string | null;
   email: string | null;
   calendar_token: string | null;
-  admin_id?: string;
-};
-
-export type GoSettings = {
-  id: string;
-  admin_id?: string;
-  invite_code: string | null;
-  calendar_token: string | null;
-};
-
-export type GoProfile = {
-  id: string; // matches auth.users.id
-  role: string;
-  email: string;
-  invited_by?: string | null;
+  band_id?: string;
 };
 
 export type GoGig = {
@@ -43,7 +29,7 @@ export type GoGig = {
   notes: string | null;
   is_sound_paid: boolean;
   recurrence_group_id?: string | null;
-  admin_id?: string;
+  band_id?: string;
 };
 
 export type GoLineup = {

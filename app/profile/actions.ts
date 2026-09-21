@@ -1,41 +1,94 @@
 'use server';
 
+import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
+import { BAND_COOKIE, getUserInfo, requireOwner } from '@/lib/auth';
+import { createBandFor, joinBandByCode } from '@/lib/bands';
+import { sendPushToBandOwners } from '@/lib/push';
+
+const revalidateAll = () => revalidatePath('/', 'layout');
+
+async function rememberBand(bandId: string) {
+  (await cookies()).set(BAND_COOKIE, bandId, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
+}
+
+/** Switch the band the user is working in (must be one they belong to). */
+export async function switchBand(bandId: string) {
+  const info = await getUserInfo();
+  if (!info.userId) return { error: 'Não autenticado.' };
+  if (!info.memberships.some((m) => m.bandId === bandId)) return { error: 'Você não faz parte desta banda.' };
+
+  await rememberBand(bandId);
+  revalidateAll();
+  return { success: true };
+}
+
+/** Creates an additional band for the current user (they become its owner). */
+export async function createAnotherBand(formData: FormData) {
+  const info = await getUserInfo();
+  if (!info.userId) return { error: 'Não autenticado.' };
+
+  const created = await createBandFor(info.userId, String(formData.get('bandName') ?? ''));
+  if ('error' in created) return { error: created.error };
+
+  await rememberBand(created.bandId);
+  revalidateAll();
+  return { success: true };
+}
+
+/** Joins another band with its invite code (the user keeps the bands they already belong to). */
+export async function joinAnotherBand(formData: FormData) {
+  const info = await getUserInfo();
+  if (!info.userId) return { error: 'Não autenticado.' };
+
+  const joined = await joinBandByCode(info.userId, String(formData.get('inviteCode') ?? ''));
+  if ('error' in joined) return { error: joined.error };
+
+  await sendPushToBandOwners(joined.bandId, {
+    title: 'Novo músico na banda',
+    body: `${info.email ?? 'Um músico'} entrou usando o código de convite.`,
+  });
+
+  await rememberBand(joined.bandId);
+  revalidateAll();
+  return { success: true };
+}
+
+export async function renameBand(formData: FormData) {
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
+
+  const name = String(formData.get('bandName') ?? '').trim().slice(0, 60);
+  if (!name) return { error: 'Informe o nome da banda.' };
+
+  const { error } = await ctx.supabase.from('bands').update({ name }).eq('id', ctx.bandId);
+  if (error) return { error: 'Erro ao renomear a banda.' };
+
+  revalidateAll();
+  return { success: true };
+}
 
 export async function saveInviteCode(formData: FormData) {
-  const admin = await requireAdmin();
-  if (!admin) return { error: 'Sem permissão.' };
-  const user = { id: admin.adminId };
-  const supabase = createAdminClient();
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
 
-  const code = formData.get('inviteCode') as string;
+  const code = String(formData.get('inviteCode') ?? '');
 
   // Validate: max 5 chars, only letters and numbers
   if (!code || code.length > 5 || !/^[A-Za-z0-9]+$/.test(code)) {
     return { error: 'Código deve ter no máximo 5 caracteres alfanuméricos.' };
   }
 
-  // Check uniqueness across all admins
-  const { data: existing } = await supabase
-    .from('go_settings')
-    .select('admin_id')
-    .eq('invite_code', code.toUpperCase())
-    .maybeSingle();
-
-  if (existing && existing.admin_id !== user.id) {
-    return { error: 'Este código já está em uso por outro administrador.' };
+  // Uniqueness across all bands needs the service role (RLS hides other bands)
+  const admin = createAdminClient();
+  const { data: existing } = await admin.from('bands').select('id').eq('invite_code', code.toUpperCase()).maybeSingle();
+  if (existing && existing.id !== ctx.bandId) {
+    return { error: 'Este código já está em uso por outra banda.' };
   }
 
-  const { error } = await supabase
-    .from('go_settings')
-    .upsert(
-      { admin_id: user.id, invite_code: code.toUpperCase() },
-      { onConflict: 'admin_id' }
-    );
-
+  const { error } = await ctx.supabase.from('bands').update({ invite_code: code.toUpperCase() }).eq('id', ctx.bandId);
   if (error) {
     console.error('Error saving invite code:', error);
     return { error: 'Erro ao salvar código de convite.' };
@@ -45,58 +98,59 @@ export async function saveInviteCode(formData: FormData) {
   return { success: true };
 }
 
-export async function updateInvitedBy(formData: FormData) {
-  const client = await createClient();
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) return { error: 'Não autenticado.' };
-  const supabase = createAdminClient();
+/** Owners can promote a member to owner (same rights) or demote another owner, keeping at least one owner. */
+export async function setMemberRole(userId: string, role: 'owner' | 'member') {
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
 
-  const code = formData.get('inviteCode') as string;
-  if (!code) return { error: 'Código de convite inválido.' };
+  const admin = createAdminClient();
+  const { data: owners } = await admin.from('band_members').select('user_id').eq('band_id', ctx.bandId).eq('role', 'owner');
+  const others = (owners ?? []).filter((o) => o.user_id !== userId);
+  if (role === 'member' && others.length === 0) return { error: 'A banda precisa ter pelo menos um dono.' };
 
-  // Find admin with this invite code
-  const { data: settingsData } = await supabase
-    .from('go_settings')
-    .select('admin_id')
-    .eq('invite_code', code.toUpperCase())
-    .maybeSingle();
-
-  if (!settingsData) return { error: 'Código de convite inválido.' };
-
-  // UPDATE the existing profile row. We use update (not upsert) because
-  // go_profiles.email is NOT NULL — an upsert without email/role would
-  // fail with a constraint violation. The profile row must exist for a
-  // signed-in user (it's created by the Supabase auth trigger or signup).
-  const { error: updateError } = await supabase
-    .from('go_profiles')
-    .update({ invited_by: settingsData.admin_id })
-    .eq('id', user.id);
-
-  if (updateError) {
-    console.error('Error updating invited_by:', updateError);
-    // Fallback: if the row is missing entirely, do an upsert with all
-    // required NOT NULL fields so the user can still recover.
-    if (updateError.code === 'PGRST116') {
-      const { error: upsertError } = await supabase
-        .from('go_profiles')
-        .upsert(
-          { id: user.id, email: user.email ?? '', role: 'viewer', invited_by: settingsData.admin_id },
-          { onConflict: 'id' }
-        );
-      if (upsertError) {
-        console.error('Error upserting invited_by (fallback):', upsertError);
-        return { error: 'Erro ao alterar banda.' };
-      }
-    } else {
-      return { error: 'Erro ao alterar banda.' };
-    }
-  }
+  const { error } = await admin.from('band_members').update({ role }).eq('band_id', ctx.bandId).eq('user_id', userId);
+  if (error) return { error: 'Não foi possível alterar o papel.' };
 
   revalidatePath('/profile');
-  revalidatePath('/agenda');
-  revalidatePath('/dashboard');
-  revalidatePath('/members');
-  revalidatePath('/projects');
+  return { success: true };
+}
+
+/** Owner removes someone from the band (their account is untouched; the band data stays). */
+export async function removeMember(userId: string) {
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
+  if (userId === ctx.userId) return { error: 'Use "Sair da banda" para sair.' };
+
+  const admin = createAdminClient();
+  const { data: target } = await admin.from('band_members').select('role').eq('band_id', ctx.bandId).eq('user_id', userId).maybeSingle();
+  if (!target) return { error: 'Membro não encontrado.' };
+  if (target.role === 'owner') return { error: 'Rebaixe o dono para membro antes de removê-lo.' };
+
+  const { error } = await admin.from('band_members').delete().eq('band_id', ctx.bandId).eq('user_id', userId);
+  if (error) return { error: 'Não foi possível remover o membro.' };
+
+  revalidatePath('/profile');
+  return { success: true };
+}
+
+/** Leave a band. The last owner cannot leave. */
+export async function leaveBand(bandId: string) {
+  const info = await getUserInfo();
+  if (!info.userId) return { error: 'Não autenticado.' };
+  const membership = info.memberships.find((m) => m.bandId === bandId);
+  if (!membership) return { error: 'Você não faz parte desta banda.' };
+
+  const admin = createAdminClient();
+  if (membership.role === 'owner') {
+    const { data: owners } = await admin.from('band_members').select('user_id').eq('band_id', bandId).eq('role', 'owner');
+    if ((owners ?? []).length <= 1) return { error: 'Você é o único dono. Promova outro dono antes de sair.' };
+  }
+
+  const { error } = await admin.from('band_members').delete().eq('band_id', bandId).eq('user_id', info.userId);
+  if (error) return { error: 'Não foi possível sair da banda.' };
+
+  (await cookies()).delete(BAND_COOKIE);
+  revalidateAll();
   return { success: true };
 }
 
@@ -119,24 +173,5 @@ export async function updatePassword(formData: FormData) {
     return { error: error.message };
   }
 
-  return { success: true };
-}
-
-export async function removeProfile(id: string) {
-  const admin = await requireAdmin();
-  if (!admin) return { error: 'Sem permissão.' };
-
-  // Only profiles that this admin invited can be removed.
-  const { error } = await createAdminClient()
-    .from('go_profiles')
-    .delete()
-    .eq('id', id)
-    .eq('invited_by', admin.adminId);
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  revalidatePath('/profile');
   return { success: true };
 }

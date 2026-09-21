@@ -1,6 +1,7 @@
 'use client';
 
 import { ThemeToggle } from '@/components/theme-toggle';
+import { BandSwitcher, type BandOption } from '@/components/band-switcher';
 import { useState } from 'react';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
@@ -12,9 +13,13 @@ type Props = {
   userMemberId: string | null;
   gigs: GigWithProject[];
   lineups: GoLineup[];
+  bandId: string | null;
+  bandName: string | null;
+  memberships: BandOption[];
+  subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
 };
 
-export default function DashboardClient({ role, userMemberId, gigs, lineups }: Props) {
+export default function DashboardClient({ role, userMemberId, gigs, lineups, bandId, bandName, memberships, subscription }: Props) {
   const [pieFilter, setPieFilter] = useState<'month' | 'all' | 'custom'>('all'); 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -145,10 +150,29 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups }: P
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50 mb-2">Dashboard</h1>
-          <p className="text-zinc-400 text-sm md:text-base">Visão geral da sua agenda e finanças.</p>
+          <p className="text-zinc-400 text-sm md:text-base">
+            {bandName ? `${bandName}: ` : ''}visão geral da agenda e das finanças.
+          </p>
         </div>
-        <ThemeToggle />
+        <div className="flex items-end gap-3">
+          <BandSwitcher memberships={memberships} currentBandId={bandId} />
+          <ThemeToggle />
+        </div>
       </header>
+
+      {role === 'admin' && subscription && (subscription.state === 'expired' || (subscription.state === 'trial' && subscription.daysLeft !== null && subscription.daysLeft <= 7)) && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm font-medium ${
+            subscription.state === 'expired'
+              ? 'border-red-500/30 bg-red-500/10 text-red-300'
+              : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+          }`}
+        >
+          {subscription.state === 'expired'
+            ? 'A assinatura desta banda expirou. Seus dados estão preservados, mas a edição está bloqueada até a renovação.'
+            : `Seu teste grátis termina em ${subscription.daysLeft} ${subscription.daysLeft === 1 ? 'dia' : 'dias'}.`}
+        </div>
+      )}
 
       {/* Grid Layout para Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

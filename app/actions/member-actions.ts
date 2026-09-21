@@ -1,12 +1,12 @@
 'use server';
 
-import { requireAdmin } from '@/lib/auth';
+import { requireOwner } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
 export async function addMember(formData: FormData) {
-  const admin = await requireAdmin();
-  if (!admin) return { error: 'Sem permissão.' };
-  const { supabase, adminId } = admin;
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
+  const { supabase, bandId } = ctx;
 
   const name = formData.get('name') as string;
   const instrument = formData.get('instrument') as string;
@@ -30,7 +30,7 @@ export async function addMember(formData: FormData) {
 
   const { error } = await supabase
     .from('go_members')
-    .insert([{ name, instrument, phone: phone || null, email, admin_id: adminId, calendar_token: calendarToken }]);
+    .insert([{ name, instrument, phone: phone || null, email, band_id: bandId, calendar_token: calendarToken }]);
 
   if (error) {
     console.error('Error inserting member:', error);
@@ -44,9 +44,9 @@ export async function addMember(formData: FormData) {
 }
 
 export async function updateMember(formData: FormData) {
-  const admin = await requireAdmin();
-  if (!admin) return { error: 'Sem permissão.' };
-  const { supabase, adminId } = admin;
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
+  const { supabase, bandId } = ctx;
 
   const id = formData.get('id') as string;
   const name = formData.get('name') as string;
@@ -70,7 +70,7 @@ export async function updateMember(formData: FormData) {
     .from('go_members')
     .update({ name, instrument, phone: phone || null, email })
     .eq('id', id)
-    .eq('admin_id', adminId);
+    .eq('band_id', bandId);
 
   if (error) {
     console.error('Error updating member:', error);
@@ -83,9 +83,9 @@ export async function updateMember(formData: FormData) {
 }
 
 export async function deleteMember(memberId: string) {
-  const admin = await requireAdmin();
-  if (!admin) return { error: 'Sem permissão.' };
-  const { supabase, adminId } = admin;
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
+  const { supabase, bandId } = ctx;
 
   if (!memberId) return { error: 'ID do músico inválido.' };
 
@@ -93,7 +93,7 @@ export async function deleteMember(memberId: string) {
     .from('go_members')
     .select('id, name')
     .eq('id', memberId)
-    .eq('admin_id', adminId)
+    .eq('band_id', bandId)
     .single();
 
   if (fetchError || !member) return { error: 'Músico não encontrado.' };
@@ -102,7 +102,7 @@ export async function deleteMember(memberId: string) {
     .from('go_members')
     .delete()
     .eq('id', memberId)
-    .eq('admin_id', adminId);
+    .eq('band_id', bandId);
 
   if (error) {
     console.error('Error deleting member:', error);

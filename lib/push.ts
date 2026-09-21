@@ -64,8 +64,8 @@ export async function sendPushToMember(memberId: string, payload: { title: strin
     console.error('Error in sendPushToMember:', err);
   }
 }
-/** Send a push notification to all active admins */
-export async function sendPushToAdmins(adminId: string, payload: { title: string; body: string; url?: string }) {
+/** Send a push notification to every owner of a band */
+export async function sendPushToBandOwners(bandId: string, payload: { title: string; body: string; url?: string }) {
   const enrichedPayload = {
     ...payload,
     icon: '/icon-192x192.png',
@@ -73,24 +73,24 @@ export async function sendPushToAdmins(adminId: string, payload: { title: string
   };
 
   try {
-    // 1. Only the admin that owns the invite code
-    const { data: adminProfiles } = await createAdminClient()
-      .from('go_profiles')
-      .select('id')
-      .eq('id', adminId)
-      .eq('role', 'admin');
+    // 1. Only the owners of this band
+    const { data: owners } = await createAdminClient()
+      .from('band_members')
+      .select('user_id')
+      .eq('band_id', bandId)
+      .eq('role', 'owner');
 
-    if (!adminProfiles || adminProfiles.length === 0) return;
+    if (!owners || owners.length === 0) return;
 
-    // 2. For each admin, fetch their subscriptions and send in parallel
+    // 2. For each owner, fetch their subscriptions and send in parallel
     const payloadStr = JSON.stringify(enrichedPayload);
 
     await Promise.allSettled(
-      adminProfiles.map(async (admin) => {
+      owners.map(async (owner) => {
         const { data: subscriptions } = await createAdminClient()
           .from('go_push_subscriptions')
           .select('subscription_json')
-          .eq('user_id', admin.id);
+          .eq('user_id', owner.user_id);
 
         if (!subscriptions || subscriptions.length === 0) return;
 
@@ -100,7 +100,7 @@ export async function sendPushToAdmins(adminId: string, payload: { title: string
               const sub = JSON.parse(row.subscription_json) as webpush.PushSubscription;
               await webpush.sendNotification(sub, payloadStr);
             } catch (err) {
-              console.warn('Admin push subscription expired, removing:', err);
+              console.warn('Owner push subscription expired, removing:', err);
               await createAdminClient()
                 .from('go_push_subscriptions')
                 .delete()
@@ -112,6 +112,6 @@ export async function sendPushToAdmins(adminId: string, payload: { title: string
     );
   } catch (err) {
     // Never throw — push must not block the signup flow
-    console.error('Error in sendPushToAdmins:', err);
+    console.error('Error in sendPushToBandOwners:', err);
   }
 }

@@ -1,67 +1,56 @@
 import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 import ProfileClient from '@/components/profile-client';
-import { GoProfile, GoSettings } from '@/lib/types';
+import type { BandMemberView } from '@/components/band-sections';
 
 export const revalidate = 0;
 
 export default async function ProfilePage() {
-  const { role, email, userId } = await getUserInfo();
+  const info = await getUserInfo();
   const supabase = await createClient();
 
-  let settingsQuery = Promise.resolve({ data: null as GoSettings | null });
-  let profilesQuery = Promise.resolve({ data: null as GoProfile[] | null });
-  let viewerProfileQuery = Promise.resolve({ data: null as { invited_by: string | null } | null });
+  let inviteCode: string | null = null;
+  let members: BandMemberView[] = [];
 
-  if (role === 'admin' && userId) {
-    settingsQuery = supabase
-      .from('go_settings')
-      .select('invite_code')
-      .eq('admin_id', userId)
-      .maybeSingle() as unknown as Promise<{ data: GoSettings | null }>;
+  if (info.bandId) {
+    const [bandResult, membersResult] = await Promise.all([
+      supabase.from('bands').select('invite_code').eq('id', info.bandId).maybeSingle(),
+      info.role === 'admin'
+        ? supabase.from('band_members').select('user_id, role').eq('band_id', info.bandId)
+        : Promise.resolve({ data: null }),
+    ]);
 
-    profilesQuery = supabase
-      .from('go_profiles')
-      .select('*')
-      .eq('invited_by', userId)
-      .order('email', { ascending: true }) as unknown as Promise<{ data: GoProfile[] | null }>;
-  } else if (role !== 'admin' && userId) {
-    viewerProfileQuery = supabase
-      .from('go_profiles')
-      .select('invited_by')
-      .eq('id', userId)
-      .maybeSingle() as unknown as Promise<{ data: { invited_by: string | null } | null }>;
-  }
+    inviteCode = bandResult.data?.invite_code ?? null;
 
-  const [settingsResult, profilesResult, viewerProfileResult] = await Promise.all([
-    settingsQuery,
-    profilesQuery,
-    viewerProfileQuery,
-  ]);
+    const rows = (membersResult.data ?? []) as { user_id: string; role: 'owner' | 'member' }[];
+    if (rows.length > 0) {
+      const { data: profiles } = await supabase
+        .from('go_profiles')
+        .select('id, email')
+        .in('id', rows.map((r) => r.user_id));
+      const emailById = new Map((profiles ?? []).map((p) => [p.id, p.email as string]));
 
-  const inviteCode = settingsResult.data?.invite_code || null;
-  const profiles = profilesResult.data || [];
-
-  let viewerInviteCode: string | null = null;
-  const viewerInvitedBy = viewerProfileResult.data?.invited_by || null;
-  if (role !== 'admin' && viewerInvitedBy) {
-    // go_settings is admin-only under RLS; expose just the invite code to the viewer.
-    const { data: adminSettings } = await createAdminClient()
-      .from('go_settings')
-      .select('invite_code')
-      .eq('admin_id', viewerInvitedBy)
-      .maybeSingle();
-    viewerInviteCode = adminSettings?.invite_code || null;
+      members = rows
+        .map((r) => ({
+          userId: r.user_id,
+          email: emailById.get(r.user_id) ?? 'sem e-mail',
+          role: r.role,
+          isSelf: r.user_id === info.userId,
+        }))
+        .sort((a, b) => Number(b.role === 'owner') - Number(a.role === 'owner') || a.email.localeCompare(b.email));
+    }
   }
 
   return (
-    <ProfileClient 
-      role={role}
-      email={email ?? null}
+    <ProfileClient
+      role={info.role}
+      email={info.email ?? null}
+      bandId={info.bandId}
+      bandName={info.bandName}
+      memberships={info.memberships}
       inviteCode={inviteCode}
-      profiles={profiles}
-      viewerInviteCode={viewerInviteCode}
+      members={members}
+      subscription={info.subscription}
     />
   );
 }

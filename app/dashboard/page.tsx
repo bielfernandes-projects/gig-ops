@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { GigWithProject, GoLineup } from '@/lib/types';
@@ -8,14 +9,14 @@ export const revalidate = 0;
 const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
 
 export default async function DashboardPage() {
-  const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
+  const { role, memberId: userMemberId, bandId, bandName, memberships, subscription } = await getUserInfo();
+  if (!bandId) redirect('/onboarding');
   const supabase = await createClient();
 
   // Multi-tenant isolation. With no tenant (e.g. an unlinked viewer) we use
-  // a sentinel UUID so the .eq('admin_id', ...) filter matches nothing,
+  // a sentinel UUID so the .eq('band_id', ...) filter matches nothing,
   // and the page renders with empty data — not data from other tenants.
-  const tenantAdminId = role === 'admin' ? userId : invitedBy;
-  const effectiveTenantId = tenantAdminId ?? SENTINEL_NO_TENANT;
+  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
 
   // Build gig query with tenant isolation
   const { data: gigsData } = await supabase
@@ -24,7 +25,7 @@ export default async function DashboardPage() {
       id, project_id, title, start_time, end_time, gross_value, bring_sound, sound_cost, is_sound_paid,
       go_projects ( name, color_hex )
     `)
-    .eq('admin_id', effectiveTenantId)
+    .eq('band_id', effectiveTenantId)
     .order('start_time', { ascending: true }) as unknown as { data: GigWithProject[] | null };
   const allGigs = gigsData || [];
 
@@ -44,6 +45,10 @@ export default async function DashboardPage() {
       userMemberId={userMemberId}
       gigs={allGigs}
       lineups={lineups}
+      bandId={bandId}
+      bandName={bandName}
+      memberships={memberships}
+      subscription={subscription}
     />
   );
 }

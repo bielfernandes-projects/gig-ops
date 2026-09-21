@@ -198,6 +198,20 @@ export default function LoginPage() {
                     {!isLogin && <PasswordStrengthIndicator password={password} />}
                   </div>
 
+                  {!isLogin && isAdminSignup && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-zinc-400">Nome da banda</label>
+                      <input
+                        type="text"
+                        name="bandName"
+                        required
+                        maxLength={60}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
+                        placeholder="Ex: Banda Horizonte"
+                      />
+                    </div>
+                  )}
+
                   {!isLogin && !isAdminSignup && (
                     <div className="flex flex-col gap-1 mt-1 p-2.5 bg-zinc-950/50 border border-zinc-800/80 rounded-lg">
                       <label className="text-xs font-medium text-zinc-400 flex justify-between">

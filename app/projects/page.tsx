@@ -8,20 +8,19 @@ import { getUserInfo } from '@/lib/auth';
 export const revalidate = 0;
 
 export default async function ProjectsPage() {
-  const { role, userId, invitedBy } = await getUserInfo();
+  const { role, bandId } = await getUserInfo();
   const supabase = await createClient();
 
   // Multi-tenant isolation: scope reads to the tenant admin. If unlinked,
   // use a sentinel UUID so the .eq() filter matches nothing.
   const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
-  const tenantAdminId = role === 'admin' ? userId : invitedBy;
-  const effectiveTenantId = tenantAdminId ?? SENTINEL_NO_TENANT;
+  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
 
   const projectsResult = await supabase
     .from('go_projects')
     .select('*')
     .order('name', { ascending: true })
-    .eq('admin_id', effectiveTenantId) as unknown as { data: GoProject[] | null, error: PostgrestError | null };
+    .eq('band_id', effectiveTenantId) as unknown as { data: GoProject[] | null, error: PostgrestError | null };
 
   const projects = projectsResult.data || [];
   const error = projectsResult.error;

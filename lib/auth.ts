@@ -1,86 +1,118 @@
 import { cache } from 'react';
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { subscriptionState, type SubscriptionRow, type SubscriptionState } from '@/lib/subscription';
 
+export const BAND_COOKIE = 'gg_band';
+
+/** Role inside the CURRENT band: owner -> 'admin', member -> 'viewer'. */
 export type UserRole = 'admin' | 'viewer';
+
+export type Membership = { bandId: string; name: string; role: 'owner' | 'member' };
 
 export type UserInfo = {
   role: UserRole;
   email: string | undefined;
+  /** go_members.id of this person in the current band. */
   memberId: string | null;
   userId: string | null;
-  invitedBy: string | null;
+  /** The band the user is currently working in (null when they belong to none). */
+  bandId: string | null;
+  bandName: string | null;
+  memberships: Membership[];
+  subscription: SubscriptionState | null;
 };
 
+const EMPTY: UserInfo = {
+  role: 'viewer',
+  email: undefined,
+  memberId: null,
+  userId: null,
+  bandId: null,
+  bandName: null,
+  memberships: [],
+  subscription: null,
+};
+
+type MembershipRow = { band_id: string; role: 'owner' | 'member'; bands: { name: string } | { name: string }[] | null };
+
 /**
- * Single unified auth call.
- * For admins: memberId = go_members row owned by this admin (matches by email + admin_id).
- * For viewers: memberId = go_members row owned by the admin that invited them
- *              (profile.invited_by, then go_members.email + go_members.admin_id).
- *
- * If `invited_by` is null (unlinked viewer), we fall back to a same-email match
- * across all admin owners, then by the profile's own user.id (last-ditch).
+ * Single unified auth call (memoised per request).
+ * A person can belong to several bands; the current one comes from a cookie and is
+ * validated against real memberships (falls back to the first band they own).
  */
 export const getUserInfo = cache(async (): Promise<UserInfo> => {
   const supabase = await createClient();
   const { data: claimsData } = await supabase.auth.getClaims();
   const claims = claimsData?.claims;
-  const user = claims ? { id: claims.sub, email: claims.email as string | undefined } : null;
-  if (!user) return { role: 'viewer', email: undefined, memberId: null, userId: null, invitedBy: null };
+  if (!claims) return EMPTY;
 
-  const email = user.email;
+  const userId = claims.sub;
+  const email = claims.email as string | undefined;
 
-  // 1) Load the profile to know role + invited_by
-  const { data: profile } = await supabase
-    .from('go_profiles')
-    .select('role, invited_by')
-    .eq('id', user.id)
-    .maybeSingle();
+  const { data: rows } = await supabase
+    .from('band_members')
+    .select('band_id, role, bands(name)')
+    .eq('user_id', userId);
 
-  const role = (profile?.role as UserRole) || 'viewer';
-  const invitedBy = profile?.invited_by ?? null;
+  const memberships: Membership[] = ((rows ?? []) as unknown as MembershipRow[])
+    .map((r) => ({
+      bandId: r.band_id,
+      role: r.role,
+      name: (Array.isArray(r.bands) ? r.bands[0]?.name : r.bands?.name) ?? 'Banda',
+    }))
+    .sort((a, b) => Number(b.role === 'owner') - Number(a.role === 'owner') || a.name.localeCompare(b.name));
 
-  if (!email) {
-    return { role, email, memberId: null, userId: user.id, invitedBy };
-  }
+  if (memberships.length === 0) return { ...EMPTY, email, userId };
 
-  // 2) Determine the admin_id we should match the member against.
-  //    Admins own themselves; viewers belong to whoever invited them.
-  const targetAdminId = role === 'admin' ? user.id : invitedBy;
+  const wanted = (await cookies()).get(BAND_COOKIE)?.value;
+  const current = memberships.find((m) => m.bandId === wanted) ?? memberships[0];
 
-  if (!targetAdminId) {
-    return { role, email, memberId: null, userId: user.id, invitedBy };
-  }
+  const memberQuery = email
+    ? supabase
+        .from('go_members')
+        .select('id')
+        .eq('band_id', current.bandId)
+        .or(`user_id.eq.${userId},email.eq."${email}"`)
+        .limit(1)
+        .maybeSingle()
+    : supabase.from('go_members').select('id').eq('band_id', current.bandId).eq('user_id', userId).limit(1).maybeSingle();
 
-  // 3) Resolve the member by (email, admin_id)
-  const { data: member } = await supabase
-    .from('go_members')
-    .select('id')
-    .eq('email', email)
-    .eq('admin_id', targetAdminId)
-    .maybeSingle();
+  const [{ data: member }, { data: sub }] = await Promise.all([
+    memberQuery as unknown as Promise<{ data: { id: string } | null }>,
+    supabase
+      .from('subscriptions')
+      .select('status, trial_ends_at, paid_until')
+      .eq('band_id', current.bandId)
+      .maybeSingle() as unknown as Promise<{ data: SubscriptionRow | null }>,
+  ]);
 
   return {
-    role,
+    role: current.role === 'owner' ? 'admin' : 'viewer',
     email,
     memberId: member?.id ?? null,
-    userId: user.id,
-    invitedBy,
+    userId,
+    bandId: current.bandId,
+    bandName: current.name,
+    memberships,
+    subscription: subscriptionState(sub),
   };
 });
 
+export type OwnerContext =
+  | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; bandId: string; userId: string }
+  | { ok: false; error: string };
+
 /**
- * For server actions: returns the session-bound client + the caller's id,
- * only if the caller is an admin. Writes go through this client so RLS applies.
+ * For server actions that change a band's data: the caller must own the current band and the
+ * subscription must be usable. Writes go through the session client, so RLS applies as well.
  */
-export async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('go_profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (profile?.role !== 'admin') return null;
-  return { supabase, adminId: user.id };
+export async function requireOwner(): Promise<OwnerContext> {
+  const info = await getUserInfo();
+  if (!info.userId) return { ok: false, error: 'Não autenticado.' };
+  if (info.role !== 'admin' || !info.bandId) return { ok: false, error: 'Sem permissão.' };
+  if (info.subscription?.state === 'expired') {
+    return { ok: false, error: 'A assinatura desta banda expirou. Os dados estão preservados; renove para voltar a editar.' };
+  }
+  return { ok: true, supabase: await createClient(), bandId: info.bandId, userId: info.userId };
 }

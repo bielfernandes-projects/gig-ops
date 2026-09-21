@@ -299,3 +299,17 @@ Viewers sem `go_members` correspondente (ex: admin não os cadastrou como músic
 * **Bloqueio por assinatura:** `requireAdmin()` ainda não checa `subscription_status`/`trial_ends_at`.
 * **Banco:** hospedado em São Paulo (`ggjfhipruemkxavhwglm`), função Vercel em `gru1`. O projeto antigo (Oregon) fica como backup até ser desativado.
 * **Auth:** ativar "leaked password protection" se o plano do Supabase permitir.
+
+---
+
+## 14. Bandas, papéis e assinatura (Fase 0 do plano unificado)
+
+Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
+
+* **Modelo:** `bands` (nome, `invite_code`, `calendar_token`), `band_members` (`owner` | `member`) e `subscriptions` (por banda: trial de 30 dias, `active`, `expired`, plano). Uma pessoa pode estar em várias bandas com papéis diferentes; os donos têm direitos iguais.
+* **Compatibilidade:** as bandas existentes usam o mesmo id do antigo admin. `admin_id` continua nas tabelas, mantido igual a `band_id` por trigger, e as políticas antigas seguem valendo até a migration de limpeza (drop de `admin_id`, `go_settings` e políticas antigas).
+* **Código:** `lib/auth.ts` (`getUserInfo` devolve `bandId`, `memberships`, `subscription`; `requireOwner()` valida dono e assinatura), `lib/bands.ts` (criar banda, entrar por código), `lib/subscription.ts`. A banda ativa fica no cookie `gg_band`, validado contra as participações reais.
+* **Assinatura:** `expired` (teste vencido ou pagamento vencido) bloqueia toda escrita nas ações do dono (`requireOwner`); os dados ficam intactos. Ativação manual: `UPDATE subscriptions SET status='active', paid_until=... WHERE band_id='<uuid>'`.
+* **Segurança:** `calendar_token` da banda não é legível pelo cliente (privilégio por coluna). Membros e assinaturas só são escritos pelo servidor (service role).
+* **Perfil:** trocar de banda, entrar em outra banda por código, criar nova banda, renomear, código de convite, promover ou rebaixar donos e remover músicos.
+* **Backup da migração:** schema `backup_fase0` no próprio banco.

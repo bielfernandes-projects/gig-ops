@@ -17,18 +17,17 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const id = resolvedParams.id;
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId, userId, invitedBy } = await getUserInfo();
+  const { role, memberId: userMemberId, bandId } = await getUserInfo();
   const supabase = await createClient();
 
   // Multi-tenant isolation. With no tenant (e.g. an unlinked viewer) we
-  // use a sentinel UUID so the .eq('admin_id', ...) filter matches nothing
+  // use a sentinel UUID so the .eq('band_id', ...) filter matches nothing
   // and the gig becomes "não encontrado" — not "acessible to other tenant".
   const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
-  const tenantAdminId = role === 'admin' ? userId : invitedBy;
-  const effectiveTenantId = tenantAdminId ?? SENTINEL_NO_TENANT;
+  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
 
   // Fetch Gig with Project Join (must happen first — we need the gig data).
-  // We filter by admin_id at the SQL layer so an unlinked viewer can never
+  // We filter by band_id at the SQL layer so an unlinked viewer can never
   // even discover a gig from another tenant by ID.
   const { data: gigData, error: gigError } = await supabase
     .from('go_gigs')
@@ -45,12 +44,12 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       sound_person_id,
       notes,
       recurrence_group_id,
-      admin_id,
+      band_id,
       go_projects ( * )
     `)
     .eq('id', id)
-    .eq('admin_id', effectiveTenantId)
-    .single() as { data: (GigWithProject & { admin_id?: string }) | null, error: PostgrestError | null };
+    .eq('band_id', effectiveTenantId)
+    .single() as { data: (GigWithProject & { band_id?: string }) | null, error: PostgrestError | null };
 
   if (gigError || !gigData) {
     return (
@@ -72,13 +71,13 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const membersQuery = supabase
     .from('go_members')
     .select('*')
-    .eq('admin_id', effectiveTenantId)
+    .eq('band_id', effectiveTenantId)
     .order('name', { ascending: true });
 
   const projectsQuery = supabase
     .from('go_projects')
     .select('*')
-    .eq('admin_id', effectiveTenantId)
+    .eq('band_id', effectiveTenantId)
     .order('name', { ascending: true });
 
   // Parallel data fetching — lineup, members, projects, and sound person all at once
@@ -109,7 +108,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     // Two checks, both must pass for a viewer to access a gig detail page:
     //   1. The gig belongs to the admin who invited them (tenant isolation).
     //   2. The viewer is in the lineup of that gig.
-    const inTenant = tenantAdminId !== null && gigData?.admin_id === tenantAdminId;
+    const inTenant = bandId !== null && gigData?.band_id === bandId;
     const isInLineup = lineup.some(l => l.member_id === userMemberId);
     if (!inTenant || !isInLineup) {
       return (

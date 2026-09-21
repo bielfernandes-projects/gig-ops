@@ -1,9 +1,11 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { sendPushToAdmins } from '@/lib/push';
+import { BAND_COOKIE } from '@/lib/auth';
+import { createBandFor, joinBandByCode } from '@/lib/bands';
+import { sendPushToBandOwners } from '@/lib/push';
 
 async function currentUser() {
   const supabase = await createClient();
@@ -11,27 +13,19 @@ async function currentUser() {
   return user;
 }
 
-/** Google sign-ups start as viewers without a band: this makes the caller the admin of a new one. */
-export async function createBand() {
+async function rememberBand(bandId: string) {
+  (await cookies()).set(BAND_COOKIE, bandId, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
+}
+
+/** First-time Google sign-ups have no band yet: this creates one and makes the caller its owner. */
+export async function createBand(formData: FormData) {
   const user = await currentUser();
   if (!user) redirect('/login');
 
-  const admin = createAdminClient();
-  const { data: profile } = await admin.from('go_profiles').select('invited_by').eq('id', user.id).maybeSingle();
-  if (profile?.invited_by) return { error: 'Você já faz parte de uma banda.' };
+  const created = await createBandFor(user.id, String(formData.get('bandName') ?? ''));
+  if ('error' in created) return { error: created.error };
 
-  const { error } = await admin
-    .from('go_profiles')
-    .upsert({ id: user.id, email: user.email ?? '', role: 'admin' }, { onConflict: 'id' });
-  if (error) return { error: 'Não foi possível criar sua banda. Tente novamente.' };
-
-  await admin
-    .from('go_settings')
-    .upsert(
-      { admin_id: user.id, calendar_token: crypto.randomUUID() },
-      { onConflict: 'admin_id', ignoreDuplicates: true }
-    );
-
+  await rememberBand(created.bandId);
   redirect('/dashboard');
 }
 
@@ -40,23 +34,14 @@ export async function joinBand(formData: FormData) {
   const user = await currentUser();
   if (!user) redirect('/login');
 
-  const code = String(formData.get('inviteCode') ?? '').trim().toUpperCase();
-  if (!code) return { error: 'Informe o código de convite.' };
+  const joined = await joinBandByCode(user.id, String(formData.get('inviteCode') ?? ''));
+  if ('error' in joined) return { error: joined.error };
 
-  const admin = createAdminClient();
-  const { data: settings } = await admin.from('go_settings').select('admin_id').eq('invite_code', code).maybeSingle();
-  if (!settings) return { error: 'Código de convite inválido.' };
-
-  const { error } = await admin
-    .from('go_profiles')
-    .update({ invited_by: settings.admin_id, role: 'viewer' })
-    .eq('id', user.id);
-  if (error) return { error: 'Não foi possível entrar na banda. Tente novamente.' };
-
-  await sendPushToAdmins(settings.admin_id, {
-    title: 'Novo músico na banda 🎸',
-    body: `${user.email ?? 'Um músico'} entrou usando o seu código de convite.`,
+  await sendPushToBandOwners(joined.bandId, {
+    title: 'Novo músico na banda',
+    body: `${user.email ?? 'Um músico'} entrou usando o código de convite.`,
   });
 
+  await rememberBand(joined.bandId);
   redirect('/dashboard');
 }

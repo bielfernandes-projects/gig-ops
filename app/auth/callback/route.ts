@@ -12,11 +12,10 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = user
-        ? await supabase.from('go_profiles').select('role, invited_by').eq('id', user.id).maybeSingle()
-        : { data: null };
-      const needsOnboarding = profile?.role !== 'admin' && !profile?.invited_by;
-      return NextResponse.redirect(`${origin}${needsOnboarding ? '/onboarding' : '/dashboard'}`);
+      const { count } = user
+        ? await supabase.from('band_members').select('band_id', { count: 'exact', head: true }).eq('user_id', user.id)
+        : { count: 0 };
+      return NextResponse.redirect(`${origin}${count ? '/dashboard' : '/onboarding'}`);
     }
   }
 

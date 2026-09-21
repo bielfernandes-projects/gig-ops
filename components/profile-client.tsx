@@ -2,72 +2,27 @@
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck, LogOut, KeyRound, UserMinus, Crown, Bell, BellOff, Clipboard, ClipboardCheck, PenLine, X, Users } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, LogOut, KeyRound, Bell, BellOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { updatePassword, removeProfile, saveInviteCode, updateInvitedBy } from '@/app/profile/actions';
+import { updatePassword } from '@/app/profile/actions';
 import { savePushSubscription, removePushSubscription } from '@/app/actions/push-actions';
-import { GoProfile } from '@/lib/types';
 import { signout } from '@/app/login/actions';
+import { BandSections, type BandMemberView } from '@/components/band-sections';
+import type { BandOption } from '@/components/band-switcher';
 
 type Props = {
-  role: string | null;
+  role: 'admin' | 'viewer';
   email: string | null | undefined;
+  bandId: string | null;
+  bandName: string | null;
+  memberships: BandOption[];
   inviteCode: string | null;
-  profiles: GoProfile[];
-  viewerInviteCode: string | null;
+  members: BandMemberView[];
+  subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
 };
 
-// Sub-component: isolated copy state per user row
-function ProfileEmailRow({ profile, onRemove }: { profile: GoProfile; onRemove: () => void }) {
-  const [emailCopied, setEmailCopied] = useState(false);
-
-  const handleCopyEmail = async () => {
-    if (!profile.email) return;
-    await navigator.clipboard.writeText(profile.email);
-    setEmailCopied(true);
-    toast.success('E-mail copiado!');
-    setTimeout(() => setEmailCopied(false), 2500);
-  };
-
-  return (
-    <div className="flex items-center justify-between bg-zinc-950 border border-zinc-800 p-3 rounded-lg">
-      <div className="flex flex-col min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-zinc-200 truncate max-w-[180px]">{profile.email}</span>
-          <button
-            onClick={handleCopyEmail}
-            title="Copiar e-mail"
-            className="p-1 rounded text-zinc-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors shrink-0"
-          >
-            {emailCopied
-              ? <ClipboardCheck className="w-3.5 h-3.5 text-emerald-400" />
-              : <Clipboard className="w-3.5 h-3.5" />
-            }
-          </button>
-        </div>
-        <span className={`text-xs font-medium mt-0.5 ${
-          profile.role === 'admin' ? 'text-amber-500' : 'text-zinc-500'
-        }`}>
-          {profile.role}
-        </span>
-      </div>
-      {profile.role !== 'admin' && (
-        <button
-          onClick={onRemove}
-          className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-md transition-colors shrink-0 ml-2"
-          title="Remover usuário"
-        >
-          <UserMinus className="w-4 h-4" />
-        </button>
-      )}
-    </div>
-  );
-}
-
-export default function ProfileClient({ role, email, inviteCode, profiles, viewerInviteCode }: Props) {
+export default function ProfileClient({ role, email, bandId, bandName, memberships, inviteCode, members, subscription }: Props) {
   const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
-  const [editingInvite, setEditingInvite] = useState(false);
-  const [inviteInput, setInviteInput] = useState(inviteCode || '');
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -96,9 +51,9 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
               : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
           }`}>
             {role === 'admin' ? (
-              <><ShieldCheck className="w-3.5 h-3.5" /> Admin Gigueiros</>
+              <><ShieldCheck className="w-3.5 h-3.5" /> Dono da banda</>
             ) : (
-              <><ShieldAlert className="w-3.5 h-3.5" /> Músico / Visualizador</>
+              <><ShieldAlert className="w-3.5 h-3.5" /> Músico da banda</>
             )}
           </div>
         </div>
@@ -225,191 +180,15 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
         </div>
       </section>
 
-      {/* ─── SECTION: GESTÃO DA BANDA (ADMIN) ─── */}
-      {role === 'admin' && (
-        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6 flex flex-col gap-6">
-          <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
-            <Crown className="w-5 h-5 text-amber-500" />
-            <h3 className="text-zinc-100 font-bold">Gestão da Banda</h3>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-zinc-500 block mb-1">
-              Seu Código de Convite
-            </label>
-            {editingInvite ? (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const fd = new FormData();
-                  fd.set('inviteCode', inviteInput);
-                  const res = await saveInviteCode(fd);
-                  if (res.error) {
-                    toast.error(res.error);
-                  } else {
-                    toast.success('Código de convite salvo!');
-                    setEditingInvite(false);
-                  }
-                }}
-                className="flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  value={inviteInput}
-                  onChange={(e) => setInviteInput(e.target.value.toUpperCase().slice(0, 5))}
-                  maxLength={5}
-                  className="w-24 bg-zinc-950 border border-zinc-700 text-emerald-400 font-mono text-lg px-3 py-2 rounded-lg font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50"
-                  placeholder="ABC12"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-lg text-xs transition-colors"
-                >
-                  Salvar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInviteInput(inviteCode || '');
-                    setEditingInvite(false);
-                  }}
-                  className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                <p className="text-xs text-zinc-500 leading-tight max-w-[160px]">
-                  Máximo 5 caracteres, letras e números.
-                </p>
-              </form>
-            ) : (
-              <div className="flex items-center gap-3">
-                <code className="bg-zinc-950 border border-zinc-800 text-emerald-400 font-mono text-lg px-4 py-2 rounded-lg font-bold tracking-widest">
-                  {inviteCode || 'N/A'}
-                </code>
-                <button
-                  type="button"
-                  onClick={() => setEditingInvite(true)}
-                  className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-md transition-colors"
-                  title="Editar código de convite"
-                >
-                  <PenLine className="w-4 h-4" />
-                </button>
-                <p className="text-xs text-zinc-500 max-w-[200px]">
-                  Envie este código aos seus músicos para que eles possam criar conta no Gigueiros.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="border-t border-zinc-800/80 pt-6">
-            <h4 className="text-sm font-bold text-zinc-300 mb-4">Usuários do App</h4>
-            <p className="text-xs text-zinc-500 mb-3">Clique no ícone de cópia para copiar o e-mail do músico e adicioná-lo ao seu perfil.</p>
-            <div className="flex flex-col gap-3">
-              {profiles.map(p => (
-                <ProfileEmailRow
-                  key={p.id}
-                  profile={p}
-                  onRemove={async () => {
-                    if (confirm('Tem certeza que deseja remover este usuário (apenas do perfil público)?')) {
-                      const res = await removeProfile(p.id);
-                      if (res.error) toast.error(res.error);
-                      else toast.success('Usuário removido da banda.');
-                    }
-                  }}
-                />
-              ))}
-              {profiles.length === 0 && <span className="text-xs text-zinc-500 font-medium">Nenhum perfil encontrado.</span>}
-            </div>
-          </div>
-
-
-        </section>
-      )}
-
-      {/* ─── SECTION: BANDA (VIEWER) ─── */}
-      {role !== 'admin' && (
-        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6 flex flex-col gap-6">
-          <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
-            <Users className="w-5 h-5 text-indigo-400" />
-            <h3 className="text-zinc-100 font-bold">Gigueiros</h3>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-zinc-500 block mb-1">
-              Código de Convite
-            </label>
-            {editingInvite ? (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const fd = new FormData();
-                  fd.set('inviteCode', inviteInput);
-                  const res = await updateInvitedBy(fd);
-                  if (res.error) {
-                    toast.error(res.error);
-                  } else {
-                    toast.success('Banda alterada com sucesso!');
-                    setEditingInvite(false);
-                  }
-                }}
-                className="flex flex-col gap-3"
-              >
-                <input
-                  type="text"
-                  value={inviteInput}
-                  onChange={(e) => setInviteInput(e.target.value.toUpperCase().slice(0, 5))}
-                  maxLength={5}
-                  className="w-full bg-zinc-950 border border-zinc-700 text-emerald-400 font-mono text-lg px-4 py-3 rounded-lg font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50"
-                  placeholder="Digite o código da nova banda"
-                  autoFocus
-                />
-                <div className="flex items-center gap-2">
-                  <button
-                    type="submit"
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition-colors"
-                  >
-                    Entrar na Banda
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInviteInput(viewerInviteCode || '');
-                      setEditingInvite(false);
-                    }}
-                    className="px-4 py-2 text-zinc-500 hover:text-zinc-300 text-sm transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-                <p className="text-xs text-zinc-500">
-                  Seus shows escalados continuarão intactos. Apenas sua afiliação à banda muda.
-                </p>
-              </form>
-            ) : (
-              <div className="flex items-center gap-3">
-                <code className="bg-zinc-950 border border-zinc-800 text-emerald-400 font-mono text-lg px-4 py-2 rounded-lg font-bold tracking-widest">
-                  {viewerInviteCode || 'N/A'}
-                </code>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInviteInput(viewerInviteCode || '');
-                    setEditingInvite(true);
-                  }}
-                  className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-md transition-colors"
-                  title="Trocar de banda"
-                >
-                  <PenLine className="w-4 h-4" />
-                </button>
-                <p className="text-xs text-zinc-500 max-w-[200px]">
-                  Código da banda que você está vinculado.
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      <BandSections
+        role={role}
+        bandId={bandId}
+        bandName={bandName}
+        memberships={memberships}
+        inviteCode={inviteCode}
+        members={members}
+        subscription={subscription}
+      />
 
       {/* ─── SECTION: SEGURANÇA E ACESSO ─── */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">
@@ -432,8 +211,8 @@ export default function ProfileClient({ role, email, inviteCode, profiles, viewe
           </div>
           
           <div className="flex flex-col sm:flex-row gap-3">
-            <input type="password" name="password" required placeholder="Nova senha" minLength={6} className="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
-            <input type="password" name="confirmPassword" required placeholder="Confirmar nova senha" minLength={6} className="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
+            <input type="password" name="password" required placeholder="Nova senha" minLength={8} className="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
+            <input type="password" name="confirmPassword" required placeholder="Confirmar nova senha" minLength={8} className="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-50 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors" />
             <button type="submit" className="bg-zinc-100 hover:bg-white text-zinc-900 font-bold px-6 py-2.5 rounded-lg text-sm transition-transform active:scale-95 shrink-0">Atualizar</button>
           </div>
         </form>

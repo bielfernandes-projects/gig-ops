@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendPushToAdmins } from '@/lib/push';
+import { createBandFor, joinBandByCode } from '@/lib/bands';
+import { sendPushToBandOwners } from '@/lib/push';
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -25,108 +26,80 @@ export async function login(formData: FormData) {
   redirect('/');
 }
 
+/** Sign-up of a musician invited by a band (invite code). */
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
-  const inviteCode = formData.get('inviteCode') as string;
+  const inviteCode = ((formData.get('inviteCode') as string) || '').trim().toUpperCase();
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  // Validate invite code (find which admin owns this code)
-  const admin = createAdminClient();
-  const { data: settingsData } = await admin
-    .from('go_settings')
-    .select('admin_id')
-    .eq('invite_code', (inviteCode || '').trim().toUpperCase())
-    .maybeSingle();
-
-  if (!settingsData) {
+  // Validate the invite code before creating the account
+  const { data: band } = await createAdminClient().from('bands').select('id').eq('invite_code', inviteCode).maybeSingle();
+  if (!band) {
     return { error: 'Código de convite inválido.' };
   }
 
-  const adminId = settingsData.admin_id;
-  const origin = formData.get('origin') as string || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const origin = (formData.get('origin') as string) || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/login`
-    }
+      emailRedirectTo: `${origin}/login`,
+    },
   });
 
   if (error) {
     return { error: error.message };
   }
 
-  // Link the new user's profile to the admin who owns this invite code.
-  // We include role + email so the upsert is idempotent: it works whether a
-  // Supabase trigger already created a row or not, and never clobbers an
-  // existing role/email.
   if (data.user) {
-    const { error: profileError } = await admin
-      .from('go_profiles')
-      .upsert(
-        { id: data.user.id, role: 'viewer', email, invited_by: adminId },
-        { onConflict: 'id' }
-      );
-
-    if (profileError) {
-      console.error('Error linking profile to admin:', profileError);
+    const joined = await joinBandByCode(data.user.id, inviteCode);
+    if ('error' in joined) {
+      console.error('Error joining band after signup:', joined.error);
+      return { error: 'Conta criada, mas não foi possível entrar na banda. Use o código de convite em Perfil.' };
     }
-  }
 
-  // Notify admins of new registration (fire & forget — never blocks signup)
-  try {
-    await sendPushToAdmins(adminId, {
-      title: 'Novo Músico Registado! 🎸',
-      body: 'Um novo membro acabou de se registar na plataforma.',
-    });
-  } catch (e) {
-    console.warn('Admin push notification failed silently after signup:', e);
+    // Notify the band owners (fire & forget: never blocks signup)
+    try {
+      await sendPushToBandOwners(joined.bandId, {
+        title: 'Novo músico na banda',
+        body: 'Um novo membro acabou de entrar usando o código de convite.',
+      });
+    } catch (e) {
+      console.warn('Owner push notification failed silently after signup:', e);
+    }
   }
 
   return { success: true };
 }
 
+/** Sign-up of someone who creates their own band. */
 export async function adminSignup(formData: FormData) {
   const supabase = await createClient();
 
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const origin = formData.get('origin') as string || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const bandName = ((formData.get('bandName') as string) || '').trim();
+  const origin = (formData.get('origin') as string) || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/login`
-    }
+      emailRedirectTo: `${origin}/login`,
+    },
   });
 
   if (error) return { error: error.message };
   if (!data.user) return { error: 'Erro ao criar usuário.' };
 
-  // Create or update profile with admin role (trigger may already create a row)
-  const admin = createAdminClient();
-  const { error: profileError } = await admin
-    .from('go_profiles')
-    .upsert({ id: data.user.id, role: 'admin', email }, { onConflict: 'id' });
-
-  if (profileError) {
-    console.error('Error creating admin profile:', profileError);
-    // Rollback is not feasible here (auth user already created)
-    return { error: 'Conta criada, mas houve um erro ao configurar perfil. Entre em contato com o suporte.' };
+  const created = await createBandFor(data.user.id, bandName);
+  if ('error' in created) {
+    // The auth user already exists; onboarding lets them finish creating the band on first login.
+    return { error: 'Conta criada, mas houve um erro ao criar a banda. Entre e crie a banda pelo Perfil.' };
   }
-
-  // Create go_settings with auto-generated calendar_token for the new admin
-  const calendarToken = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-  await admin
-    .from('go_settings')
-    .upsert(
-      { admin_id: data.user.id, calendar_token: calendarToken },
-      { onConflict: 'admin_id' }
-    );
 
   return { success: true };
 }

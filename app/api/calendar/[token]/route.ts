@@ -15,10 +15,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
   // Anonymous feed (calendar apps can't log in): the token acts as the password, so we use the service role here.
   const supabase = createAdminClient();
 
-  // First, check if it's the ADMIN global token
-  const { data: settingsData } = await supabase
-    .from('go_settings')
-    .select('admin_id')
+  // First, check if it's the band-wide token
+  const { data: bandData } = await supabase
+    .from('bands')
+    .select('id')
     .eq('calendar_token', token)
     .maybeSingle();
 
@@ -26,14 +26,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
   let scopeAdminId: string | null = null;
   let isAdmin = false;
 
-  if (settingsData) {
+  if (bandData) {
     isAdmin = true;
-    scopeAdminId = settingsData.admin_id;
+    scopeAdminId = bandData.id;
   } else {
     // If not admin, check if it's a specific musician's token
     const { data: memberData } = await supabase
       .from('go_members')
-      .select('id, admin_id')
+      .select('id, band_id')
       .eq('calendar_token', token)
       .maybeSingle();
 
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
       return new NextResponse('Invalid calendar token', { status: 401 });
     }
     targetMemberId = memberData.id;
-    scopeAdminId = memberData.admin_id;
+    scopeAdminId = memberData.band_id;
   }
 
   // Build the gigs query
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
       id, title, location, start_time, end_time, notes,
       go_projects (name)
     `)
-    .eq('admin_id', scopeAdminId!); // never leak gigs across bands
+    .eq('band_id', scopeAdminId!); // never leak gigs across bands
 
   // If simple viewer, filter to show only Gigs where the member is enrolled
   if (!isAdmin && targetMemberId) {

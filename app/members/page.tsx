@@ -8,21 +8,20 @@ import { getUserInfo } from '@/lib/auth';
 export const revalidate = 0;
 
 export default async function MembersPage() {
-  const { role, userId, invitedBy } = await getUserInfo();
+  const { role, bandId } = await getUserInfo();
   const supabase = await createClient();
 
   // Multi-tenant isolation: scope reads to the tenant admin. If unlinked
   // (no tenant), use a sentinel UUID so the .eq() filter matches nothing
   // rather than returning every member from every admin.
   const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
-  const tenantAdminId = role === 'admin' ? userId : invitedBy;
-  const effectiveTenantId = tenantAdminId ?? SENTINEL_NO_TENANT;
+  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
 
   const membersResult = await supabase
     .from('go_members')
     .select('*')
     .order('name', { ascending: true })
-    .eq('admin_id', effectiveTenantId) as unknown as { data: GoMember[] | null, error: PostgrestError | null };
+    .eq('band_id', effectiveTenantId) as unknown as { data: GoMember[] | null, error: PostgrestError | null };
 
   const members = membersResult.data || [];
   const error = membersResult.error;
