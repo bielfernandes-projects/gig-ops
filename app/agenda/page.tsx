@@ -285,10 +285,12 @@ export default async function Home({
             <span className="text-xs font-medium text-zinc-500 block mb-1">Shows no total</span>
             <span className="text-xl font-bold text-zinc-100">{totalShows}</span>
           </div>
-          <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
-            <span className="text-xs font-medium text-zinc-500 block mb-1">Na seleção</span>
-            <span className="text-xl font-bold text-zinc-100">{filtered.length}</span>
-          </div>
+          {!calendarView && (
+            <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
+              <span className="text-xs font-medium text-zinc-500 block mb-1">Na seleção</span>
+              <span className="text-xl font-bold text-zinc-100">{filtered.length}</span>
+            </div>
+          )}
         </div>
 
         {/* View toggle */}

@@ -96,8 +96,8 @@ export function AgendaCalendar({ gigs, year, month, monthHref }: Props) {
                       key={g.id}
                       href={`/gigs/${g.id}`}
                       title={`${hhmm(g.start_time)} ${g.title}`}
-                      className={`block truncate rounded px-1 py-0.5 text-[10px] font-semibold leading-tight hover:brightness-125 md:text-xs ${past ? 'opacity-60' : ''}`}
-                      style={{ backgroundColor: `${color}33`, color, borderLeft: `2px solid ${color}` }}
+                      className={`block truncate rounded px-1 py-0.5 text-[10px] font-semibold leading-tight text-zinc-100 hover:brightness-125 md:text-xs ${past ? 'opacity-60' : ''}`}
+                      style={{ backgroundColor: `${color}40`, borderLeft: `3px solid ${color}` }}
                     >
                       <span className="hidden md:inline">{hhmm(g.start_time)} </span>
                       {g.title}
