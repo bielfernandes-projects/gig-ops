@@ -204,14 +204,27 @@ export default async function Home({
   const filtered = filterGigs(visibleGigs, tab, from, to).filter(g => !pendingGigIds.has(g.id));
   const grouped = groupByMonth(filtered);
 
-  // Dynamic profit calculation based on filtered selection: strictly upcoming gigs only
-  const netProfit = filtered.reduce((acc, gig) => {
+  // My cachê on the shows still to come (respects the current filter).
+  const upcomingFee = filtered.reduce((acc, gig) => {
     if (new Date(gig.start_time) < now2) return acc;
-
-    const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+    const myLineup = lineups.find(l => l.gig_id === gig.id && l.member_id === userMemberId);
     return acc + (myLineup ? myLineup.fee_amount : 0);
   }, 0);
+
+  // My cachê on shows already played that has not been paid to me yet.
+  const feeToReceive = pendingGigs.reduce((acc, gig) => {
+    const myLineup = lineups.find(l => l.gig_id === gig.id && l.member_id === userMemberId);
+    return acc + (myLineup && myLineup.status !== 'pago' ? myLineup.fee_amount : 0);
+  }, 0);
+
+  // Owners: what the band still owes its crew (musicians + sound) for shows already played.
+  const feeToPay = role === 'admin'
+    ? pendingGigs.reduce((acc, gig) => {
+        const unpaid = lineups.filter(l => l.gig_id === gig.id && l.status !== 'pago').reduce((s, l) => s + l.fee_amount, 0);
+        const sound = gig.bring_sound && !gig.is_sound_paid ? Number(gig.sound_cost ?? 0) : 0;
+        return acc + unpaid + sound;
+      }, 0)
+    : 0;
 
   // "Shows Total" stat:
   //   - Admin: every gig in their tenant (all statuses, past + future).
@@ -236,19 +249,25 @@ export default async function Home({
         {/* Stats strip */}
         <div className="flex gap-3 overflow-x-auto pb-3 snap-x hide-scrollbar mb-6">
           <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
-            <span className="text-xs font-medium text-zinc-500 block mb-1">
-              {role === 'admin' ? 'Lucro Estimado' : 'Meu Cachê'}
-            </span>
-            <span className={`text-xl font-bold ${netProfit >= 0 ? 'text-emerald-400' : 'text-zinc-400'}`}>
-              R$ {netProfit.toFixed(2)}
-            </span>
+            <span className="text-xs font-medium text-zinc-500 block mb-1">Próximos cachês</span>
+            <span className="text-xl font-bold text-zinc-100">R$ {upcomingFee.toFixed(2)}</span>
           </div>
+          <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
+            <span className="text-xs font-medium text-zinc-500 block mb-1">A receber</span>
+            <span className={`text-xl font-bold ${feeToReceive > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>R$ {feeToReceive.toFixed(2)}</span>
+          </div>
+          {role === 'admin' && (
+            <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
+              <span className="text-xs font-medium text-zinc-500 block mb-1">A pagar à equipe</span>
+              <span className={`text-xl font-bold ${feeToPay > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>R$ {feeToPay.toFixed(2)}</span>
+            </div>
+          )}
           <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
-            <span className="text-xs font-medium text-zinc-500 block mb-1">Shows Total</span>
+            <span className="text-xs font-medium text-zinc-500 block mb-1">Shows no total</span>
             <span className="text-xl font-bold text-zinc-100">{totalShows}</span>
           </div>
           <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
-            <span className="text-xs font-medium text-zinc-500 block mb-1">Nesta Seleção</span>
+            <span className="text-xs font-medium text-zinc-500 block mb-1">Na seleção</span>
             <span className="text-xl font-bold text-zinc-100">{filtered.length}</span>
           </div>
         </div>
