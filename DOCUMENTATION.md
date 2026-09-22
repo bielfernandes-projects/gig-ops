@@ -377,3 +377,9 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 ## 23. Grupo do WhatsApp dos Fundadores
 - `FOUNDER_WHATSAPP_URL` (env var, vazia por padrão): link de convite do grupo exclusivo.
 - Quando a banda tem `subscriptions.price_plan = 'founder'` e a env var está preenchida, o Perfil (seção "Gestão da banda") mostra um card com o link. Sem env var configurada, nada aparece — sem depender de e-mail (Resend ainda não existe).
+
+## 24. Prints reais, lightbox e carrossel na Landing Page
+- Seção "O app de verdade, sem enrolação": Dashboard em destaque com moldura de dispositivo (notebook maior, tablet e celular ao lado), mostrando responsividade e o esquema de PWA. Componente `DeviceChrome` em `components/screenshot-lightbox.tsx` desenha as molduras com CSS puro (sem imagens de bezel).
+- Qualquer print é clicável e abre em tamanho grande num lightbox (`ClickableShot`, com Esc/clique fora pra fechar).
+- Abaixo, `FeatureCarousel` (mesmo arquivo) alterna automaticamente entre Agenda, Financeiro, Repertório, Relatório e Músicos a cada 4s, com transição de slide; para no hover e para permanentemente após qualquer clique (inclusive nos indicadores), continuando clicável pro lightbox.
+- Os prints ficam em `public/screenshots/` (dashboard-desktop/tablet/mobile, agenda, repertorio, financeiro, relatorio, musicos) — capturados com dados fictícios numa banda de teste renomeada, para não expor identidade da conta nem dados reais.

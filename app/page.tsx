@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import type { Metadata } from 'next';
 import { Logo } from '@/components/logo';
 import { Setlist } from '@/components/landing-setlist';
+import { ClickableShot, FeatureCarousel, type Shot } from '@/components/screenshot-lightbox';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export const revalidate = 3600;
@@ -42,10 +42,16 @@ const features = [
   },
 ];
 
-const screenshots = [
-  { src: '/screenshots/agenda.jpg', alt: 'Agenda de shows do Gigueiros, com o calendário do mês e um show marcado', caption: 'Agenda' },
-  { src: '/screenshots/financeiro.jpg', alt: 'Tela de um show no Gigueiros mostrando cachê bruto, custos e lucro líquido', caption: 'Financeiro de cada show' },
-  { src: '/screenshots/repertorio.jpg', alt: 'Catálogo de músicas do repertório no Gigueiros', caption: 'Repertório' },
+const dashboardDesktop: Shot = { src: '/screenshots/dashboard-desktop.jpg', alt: 'Dashboard do Gigueiros no computador, com próximo show e gráficos financeiros', width: 1568, height: 652 };
+const dashboardTablet: Shot = { src: '/screenshots/dashboard-tablet.png', alt: 'Dashboard do Gigueiros aberto em um tablet', width: 1004, height: 771 };
+const dashboardMobile: Shot = { src: '/screenshots/dashboard-mobile.png', alt: 'Dashboard do Gigueiros aberto no celular, com navegação inferior de app', width: 478, height: 771 };
+
+const featureShots: (Shot & { caption: string })[] = [
+  { src: '/screenshots/agenda.jpg', alt: 'Agenda de shows do Gigueiros, com o calendário do mês e vários shows marcados', width: 1536, height: 639, caption: 'Agenda' },
+  { src: '/screenshots/financeiro.jpg', alt: 'Tela de um show no Gigueiros mostrando cachê bruto, custos e lucro líquido', width: 1536, height: 639, caption: 'Financeiro de cada show' },
+  { src: '/screenshots/repertorio.jpg', alt: 'Catálogo de músicas do repertório no Gigueiros', width: 1536, height: 639, caption: 'Repertório' },
+  { src: '/screenshots/relatorio.jpg', alt: 'Relatório financeiro mensal do Gigueiros, com faturamento, custos e lucro', width: 1536, height: 639, caption: 'Relatório financeiro' },
+  { src: '/screenshots/musicos.jpg', alt: 'Lista de músicos do banco de talentos no Gigueiros', width: 1536, height: 639, caption: 'Músicos' },
 ];
 
 const adminSees = [
@@ -129,15 +135,21 @@ export default async function Landing() {
         <section className="border-t-2 border-[var(--l-fg)]">
           <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
             <h2 className="max-w-2xl text-balance text-3xl font-black tracking-[-0.03em] sm:text-5xl">
-              O app de verdade, sem mockup.
+              O app de verdade, sem enrolação.
             </h2>
-            <div className="mt-12 grid gap-6 sm:grid-cols-3">
-              {screenshots.map((s) => (
-                <figure key={s.src} className="overflow-hidden border-2 border-[var(--l-fg)]">
-                  <Image src={s.src} alt={s.alt} width={1536} height={639} className="h-auto w-full" sizes="(min-width: 640px) 33vw, 100vw" />
-                  <figcaption className="border-t-2 border-[var(--l-fg)] px-4 py-3 text-sm font-bold">{s.caption}</figcaption>
-                </figure>
-              ))}
+            <p className="mt-3 max-w-xl text-base text-[var(--l-mute)] sm:text-lg">Clique em qualquer print para ver em tamanho grande.</p>
+
+            <div className="mt-12 grid gap-8 lg:grid-cols-[2fr_1fr_0.75fr] lg:items-end lg:gap-6">
+              <ClickableShot shot={dashboardDesktop} device="laptop" sizes="(min-width: 1024px) 50vw, 100vw" />
+              <ClickableShot shot={dashboardTablet} device="tablet" sizes="(min-width: 1024px) 20vw, 60vw" />
+              <ClickableShot shot={dashboardMobile} device="phone" sizes="(min-width: 1024px) 14vw, 45vw" />
+            </div>
+            <p className="mt-4 text-sm text-[var(--l-mute)] sm:text-base">
+              Computador, tablet ou celular: o mesmo app, sempre com você. Funciona como PWA — instala na tela inicial e abre igual um aplicativo nativo.
+            </p>
+
+            <div className="mt-16 max-w-3xl">
+              <FeatureCarousel shots={featureShots} />
             </div>
           </div>
         </section>
