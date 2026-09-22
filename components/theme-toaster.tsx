@@ -38,6 +38,7 @@ export function ThemeToaster() {
     <Toaster
       theme={theme}
       position="bottom-center"
+      closeButton
       toastOptions={{
         style: {
           background: isDark ? '#18181b' : '#ffffff',
