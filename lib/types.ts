@@ -13,6 +13,8 @@ export type GoMember = {
   email: string | null;
   calendar_token: string | null;
   band_id?: string;
+  user_id?: string | null;
+  is_fixed?: boolean;
 };
 
 export type GoGig = {

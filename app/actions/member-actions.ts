@@ -82,6 +82,27 @@ export async function updateMember(formData: FormData) {
   return { success: true };
 }
 
+export async function toggleMemberFixed(memberId: string, isFixed: boolean) {
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
+  const { supabase, bandId } = ctx;
+
+  const { error } = await supabase
+    .from('go_members')
+    .update({ is_fixed: isFixed })
+    .eq('id', memberId)
+    .eq('band_id', bandId);
+
+  if (error) {
+    console.error('Error toggling fixed member:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath('/members');
+  revalidatePath('/agenda');
+  return { success: true };
+}
+
 export async function deleteMember(memberId: string) {
   const ctx = await requireOwner();
   if (!ctx.ok) return { error: ctx.error };

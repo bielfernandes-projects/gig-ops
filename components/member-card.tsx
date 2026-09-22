@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { GoMember } from '@/lib/types';
-import { MessageCircle, X, Loader2, Trash2 } from 'lucide-react';
-import { updateMember, deleteMember } from '@/app/actions/member-actions';
+import { MessageCircle, X, Loader2, Trash2, Star } from 'lucide-react';
+import { updateMember, deleteMember, toggleMemberFixed } from '@/app/actions/member-actions';
 import { toast } from 'sonner';
 
 const INSTRUMENT_COLORS: Record<string, string> = {
@@ -34,10 +34,18 @@ function getInstrumentColor(instrument: string): string {
   return key ? INSTRUMENT_COLORS[key] : '#71717a';
 }
 
-export function MemberCard({ member, role }: { member: GoMember; role: string }) {
+export function MemberCard({ member, role, isPartner }: { member: GoMember; role: string; isPartner: boolean }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isTogglingFixed, setIsTogglingFixed] = useState(false);
+
+  const handleToggleFixed = async () => {
+    setIsTogglingFixed(true);
+    const res = await toggleMemberFixed(member.id, !member.is_fixed);
+    if (res.error) toast.error(`Erro ao atualizar: ${res.error}`);
+    setIsTogglingFixed(false);
+  };
 
   const handleDelete = async () => {
     if (!confirmDelete) {
@@ -95,6 +103,29 @@ export function MemberCard({ member, role }: { member: GoMember; role: string })
         </div>
         
         <div className="flex items-center gap-2 shrink-0">
+          {isPartner ? (
+            <span
+              title="Sócio: sempre pré-selecionado na escala de novas gigs"
+              className="flex items-center gap-1 px-2.5 h-10 rounded-full bg-amber-500/10 text-amber-400 text-xs font-bold shrink-0"
+            >
+              <Star className="w-3.5 h-3.5 fill-current" /> Sócio
+            </span>
+          ) : role === 'admin' ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleToggleFixed(); }}
+              disabled={isTogglingFixed}
+              title="Fixo: entra pré-selecionado na escala de novas gigs"
+              className={`flex items-center gap-1 px-2.5 h-10 rounded-full text-xs font-bold shrink-0 transition-colors disabled:opacity-50 ${
+                member.is_fixed
+                  ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20'
+                  : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300'
+              }`}
+            >
+              {isTogglingFixed ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Star className={`w-3.5 h-3.5 ${member.is_fixed ? 'fill-current' : ''}`} />}
+              Fixo
+            </button>
+          ) : null}
+
           {member.phone ? (
             <a
               href={`https://wa.me/${member.phone}`}

@@ -17,14 +17,22 @@ export default async function MembersPage() {
   const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
   const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
 
-  const membersResult = await supabase
-    .from('go_members')
-    .select('*')
-    .order('name', { ascending: true })
-    .eq('band_id', effectiveTenantId) as unknown as { data: GoMember[] | null, error: PostgrestError | null };
+  const [membersResult, ownersResult] = await Promise.all([
+    supabase
+      .from('go_members')
+      .select('*')
+      .order('name', { ascending: true })
+      .eq('band_id', effectiveTenantId) as unknown as Promise<{ data: GoMember[] | null, error: PostgrestError | null }>,
+    supabase
+      .from('band_members')
+      .select('user_id')
+      .eq('band_id', effectiveTenantId)
+      .eq('role', 'owner') as unknown as Promise<{ data: { user_id: string }[] | null }>,
+  ]);
 
   const members = membersResult.data || [];
   const error = membersResult.error;
+  const ownerUserIds = (ownersResult.data || []).map((o) => o.user_id);
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
@@ -62,7 +70,7 @@ export default async function MembersPage() {
             )}
           </div>
         ) : (
-          <MembersSearch members={members} role={role} />
+          <MembersSearch members={members} role={role} ownerUserIds={ownerUserIds} />
         )}
       </main>
 

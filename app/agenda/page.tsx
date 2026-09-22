@@ -155,8 +155,14 @@ export default async function Home({
     .eq('band_id', effectiveTenantId)
     .order('name', { ascending: true });
 
+  const ownersQuery = supabase
+    .from('band_members')
+    .select('user_id')
+    .eq('band_id', effectiveTenantId)
+    .eq('role', 'owner');
+
   // Parallel data fetching — all queries run simultaneously
-  const [gigsResult, projectsResult, cloneResult, membersResult] = await Promise.all([
+  const [gigsResult, projectsResult, cloneResult, membersResult, ownersResult] = await Promise.all([
     gigsQuery as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
     projectsQuery as unknown as Promise<{ data: GoProject[] | null }>,
     cloneId && bandId
@@ -168,6 +174,7 @@ export default async function Home({
           .single() as unknown as Promise<{ data: Partial<GigWithProject> | null }>
       : Promise.resolve({ data: null }),
     membersQuery as unknown as Promise<{ data: GoMember[] | null }>,
+    ownersQuery as unknown as Promise<{ data: { user_id: string }[] | null }>,
   ]);
 
   const allGigs = gigsResult.data || [];
@@ -175,6 +182,10 @@ export default async function Home({
   const projects = projectsResult.data || [];
   const cloneData = cloneResult.data ?? null;
   const members = membersResult.data || [];
+  const ownerUserIds = new Set((ownersResult.data || []).map((o) => o.user_id));
+  const defaultMemberIds = members
+    .filter((m) => m.is_fixed || (m.user_id && ownerUserIds.has(m.user_id)))
+    .map((m) => m.id);
 
   // Fetch lineups only for the gigs we already have — this is the multi-tenant seam.
   // Viewers see lineups for gigs they're invited to (still inside their tenant).
@@ -382,7 +393,7 @@ export default async function Home({
         )}
       </main>
 
-      {role === 'admin' && <QuickAddGig projects={projects} members={members} cloneData={cloneData} adminMemberId={userMemberId} />}
+      {role === 'admin' && <QuickAddGig projects={projects} members={members} cloneData={cloneData} defaultMemberIds={defaultMemberIds} />}
 
       {/* Pending Gigs Section */}
       {pendingGigs.length > 0 && (

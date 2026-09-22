@@ -57,7 +57,7 @@ A fundação de dados do sistema (Supabase) está estruturada nas seguintes tabe
 ### 5.1. Gestão de Agenda e Escala
 * **Criação de Gigs:** Admins definem data via componente de Calendário interativo e selecionam horários e local.
 * **Escala de Músicos:** Admins selecionam membros do banco de talentos via busca com autocomplete (digite para filtrar, clique para selecionar). Membros não cadastrados podem ser adicionados como "avulsos" (apenas para aquela gig).
-* **Auto-Escala do Admin:** Ao criar uma nova gig, o admin (se tiver registro de membro com o mesmo e-mail do login) já entra automaticamente na escala com cachê 0, editável.
+* **Auto-Escala de Sócios e Fixos:** Ao criar uma nova gig, os sócios (donos com registro de músico vinculado) e os músicos marcados como "Fixo" já entram automaticamente na escala com cachê 0, editável (ver seção 21).
 * **Cópia Rápida de Logística:** Botão na Home que extrai Título, Data, Horário e Local para a área de transferência, omitindo as observações privadas.
 * **Duplicação de Gigs:** Funcionalidade que permite clonar todos os dados de uma Gig existente (Logística, Custos de Som, Observações, etc.) para um novo evento, agilizando turnês e shows recorrentes.
 * **Cancelamento com Notificação:** A exclusão de um show exige o preenchimento de um motivo obrigatório, que é disparado via Push Notification para toda a lineup escalada.
@@ -360,3 +360,8 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Relatório da banda: o card "A receber de shows já realizados" soma, em qualquer mês, o que falta receber dos shows passados com acompanhamento de recebimento (`track_receipts`); lista cada show com o valor devido.
 - Agenda: cards "Próximos cachês" (meu cachê nos shows futuros), "A receber" (meu cachê não pago em shows já realizados), "A pagar à equipe" (dono: músicos e som não pagos de shows passados), "Shows no total" e "Na seleção". `go_gigs.track_receipts` agora é ligado por padrão em shows novos.
 - Agenda abre em modo Calendário (grade mensal, cada show é uma linha no dia, links `?mes=AAAA-MM`); o botão Detalhado (`?view=detalhado`) mostra a lista de antes. No calendário só o filtro de projeto é exibido.
+
+## 21. Músicos fixos na escalação
+- `go_members.is_fixed` (padrão `false`): marcado pelo dono no botão "Fixo" de cada card em `/members` (`toggleMemberFixed`).
+- Sócios (músico cujo `user_id` é dono em `band_members`) aparecem com o selo "Sócio" e entram sempre, sem flag.
+- Ao abrir "Novo Show" (`QuickAddGig`), a escala já vem com sócios + fixos e cachê R$ 0; basta preencher os valores ou remover quem não vai. Duplicar gig mantém o comportamento de antes (sem pré-seleção). A lista `defaultMemberIds` é calculada em `/agenda` no mesmo `Promise.all` das outras consultas.

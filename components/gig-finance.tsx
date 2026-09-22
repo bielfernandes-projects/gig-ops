@@ -39,7 +39,7 @@ export function GigFinance({ gigId, gross, trackReceipts, expenses, payments }: 
   return (
     <section className="mb-10 grid gap-6 md:grid-cols-2">
       {/* Recebimentos do contratante */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+      <div className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-200">Recebimento do contratante</h2>
 
         {!trackReceipts ? (
@@ -105,8 +105,8 @@ export function GigFinance({ gigId, gross, trackReceipts, expenses, payments }: 
               className="flex flex-col gap-2"
             >
               <input type="hidden" name="gig_id" value={gigId} />
-              <div className="flex gap-2">
-                <input name="amount" required inputMode="decimal" placeholder="Valor (R$)" className={`${inputCls} w-full min-w-0`} />
+              <div className="flex flex-wrap gap-2">
+                <input name="amount" required inputMode="decimal" placeholder="Valor (R$)" className={`${inputCls} min-w-0 flex-1`} />
                 <input name="paid_at" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className={`${inputCls} w-40 shrink-0`} />
               </div>
               <div className="flex gap-2">
@@ -130,7 +130,7 @@ export function GigFinance({ gigId, gross, trackReceipts, expenses, payments }: 
       </div>
 
       {/* Despesas do show */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+      <div className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-200">Despesas do show</h2>
         <p className="mb-4 text-xs text-zinc-500">
           Além do cachê dos músicos e do som. Total: <span className="font-semibold text-zinc-300">{brl(expensesTotal)}</span>
@@ -170,8 +170,8 @@ export function GigFinance({ gigId, gross, trackReceipts, expenses, payments }: 
           className="flex flex-col gap-2"
         >
           <input type="hidden" name="gig_id" value={gigId} />
-          <div className="flex gap-2">
-            <select name="category" required defaultValue="" className={`${inputCls} w-full min-w-0 appearance-none`}>
+          <div className="flex flex-wrap gap-2">
+            <select name="category" required defaultValue="" className={`${inputCls} min-w-0 flex-1 appearance-none`}>
               <option value="" disabled>Categoria</option>
               {EXPENSE_CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>

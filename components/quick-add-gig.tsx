@@ -16,7 +16,7 @@ interface LineupEntry {
   fee_amount: number;
 }
 
-export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { projects: GoProject[]; members: GoMember[]; cloneData?: Partial<GoGig> | null; adminMemberId?: string | null }) {
+export function QuickAddGig({ projects, members, cloneData, defaultMemberIds }: { projects: GoProject[]; members: GoMember[]; cloneData?: Partial<GoGig> | null; defaultMemberIds?: string[] }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -40,18 +40,17 @@ export function QuickAddGig({ projects, members, cloneData, adminMemberId }: { p
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Pre-fill the admin as a default lineup member when the modal opens (only for new gigs, not clones)
+  // Pre-fill fixed musicians (sócios + marked as fixed) when the modal opens (only for new gigs, not clones)
   useEffect(() => {
-    if (!isOpen || isClone || !adminMemberId) return;
-    const adminMember = members.find(m => m.id === adminMemberId);
-    if (!adminMember) return;
-    if (lineup.some(l => l.member_id === adminMemberId)) return;
-    setLineup([{
-      member_id: adminMember.id,
-      name: adminMember.name,
-      instrument: adminMember.instrument,
-      fee_amount: 0,
-    }]);
+    if (!isOpen || isClone || !defaultMemberIds?.length) return;
+    setLineup(prev => {
+      const toAdd = defaultMemberIds
+        .filter(id => !prev.some(l => l.member_id === id))
+        .map(id => members.find(m => m.id === id))
+        .filter((m): m is GoMember => !!m)
+        .map(m => ({ member_id: m.id, name: m.name, instrument: m.instrument, fee_amount: 0 }));
+      return toAdd.length ? [...prev, ...toAdd] : prev;
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 

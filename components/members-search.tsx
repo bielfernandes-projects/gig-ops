@@ -8,10 +8,12 @@ import { MemberCard } from '@/components/member-card';
 interface MembersSearchProps {
   members: GoMember[];
   role: string;
+  ownerUserIds: string[];
 }
 
-export function MembersSearch({ members, role }: MembersSearchProps) {
+export function MembersSearch({ members, role, ownerUserIds }: MembersSearchProps) {
   const [query, setQuery] = useState('');
+  const ownerSet = useMemo(() => new Set(ownerUserIds), [ownerUserIds]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return members;
@@ -55,7 +57,7 @@ export function MembersSearch({ members, role }: MembersSearchProps) {
           </div>
         ) : (
           filtered.map((member) => (
-            <MemberCard key={member.id} member={member} role={role} />
+            <MemberCard key={member.id} member={member} role={role} isPartner={!!member.user_id && ownerSet.has(member.user_id)} />
           ))
         )}
       </div>
