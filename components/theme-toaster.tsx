@@ -1,12 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Toaster } from 'sonner';
 
+const FORCED_DARK_ROUTES = ['/', '/login', '/onboarding', '/termos', '/privacidade'];
+
 export function ThemeToaster() {
+  const pathname = usePathname();
+  const forcedDark = FORCED_DARK_ROUTES.includes(pathname) || pathname.startsWith('/auth');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
+  // Client-side navigations don't re-run the <head> FOUC script, so keep the
+  // <html> class in sync with forcedDark across route changes too.
   useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    const shouldBeDark = forcedDark || saved !== 'light';
+    document.documentElement.classList.toggle('dark', shouldBeDark);
+  }, [forcedDark, pathname]);
+
+  useEffect(() => {
+    if (forcedDark) return;
+
     const saved = localStorage.getItem('theme');
     if (saved === 'light') setTheme('light');
     else if (saved === 'dark') setTheme('dark');
@@ -30,13 +45,14 @@ export function ThemeToaster() {
       window.removeEventListener('storage', onStorage);
       observer.disconnect();
     };
-  }, []);
+  }, [forcedDark]);
 
-  const isDark = theme === 'dark';
+  const effectiveTheme = forcedDark ? 'dark' : theme;
+  const isDark = effectiveTheme === 'dark';
 
   return (
     <Toaster
-      theme={theme}
+      theme={effectiveTheme}
       position="bottom-center"
       closeButton
       toastOptions={{

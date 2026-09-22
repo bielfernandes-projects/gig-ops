@@ -43,9 +43,12 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
             var d = document.documentElement;
+            // Public pages (landing, login, onboarding, legal, auth) always render dark;
+            // the theme choice only applies once inside the app.
+            var p = location.pathname;
+            var forcedDark = ['/', '/login', '/onboarding', '/termos', '/privacidade'].indexOf(p) !== -1 || p.indexOf('/auth') === 0;
             try {
-              // dark is the default; only an explicit choice of light turns it off
-              if (localStorage.getItem('theme') === 'light') d.classList.remove('dark');
+              if (!forcedDark && localStorage.getItem('theme') === 'light') d.classList.remove('dark');
               else d.classList.add('dark');
             } catch(e) {
               d.classList.add('dark');
