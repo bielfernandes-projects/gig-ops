@@ -27,7 +27,7 @@ export default async function RepertorioPage() {
   const [songsResult, gigsResult, personalResult] = await Promise.all([
     supabase
       .from('songs')
-      .select('id, title, artist, original_key, bpm, source_url, chart_text, created_by, scope')
+      .select('id, title, artist, original_key, bpm, source_url, chart_text, pdf_path, created_by, scope')
       .eq('band_id', info.bandId)
       .order('title', { ascending: true }),
     supabase

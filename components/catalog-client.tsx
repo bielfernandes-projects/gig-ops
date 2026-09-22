@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Search, Pencil, Trash2, FileText } from 'lucide-react';
-import { addSong, updateSong, deleteSong } from '@/app/actions/song-actions';
+import { Plus, Search, Pencil, Trash2, FileText, Paperclip } from 'lucide-react';
+import { addSong, updateSong, deleteSong, getSongPdfUrl } from '@/app/actions/song-actions';
 import { MUSICAL_KEYS } from '@/lib/keys';
 import { SongViewer } from '@/components/song-viewer';
 
@@ -16,9 +16,16 @@ export type CatalogSong = {
   bpm: number | null;
   source_url: string | null;
   chart_text: string | null;
+  pdf_path: string | null;
   created_by: string | null;
   scope?: 'band' | 'personal';
 };
+
+async function openSongPdf(songId: string) {
+  const res = await getSongPdfUrl(songId);
+  if (res.error) return toast.error(res.error);
+  window.open(res.url, '_blank', 'noopener,noreferrer');
+}
 
 const inputCls =
   'w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-600 placeholder-zinc-600';
@@ -32,6 +39,7 @@ function SongForm({ song, onDone }: { song: CatalogSong | null; onDone: () => vo
   const [title, setTitle] = useState(song?.title ?? '');
   const [artist, setArtist] = useState(song?.artist ?? '');
   const [pending, setPending] = useState(false);
+  const [removePdf, setRemovePdf] = useState(false);
 
   return (
     <form
@@ -39,6 +47,7 @@ function SongForm({ song, onDone }: { song: CatalogSong | null; onDone: () => vo
         e.preventDefault();
         setPending(true);
         const fd = new FormData(e.currentTarget);
+        if (removePdf) fd.set('remove_pdf', 'true');
         const res = song ? await updateSong(song.id, fd) : await addSong(fd);
         setPending(false);
         if (res?.error) return toast.error(res.error);
@@ -97,6 +106,20 @@ function SongForm({ song, onDone }: { song: CatalogSong | null; onDone: () => vo
           className={`${inputCls} font-mono`}
         />
       </label>
+      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
+        PDF da cifra (opcional, até 10MB)
+        {song?.pdf_path && !removePdf ? (
+          <span className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
+            <span className="flex items-center gap-2"><Paperclip className="h-4 w-4" /> PDF anexado</span>
+            <button type="button" onClick={() => setRemovePdf(true)} className="text-xs font-semibold text-red-400 hover:text-red-300">
+              Remover
+            </button>
+          </span>
+        ) : (
+          <input name="pdf" type="file" accept="application/pdf" className={`${inputCls} file:mr-3 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1 file:text-zinc-200`} />
+        )}
+      </label>
+
       {!song && (
         <label className="flex items-center gap-2 text-xs font-medium text-zinc-300">
           <input type="checkbox" name="scope" value="personal" className="h-4 w-4 accent-zinc-100" />
@@ -172,6 +195,11 @@ export function CatalogClient({ songs, userId, isOwner }: { songs: CatalogSong[]
                 <button type="button" onClick={() => setViewing(s)} title="Ver cifra" className="p-2 text-zinc-500 hover:text-zinc-200">
                   <FileText className="h-4 w-4" />
                 </button>
+                {s.pdf_path && (
+                  <button type="button" onClick={() => openSongPdf(s.id)} title="Abrir PDF" className="p-2 text-zinc-500 hover:text-zinc-200">
+                    <Paperclip className="h-4 w-4" />
+                  </button>
+                )}
                 {canEdit && (
                   <>
                     <button type="button" onClick={() => setEditing(s)} title="Editar" className="p-2 text-zinc-500 hover:text-zinc-200">

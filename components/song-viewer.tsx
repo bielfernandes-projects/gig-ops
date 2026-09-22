@@ -1,10 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { X, ExternalLink } from 'lucide-react';
+import { X, ExternalLink, Paperclip } from 'lucide-react';
+import { toast } from 'sonner';
 import { transposeChart } from '@/lib/transpose';
+import { getSongPdfUrl } from '@/app/actions/song-actions';
 
 export type SongView = {
+  id?: string;
   title: string;
   artist: string | null;
   original_key: string | null;
@@ -12,6 +15,7 @@ export type SongView = {
   bpm: number | null;
   source_url: string | null;
   chart_text: string | null;
+  pdf_path?: string | null;
   note?: string | null;
 };
 
@@ -48,6 +52,19 @@ export function SongViewer({ song, onClose }: { song: SongView; onClose: () => v
               <a href={song.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-zinc-200">
                 Abrir fonte <ExternalLink className="h-3.5 w-3.5" />
               </a>
+            )}
+            {song.pdf_path && song.id && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const res = await getSongPdfUrl(song.id!);
+                  if (res.error) return toast.error(res.error);
+                  window.open(res.url, '_blank', 'noopener,noreferrer');
+                }}
+                className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-zinc-200"
+              >
+                Abrir PDF <Paperclip className="h-3.5 w-3.5" />
+              </button>
             )}
           </p>
           {song.note && <p className="mt-1 text-sm font-medium text-amber-300">{song.note}</p>}

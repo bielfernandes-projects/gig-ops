@@ -113,7 +113,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       : Promise.resolve({ data: null as PaymentRow[] | null }),
     supabase
       .from('setlists')
-      .select('id, name, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text)))')
+      .select('id, name, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text, pdf_path)))')
       .eq('gig_id', id)
       .maybeSingle() as unknown as Promise<{ data: SetlistTree | null }>,
     role === 'admin'

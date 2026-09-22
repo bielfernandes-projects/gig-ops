@@ -1,7 +1,23 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireBand } from '@/lib/auth';
+import { requireBand, type BandContext } from '@/lib/auth';
+
+const PDF_BUCKET = 'song-pdfs';
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
+
+async function uploadPdf(ctx: Extract<BandContext, { ok: true }>, songId: string, file: File): Promise<string | null> {
+  if (file.type !== 'application/pdf') return 'O arquivo precisa ser um PDF.';
+  if (file.size > MAX_PDF_BYTES) return 'O PDF deve ter no máximo 10MB.';
+
+  const { error } = await ctx.supabase.storage.from(PDF_BUCKET).upload(`${songId}.pdf`, file, { upsert: true, contentType: 'application/pdf' });
+  if (error) return 'Não foi possível enviar o PDF.';
+  return null;
+}
+
+async function removePdfFile(ctx: Extract<BandContext, { ok: true }>, songId: string) {
+  await ctx.supabase.storage.from(PDF_BUCKET).remove([`${songId}.pdf`]);
+}
 
 function readSong(formData: FormData) {
   const title = String(formData.get('title') ?? '').trim();
@@ -38,14 +54,25 @@ export async function addSong(formData: FormData) {
 
   // "Só eu vejo": a personal song, visible only to its creator (used in personal setlists)
   const personal = formData.get('scope') === 'personal';
-  const { error } = await ctx.supabase.from('songs').insert({
-    ...song,
-    band_id: ctx.bandId,
-    created_by: ctx.userId,
-    scope: personal ? 'personal' : 'band',
-    owner_user_id: personal ? ctx.userId : null,
-  });
-  if (error) return { error: 'Não foi possível salvar a música.' };
+  const { data, error } = await ctx.supabase
+    .from('songs')
+    .insert({
+      ...song,
+      band_id: ctx.bandId,
+      created_by: ctx.userId,
+      scope: personal ? 'personal' : 'band',
+      owner_user_id: personal ? ctx.userId : null,
+    })
+    .select('id')
+    .single();
+  if (error || !data) return { error: 'Não foi possível salvar a música.' };
+
+  const pdf = formData.get('pdf');
+  if (pdf instanceof File && pdf.size > 0) {
+    const pdfError = await uploadPdf(ctx, data.id, pdf);
+    if (pdfError) return { error: pdfError };
+    await ctx.supabase.from('songs').update({ pdf_path: `${data.id}.pdf` }).eq('id', data.id);
+  }
 
   revalidatePath('/repertorio');
   return { success: true };
@@ -68,6 +95,16 @@ export async function updateSong(id: string, formData: FormData) {
     .select('id');
   if (error || !data?.length) return { error: 'Você não pode editar esta música.' };
 
+  const pdf = formData.get('pdf');
+  if (pdf instanceof File && pdf.size > 0) {
+    const pdfError = await uploadPdf(ctx, id, pdf);
+    if (pdfError) return { error: pdfError };
+    await ctx.supabase.from('songs').update({ pdf_path: `${id}.pdf` }).eq('id', id);
+  } else if (formData.get('remove_pdf') === 'true') {
+    await removePdfFile(ctx, id);
+    await ctx.supabase.from('songs').update({ pdf_path: null }).eq('id', id);
+  }
+
   revalidatePath('/repertorio');
   return { success: true };
 }
@@ -76,9 +113,22 @@ export async function deleteSong(id: string) {
   const ctx = await requireBand('repertorio');
   if (!ctx.ok) return { error: ctx.error };
 
+  // Storage RLS checks the song row still exists, so the PDF must go before the song does.
+  await removePdfFile(ctx, id);
+
   const { data, error } = await ctx.supabase.from('songs').delete().eq('id', id).eq('band_id', ctx.bandId).select('id');
   if (error || !data?.length) return { error: 'Você não pode remover esta música.' };
 
   revalidatePath('/repertorio');
   return { success: true };
+}
+
+/** Signed URL to view a song's PDF; storage RLS enforces the same permission as reading the song. */
+export async function getSongPdfUrl(songId: string) {
+  const ctx = await requireBand('repertorio');
+  if (!ctx.ok) return { error: ctx.error };
+
+  const { data, error } = await ctx.supabase.storage.from(PDF_BUCKET).createSignedUrl(`${songId}.pdf`, 300);
+  if (error || !data) return { error: 'Não foi possível abrir o PDF.' };
+  return { url: data.signedUrl };
 }

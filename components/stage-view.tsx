@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, X, Minus, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Minus, Plus, Paperclip } from 'lucide-react';
+import { toast } from 'sonner';
 import { transposeChart } from '@/lib/transpose';
+import { getSongPdfUrl } from '@/app/actions/song-actions';
 
 export type StageItem = {
   id: string;
+  songId: string | null;
   block: string;
   title: string;
   artist: string | null;
@@ -16,6 +19,7 @@ export type StageItem = {
   note: string | null;
   transitionNote: string | null;
   chart: string | null;
+  pdfPath: string | null;
 };
 
 const SIZES = [16, 20, 24, 30, 38, 48];
@@ -114,6 +118,19 @@ export function StageView({ name, items, backHref }: { name: string; items: Stag
             </span>
           )}
           {item.bpm && <span>{item.bpm} BPM</span>}
+          {item.pdfPath && item.songId && (
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await getSongPdfUrl(item.songId!);
+                if (res.error) return toast.error(res.error);
+                window.open(res.url, '_blank', 'noopener,noreferrer');
+              }}
+              className="inline-flex items-center gap-1 underline underline-offset-4"
+            >
+              Abrir PDF <Paperclip className="h-3.5 w-3.5" />
+            </button>
+          )}
         </p>
         {item.note && <p className="mt-1 text-base font-semibold text-amber-300">{item.note}</p>}
       </div>

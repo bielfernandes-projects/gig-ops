@@ -365,3 +365,11 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - `go_members.is_fixed` (padrão `false`): marcado pelo dono no botão "Fixo" de cada card em `/members` (`toggleMemberFixed`).
 - Sócios (músico cujo `user_id` é dono em `band_members`) aparecem com o selo "Sócio" e entram sempre, sem flag.
 - Ao abrir "Novo Show" (`QuickAddGig`), a escala já vem com sócios + fixos e cachê R$ 0; basta preencher os valores ou remover quem não vai. Duplicar gig mantém o comportamento de antes (sem pré-seleção). A lista `defaultMemberIds` é calculada em `/agenda` no mesmo `Promise.all` das outras consultas.
+
+## 22. PDF por música no repertório
+- Bucket privado `song-pdfs` no Supabase Storage (10MB, só `application/pdf`), arquivo salvo como `{song_id}.pdf`.
+- Permissão do arquivo espelha a permissão de editar a música (`songs_update`/`songs_delete`): dono da banda ou quem criou a música, ou dono no caso de música pessoal — reaproveita `private.is_band_member`/`is_band_owner`.
+- `songs.pdf_path` guarda o path do arquivo. Upload/remoção pelo formulário de música em `/repertorio` (`catalog-client.tsx`); a mesma música pode ter cifra colada, link e PDF ao mesmo tempo.
+- Visualização via `getSongPdfUrl` (`app/actions/song-actions.ts`): gera signed URL sob demanda (5 min) e abre em nova aba. Botão "Abrir PDF" aparece no catálogo, no `SongViewer` (repertório de show e catálogo) e no modo palco.
+- Ao apagar uma música, o PDF é removido do storage antes da linha ser apagada (a policy de Storage depende da música ainda existir).
+- O link público de repertório (`/s/[token]`) não expõe PDF nem cifra — só ordem e tom, como já era.

@@ -18,7 +18,7 @@ export default async function StagePage({ params }: { params: Promise<{ id: stri
   // RLS: only band owners and musicians scheduled on the gig can read this setlist
   const { data } = (await supabase
     .from('setlists')
-    .select('id, name, gig_id, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text)))')
+    .select('id, name, gig_id, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text, pdf_path)))')
     .eq('id', id)
     .maybeSingle()) as unknown as { data: Tree | null };
 
@@ -38,6 +38,7 @@ export default async function StagePage({ params }: { params: Promise<{ id: stri
         .sort((a, b) => a.position - b.position)
         .map((bs) => ({
           id: bs.id,
+          songId: bs.songs?.id ?? null,
           block: block.name,
           title: bs.songs?.title ?? 'Música removida',
           artist: bs.songs?.artist ?? null,
@@ -47,6 +48,7 @@ export default async function StagePage({ params }: { params: Promise<{ id: stri
           note: bs.note,
           transitionNote: bs.transition_note,
           chart: bs.songs?.chart_text ?? null,
+          pdfPath: bs.songs?.pdf_path ?? null,
         }))
     );
 

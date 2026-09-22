@@ -19,7 +19,7 @@ export default async function PersonalSetlistPage({ params }: { params: Promise<
   const supabase = await createClient();
   const { data: setlist } = (await supabase
     .from('setlists')
-    .select('id, name, scope, owner_user_id, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text)))')
+    .select('id, name, scope, owner_user_id, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text, pdf_path)))')
     .eq('id', id)
     .maybeSingle()) as unknown as { data: Personal | null };
 
