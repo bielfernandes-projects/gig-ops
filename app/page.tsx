@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 import { Logo } from '@/components/logo';
 import { Setlist } from '@/components/landing-setlist';
@@ -31,6 +32,20 @@ const features = [
     title: 'Lembretes e cancelamentos',
     text: 'Aviso antes do show. Se um show cai, todos os escalados sabem o motivo.',
   },
+  {
+    title: 'Repertório e cifras',
+    text: 'Catálogo de músicas da banda com cifra, tom e PDF anexado. Monte o repertório de cada show e toque no modo palco, com letra grande.',
+  },
+  {
+    title: 'Financeiro e rateio',
+    text: 'Recibo em PDF para o contratante, controle de sinal e restante, e divisão do lucro entre os sócios da banda.',
+  },
+];
+
+const screenshots = [
+  { src: '/screenshots/agenda.jpg', alt: 'Agenda de shows do Gigueiros, com o calendário do mês e um show marcado', caption: 'Agenda' },
+  { src: '/screenshots/financeiro.jpg', alt: 'Tela de um show no Gigueiros mostrando cachê bruto, custos e lucro líquido', caption: 'Financeiro de cada show' },
+  { src: '/screenshots/repertorio.jpg', alt: 'Catálogo de músicas do repertório no Gigueiros', caption: 'Repertório' },
 ];
 
 const adminSees = [
@@ -110,6 +125,23 @@ export default async function Landing() {
           </div>
         </section>
 
+        {/* Prints reais */}
+        <section className="border-t-2 border-[var(--l-fg)]">
+          <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
+            <h2 className="max-w-2xl text-balance text-3xl font-black tracking-[-0.03em] sm:text-5xl">
+              O app de verdade, sem mockup.
+            </h2>
+            <div className="mt-12 grid gap-6 sm:grid-cols-3">
+              {screenshots.map((s) => (
+                <figure key={s.src} className="overflow-hidden border-2 border-[var(--l-fg)]">
+                  <Image src={s.src} alt={s.alt} width={1536} height={639} className="h-auto w-full" sizes="(min-width: 640px) 33vw, 100vw" />
+                  <figcaption className="border-t-2 border-[var(--l-fg)] px-4 py-3 text-sm font-bold">{s.caption}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Quem vê o quê */}
         <section className="pb-24 lg:pb-36">
           <div className="mx-auto grid w-full max-w-6xl gap-6 px-5 sm:px-8 lg:grid-cols-2">
@@ -145,9 +177,27 @@ export default async function Landing() {
               <p className="text-[clamp(4.5rem,15vw,9rem)] font-black leading-[0.85] tracking-[-0.04em] tabular-nums">R$ 49,90</p>
               <p className="mt-4 text-xl font-semibold sm:text-2xl">por mês, por banda.</p>
               {left > 0 && (
-                <p className="mt-6 border-2 border-[var(--l-fg)] p-4 text-base sm:text-lg">
-                  <strong>Fundadores:</strong> as {FOUNDER_LIMIT} primeiras bandas pagam <strong>R$ 24,90</strong> para sempre. Restam {left}.
-                </p>
+                <div className="mt-6 border-2 border-[var(--l-fg)] p-4 sm:p-5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <p className="text-base sm:text-lg">
+                      <strong>Fundadores:</strong> as {FOUNDER_LIMIT} primeiras bandas pagam <strong>R$ 24,90</strong> para sempre.
+                    </p>
+                    <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-black">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--l-fg)] opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--l-fg)]" />
+                      </span>
+                      Restam {left}
+                    </span>
+                  </div>
+                  <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-[var(--l-line)]" role="progressbar" aria-valuenow={founders} aria-valuemin={0} aria-valuemax={FOUNDER_LIMIT}>
+                    <div
+                      className="h-full rounded-full bg-[var(--l-fg)] transition-[width] duration-700 ease-out"
+                      style={{ width: `${Math.max(4, Math.round((founders / FOUNDER_LIMIT) * 100))}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--l-mute)]">{founders} de {FOUNDER_LIMIT} vagas preenchidas</p>
+                </div>
               )}
               <p className="mt-4 text-sm text-[var(--l-mute)]">Músico solo: R$ 19,90 por mês.</p>
             </div>
