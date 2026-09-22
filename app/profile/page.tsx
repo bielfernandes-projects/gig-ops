@@ -56,6 +56,7 @@ export default async function ProfilePage() {
       inviteCode={inviteCode}
       members={members}
       subscription={info.subscription}
+      founderWhatsappUrl={info.isFounder ? process.env.FOUNDER_WHATSAPP_URL || null : null}
     />
   );
 }

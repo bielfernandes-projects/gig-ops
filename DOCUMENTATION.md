@@ -373,3 +373,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Visualização via `getSongPdfUrl` (`app/actions/song-actions.ts`): gera signed URL sob demanda (5 min) e abre em nova aba. Botão "Abrir PDF" aparece no catálogo, no `SongViewer` (repertório de show e catálogo) e no modo palco.
 - Ao apagar uma música, o PDF é removido do storage antes da linha ser apagada (a policy de Storage depende da música ainda existir).
 - O link público de repertório (`/s/[token]`) não expõe PDF nem cifra — só ordem e tom, como já era.
+
+## 23. Grupo do WhatsApp dos Fundadores
+- `FOUNDER_WHATSAPP_URL` (env var, vazia por padrão): link de convite do grupo exclusivo.
+- Quando a banda tem `subscriptions.price_plan = 'founder'` e a env var está preenchida, o Perfil (seção "Gestão da banda") mostra um card com o link. Sem env var configurada, nada aparece — sem depender de e-mail (Resend ainda não existe).

@@ -21,9 +21,10 @@ type Props = {
   inviteCode: string | null;
   members: BandMemberView[];
   subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
+  founderWhatsappUrl: string | null;
 };
 
-export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription }: Props) {
+export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, founderWhatsappUrl }: Props) {
   const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
 
   useEffect(() => {
@@ -219,6 +220,7 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
         inviteCode={inviteCode}
         members={members}
         subscription={subscription}
+        founderWhatsappUrl={founderWhatsappUrl}
       />
 
       {/* ─── SECTION: SEGURANÇA E ACESSO ─── */}

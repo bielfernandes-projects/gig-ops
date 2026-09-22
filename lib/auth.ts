@@ -23,6 +23,8 @@ export type UserInfo = {
   subscription: SubscriptionState | null;
   /** Modules the band's plan includes. */
   modules: { gestao: boolean; repertorio: boolean };
+  /** True for one of the first 50 bands, locked into the founder price forever. */
+  isFounder: boolean;
 };
 
 const EMPTY: UserInfo = {
@@ -35,6 +37,7 @@ const EMPTY: UserInfo = {
   memberships: [],
   subscription: null,
   modules: { gestao: true, repertorio: true },
+  isFounder: false,
 };
 
 type MembershipRow = { band_id: string; role: 'owner' | 'member'; bands: { name: string } | { name: string }[] | null };
@@ -85,9 +88,9 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
     memberQuery as unknown as Promise<{ data: { id: string } | null }>,
     supabase
       .from('subscriptions')
-      .select('status, trial_ends_at, paid_until, module_gestao, module_repertorio')
+      .select('status, trial_ends_at, paid_until, module_gestao, module_repertorio, price_plan')
       .eq('band_id', current.bandId)
-      .maybeSingle() as unknown as Promise<{ data: (SubscriptionRow & { module_gestao: boolean; module_repertorio: boolean }) | null }>,
+      .maybeSingle() as unknown as Promise<{ data: (SubscriptionRow & { module_gestao: boolean; module_repertorio: boolean; price_plan: string }) | null }>,
   ]);
 
   return {
@@ -100,6 +103,7 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
     memberships,
     subscription: subscriptionState(sub),
     modules: { gestao: sub?.module_gestao ?? true, repertorio: sub?.module_repertorio ?? true },
+    isFounder: sub?.price_plan === 'founder',
   };
 });
 

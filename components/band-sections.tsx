@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Crown, Users, UserMinus, PenLine, X, ShieldCheck, ShieldOff, LogOut } from 'lucide-react';
+import { Crown, Users, UserMinus, PenLine, X, ShieldCheck, ShieldOff, LogOut, MessageCircle } from 'lucide-react';
 import {
   saveInviteCode,
   renameBand,
@@ -27,6 +27,7 @@ type Props = {
   inviteCode: string | null;
   members: BandMemberView[];
   subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
+  founderWhatsappUrl: string | null;
 };
 
 const inputCls =
@@ -42,7 +43,7 @@ function subscriptionLabel(s: Props['subscription']) {
   return { text: 'Assinatura expirada: dados preservados, edição bloqueada', tone: 'text-red-400' };
 }
 
-export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription }: Props) {
+export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, founderWhatsappUrl }: Props) {
   const router = useRouter();
   const [editingInvite, setEditingInvite] = useState(false);
   const [inviteInput, setInviteInput] = useState(inviteCode || '');
@@ -151,6 +152,18 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
           </div>
 
           {sub && <p className={`text-sm font-semibold ${sub.tone}`}>{sub.text}</p>}
+
+          {founderWhatsappUrl && (
+            <a
+              href={founderWhatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-lg border border-[#25D366]/30 bg-[#25D366]/10 px-4 py-3 text-sm font-semibold text-[#25D366] transition-colors hover:bg-[#25D366]/20"
+            >
+              <MessageCircle className="h-5 w-5 shrink-0" />
+              Você é Fundador! Entre no grupo exclusivo do WhatsApp
+            </a>
+          )}
 
           <form
             onSubmit={async (e) => {
