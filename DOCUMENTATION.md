@@ -383,3 +383,8 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Qualquer print é clicável e abre em tamanho grande num lightbox (`ClickableShot`, com Esc/clique fora pra fechar).
 - Abaixo, `FeatureCarousel` (mesmo arquivo) alterna automaticamente entre Agenda, Financeiro, Repertório, Relatório e Músicos a cada 4s, com transição de slide; para no hover e para permanentemente após qualquer clique (inclusive nos indicadores), continuando clicável pro lightbox.
 - Os prints ficam em `public/screenshots/` (dashboard-desktop/tablet/mobile, agenda, repertorio, financeiro, relatorio, musicos) — capturados com dados fictícios numa banda de teste renomeada, para não expor identidade da conta nem dados reais.
+
+## 25. Resend para e-mails transacionais (Auth)
+- Domínio `gigueiros.com.br` verificado no Resend. SMTP customizado configurado no Supabase (Authentication → Emails → SMTP Settings): host `smtp.resend.com`, porta 465, usuário `resend`, senha = API key do Resend, remetente `naoresponda@gigueiros.com.br`.
+- Templates de e-mail (Confirm signup, Reset Password) personalizados em HTML, versionados em `supabase/email-templates/` — colados manualmente no painel do Supabase (Authentication → Emails → Templates), pois a configuração de Auth não é exposta pela API/MCP disponível, só pelo dashboard.
+- Fora do escopo por enquanto: convite (Invite) e magic link, que o app não usa hoje (login é por senha ou Google OAuth).
