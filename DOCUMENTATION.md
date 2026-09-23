@@ -393,3 +393,9 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Metadados: `metadataBase`, Open Graph e Twitter Card configurados em `app/layout.tsx` (padrão) e sobrescritos na LP (`app/page.tsx`) com título/descrição específicos e `alternates.canonical`.
 - Dados estruturados: JSON-LD `SoftwareApplication` na LP (nome, descrição, preço).
 - `@vercel/analytics` e `@vercel/speed-insights` instalados e adicionados ao layout raiz. **Pendente**: habilitar as abas "Analytics" e "Speed Insights" no dashboard da Vercel (Project → Analytics / Speed Insights → Enable) — não é exposto pela API do projeto, só pelo dashboard.
+
+## 27. Acesso grátis pra amigos/testers
+- `supabase/scripts/grant-free-access.ts` (`npm run grant-free -- email1@x.com email2@y.com`): dado o e-mail de quem já criou conta e uma banda, acha o usuário (Auth Admin API, já que `auth.users` não é filtrável por e-mail direto), localiza a(s) banda(s) das quais é dono (`band_members.role = 'owner'`) e atualiza `subscriptions` pra `status = 'active'`, `paid_until = null` — acesso completo (Gestão + Repertório) sem cobrança e sem data de expiração.
+- Não mexe em `price_plan`: fica `standard` (padrão), de propósito, pra não contar como vaga real no contador de "Fundadores" da landing page.
+- Pré-requisito: a pessoa precisa ter feito login e criado a banda no onboarding antes de rodar o script (precisa existir a linha em `band_members`/`subscriptions`).
+- Reverter depois: `update subscriptions set status = 'expired' where band_id = '<uuid>';`.
