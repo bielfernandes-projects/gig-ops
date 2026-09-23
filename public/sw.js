@@ -27,6 +27,23 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// Warms the offline cache with pages the user hasn't opened yet (e.g. upcoming shows), so they're
+// readable offline even on the first visit. Sent by the client via navigator.serviceWorker.controller.
+self.addEventListener('message', (event) => {
+  if (event.data?.type !== 'PREFETCH' || !Array.isArray(event.data.urls)) return;
+  event.waitUntil(
+    caches.open(CACHE).then((cache) =>
+      Promise.all(
+        event.data.urls.map((url) =>
+          fetch(url)
+            .then((res) => res.ok && cache.put(url, res))
+            .catch(() => {})
+        )
+      )
+    )
+  );
+});
+
 self.addEventListener('push', function (event) {
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'Nova Gig!';

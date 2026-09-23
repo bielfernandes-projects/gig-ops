@@ -297,11 +297,9 @@ Viewers sem `go_members` correspondente (ex: admin não os cadastrou como músic
 
 ## 13. Backlog pós-go-live
 
-* **Logo e ícones do PWA** (`public/logo.svg`, `icon-*.png`, `apple-touch-icon.png`, `badge-icon.png`) ainda trazem o nome antigo "Minha Banda"; refazer como Gigueiros.
-* **Domínio:** `gigueiros.com.br` já configurado (seção 10). Falta decidir se o apex vira o principal (hoje o `www` é) e quando remover o alias `minhabanda.bf.dev.br`.
-* **Bloqueio por assinatura:** `requireAdmin()` ainda não checa `subscription_status`/`trial_ends_at`.
+* **Domínio:** `gigueiros.com.br` (apex) é o domínio principal; `www.gigueiros.com.br` redireciona pra ele (308). O alias antigo `minhabanda.bf.dev.br` foi removido do projeto.
 * **Banco:** hospedado em São Paulo (`ggjfhipruemkxavhwglm`), função Vercel em `gru1`. O projeto antigo (Oregon) fica como backup até ser desativado.
-* **Auth:** ativar "leaked password protection" se o plano do Supabase permitir.
+* **Auth:** "leaked password protection" (Authentication → Providers → Email → "Prevent use of leaked passwords") ainda não ativado — o toggle liga na tela, mas o Supabase bloqueia ao salvar porque é recurso exclusivo do plano Pro. Requer upgrade do projeto pra ativar.
 
 ---
 
@@ -340,7 +338,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * **Módulo por plano:** as ações exigem `subscriptions.module_repertorio` (`requireBand('repertorio')` / `requireOwner('repertorio')`).
 * **Transposição** (`lib/transpose.ts`, teste em `npm run check:transpose`): o texto colado é transposto do tom original para o tom pedido no repertório (linhas de acordes e acordes entre colchetes), mantendo o alinhamento; escolhe bemóis ou sustenidos conforme o tom de destino. O visualizador oferece "Ver no tom original".
 * **Repertórios pessoais** (`setlists.scope = 'personal'`, `songs.scope = 'personal'`): qualquer membro cria os seus em `/repertorio`; só quem criou vê e edita (nem os donos da banda). Repertórios pessoais podem usar músicas da banda e as próprias; repertórios oficiais de show só usam músicas da banda.
-* **Ainda não feito:** leitura offline dos próximos shows.
+* **Leitura offline dos próximos shows** (`app/api/offline-prefetch/route.ts`, `components/offline-setup.tsx`, `public/sw.js`): ao carregar o app, o cliente busca as próximas gigs do usuário (e as respectivas páginas de palco) e manda o service worker cachear essas páginas via `postMessage({ type: 'PREFETCH', urls })` — assim elas ficam legíveis offline mesmo sem terem sido abertas antes (ex: show sem sinal).
 
 ## 17. Rateio entre sócios, contratante e recibo (Fase 3)
 

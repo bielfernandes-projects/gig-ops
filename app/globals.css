@@ -159,3 +159,13 @@
 @media (prefers-reduced-motion: reduce) {
   .setlist .st > span, .setlist .tot > span { transition: none; }
 }
+
+/* Feature carousel: continuous marquee, paused on hover/press */
+@keyframes gg-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.gg-marquee-track { animation: gg-marquee linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .gg-marquee-track { animation: none; }
+}

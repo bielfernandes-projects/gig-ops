@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 
@@ -47,26 +48,28 @@ export function ClickableShot({
           <div className={`overflow-hidden transition-opacity hover:opacity-90 ${bare ? '' : 'border-2 border-[var(--l-fg)]'}`}>{image}</div>
         )}
       </button>
-      {open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={shot.alt}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4 sm:p-8"
-          onClick={() => setOpen(false)}
-        >
-          <button
-            type="button"
-            aria-label="Fechar"
+      {open &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={shot.alt}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4 sm:p-8"
             onClick={() => setOpen(false)}
-            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
           >
-            <X className="h-6 w-6" />
-          </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={shot.src} alt={shot.alt} className="max-h-full max-w-full object-contain" onClick={(e) => e.stopPropagation()} />
-        </div>
-      )}
+            <button
+              type="button"
+              aria-label="Fechar"
+              onClick={() => setOpen(false)}
+              className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={shot.src} alt={shot.alt} className="max-h-full max-w-full object-contain" onClick={(e) => e.stopPropagation()} />
+          </div>,
+          document.body
+        )}
     </>
   );
 }
@@ -101,51 +104,30 @@ function DeviceChrome({ device, children }: { device: Device; children: React.Re
   );
 }
 
-/** Auto-advancing carousel: pauses on hover, and stays paused once the viewer interacts with it. */
+/**
+ * Continuously scrolling carousel (CSS marquee, no step-then-pause jumps). Hovering (desktop) or
+ * touching-and-holding (mobile) pauses the motion; a plain click/tap still opens the lightbox.
+ */
 export function FeatureCarousel({ shots }: { shots: (Shot & { caption: string })[] }) {
-  const [index, setIndex] = useState(0);
-  const [hovering, setHovering] = useState(false);
-  const [interacted, setInteracted] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const track = [...shots, ...shots];
+  const durationSeconds = shots.length * 6;
 
-  useEffect(() => {
-    if (hovering || interacted) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % shots.length), 4000);
-    return () => clearInterval(id);
-  }, [hovering, interacted, shots.length]);
-
-  const stop = () => setInteracted(true);
+  const pause = () => setPaused(true);
+  const resume = () => setPaused(false);
 
   return (
-    <div onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)} onClickCapture={stop}>
-      <div className="overflow-hidden border-2 border-[var(--l-fg)]">
-        <div
-          className="flex transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
-          style={{ transform: `translateX(-${index * 100}%)` }}
-        >
-          {shots.map((s) => (
-            <div key={s.src} className="w-full shrink-0">
-              <ClickableShot shot={s} bare sizes="(min-width: 640px) 70vw, 100vw" />
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="mt-4 flex items-center justify-between gap-4">
-        <p className="text-sm font-bold sm:text-base">{shots[index].caption}</p>
-        <div className="flex shrink-0 gap-2">
-          {shots.map((s, i) => (
-            <button
-              key={s.src}
-              type="button"
-              onClick={() => {
-                stop();
-                setIndex(i);
-              }}
-              aria-label={`Ver ${s.caption}`}
-              aria-current={i === index}
-              className={`h-2.5 w-2.5 rounded-full border border-[var(--l-fg)] transition-colors ${i === index ? 'bg-[var(--l-fg)]' : 'bg-transparent'}`}
-            />
-          ))}
-        </div>
+    <div className="overflow-hidden border-2 border-[var(--l-fg)]" onMouseEnter={pause} onMouseLeave={resume} onTouchStart={pause} onTouchEnd={resume}>
+      <div
+        className="gg-marquee-track flex w-max"
+        style={{ animationDuration: `${durationSeconds}s`, animationPlayState: paused ? 'paused' : 'running' }}
+      >
+        {track.map((s, i) => (
+          <div key={`${s.src}-${i}`} className="w-[min(85vw,42rem)] shrink-0 px-2">
+            <ClickableShot shot={s} bare sizes="(min-width: 640px) 42rem, 85vw" />
+            <p className="mt-3 text-center text-sm font-bold sm:text-base">{s.caption}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -27,7 +27,7 @@ const jsonLd = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, iOS, Android',
   description,
-  url: 'https://www.gigueiros.com.br',
+  url: 'https://gigueiros.com.br',
   offers: {
     '@type': 'Offer',
     price: '49.90',

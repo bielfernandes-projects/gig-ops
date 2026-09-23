@@ -10,7 +10,7 @@ import { ThemeToaster } from '@/components/theme-toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.gigueiros.com.br'),
+  metadataBase: new URL('https://gigueiros.com.br'),
   title: { default: 'Gigueiros', template: '%s' },
   description: 'Gestão Logística e Financeira Musical',
   icons: {
