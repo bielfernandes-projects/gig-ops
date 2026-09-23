@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getUserInfo } from '@/lib/auth';
+import { getUserInfo, ownedBands } from '@/lib/auth';
+import { BandSwitcher } from '@/components/band-switcher';
+import { BandTag } from '@/components/band-tag';
 import { createClient } from '@/lib/supabase/server';
 import { brl, gigFinance, splitProfit } from '@/lib/finance';
 
-type GigRow = { id: string; title: string; start_time: string; gross_value: number; bring_sound: boolean | null; sound_cost: number | null; event_type: string | null; track_receipts: boolean | null };
-type OverdueRow = { id: string; title: string; start_time: string; gross_value: number; gig_payments: { amount: number }[] | null };
+type GigRow = { id: string; title: string; start_time: string; gross_value: number; bring_sound: boolean | null; sound_cost: number | null; event_type: string | null; track_receipts: boolean | null; band_id: string };
+type OverdueRow = { id: string; title: string; start_time: string; gross_value: number; band_id: string; gig_payments: { amount: number }[] | null };
 
 export const revalidate = 0;
 
@@ -65,9 +67,12 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const { m: rawMonth, view } = await searchParams;
   const info = await getUserInfo();
   if (!info.userId) redirect('/login');
-  if (!info.bandId) redirect('/onboarding');
+  if (info.memberships.length === 0) redirect('/onboarding');
 
-  const isOwner = info.role === 'admin';
+  // Band report = the bands the person owns within the current view (all of them in "Todas as bandas").
+  const ownedIds = ownedBands(info).map((b) => b.bandId);
+  const isOwner = ownedIds.length > 0;
+  const tagOf = (bandId: string) => (info.allBands ? <BandTag name={info.bands[bandId]?.name} className="ml-2" /> : null);
   const mode: 'banda' | 'meus' = isOwner && view !== 'meus' ? 'banda' : 'meus';
   const { y, m } = parseMonth(rawMonth);
   const prev = shift(y, m, -1);
@@ -86,6 +91,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         </p>
       </div>
       <div className="flex flex-col items-end gap-3">
+        <BandSwitcher memberships={info.memberships} currentBandId={info.bandId} />
         {isOwner && (
           <div className="flex rounded-lg border border-zinc-800 p-0.5 text-xs font-semibold">
             <Link href={`/relatorio?m=${asParam(y, m)}`} className={`rounded-md px-3 py-1.5 ${mode === 'banda' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400'}`}>
@@ -117,7 +123,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   // ───────────────────────── Meus cachês (todas as bandas) ─────────────────────────
   if (mode === 'meus') {
     const memberFilter = info.email ? `user_id.eq.${info.userId},email.eq."${info.email}"` : `user_id.eq.${info.userId}`;
-    const { data: myMembers } = await supabase.from('go_members').select('id').or(memberFilter);
+    const { data: myMembers } = await supabase.from('go_members').select('id').in('band_id', info.bandIds).or(memberFilter);
     const myIds = (myMembers ?? []).map((r) => r.id as string);
 
     const { data: myLineup } = myIds.length
@@ -190,16 +196,16 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const [{ data: gigs }, { data: overdueRows }] = await Promise.all([
     supabase
       .from('go_gigs')
-      .select('id, title, start_time, gross_value, bring_sound, sound_cost, event_type, track_receipts')
-      .eq('band_id', info.bandId)
+      .select('id, title, start_time, gross_value, bring_sound, sound_cost, event_type, track_receipts, band_id')
+      .in('band_id', ownedIds)
       .gte('start_time', seriesStart.toISOString())
       .lt('start_time', end.toISOString())
       .order('start_time', { ascending: true }) as unknown as Promise<{ data: GigRow[] | null }>,
     // every show already played whose cachê is still (partly) unpaid, in any month
     supabase
       .from('go_gigs')
-      .select('id, title, start_time, gross_value, gig_payments(amount)')
-      .eq('band_id', info.bandId)
+      .select('id, title, start_time, gross_value, band_id, gig_payments(amount)')
+      .in('band_id', ownedIds)
       .eq('track_receipts', true)
       .lt('start_time', new Date().toISOString())
       .order('start_time', { ascending: true }) as unknown as Promise<{ data: OverdueRow[] | null }>,
@@ -273,8 +279,10 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
 
   const pendingGigs = month.filter((r) => r.fin.pending > 0).sort((a, b) => b.fin.pending - a.fin.pending);
 
-  // profit split among the band owners (only when there is more than one)
-  const { data: ownerRows } = await supabase.from('band_members').select('user_id, profit_share').eq('band_id', info.bandId).eq('role', 'owner');
+  // profit split among the band owners (only when there is more than one; per band, so not in "Todas as bandas")
+  const { data: ownerRows } = info.bandId
+    ? await supabase.from('band_members').select('user_id, profit_share').eq('band_id', info.bandId).eq('role', 'owner')
+    : { data: [] };
   const owners = (ownerRows ?? []) as { user_id: string; profit_share: number | null }[];
   const { data: ownerProfiles } = owners.length > 1 ? await supabase.from('go_profiles').select('id, email, display_name').in('id', owners.map((o) => o.user_id)) : { data: [] };
   const emailOf = new Map((ownerProfiles ?? []).map((p) => [p.id as string, ((p.display_name as string | null) || p.email) as string]));
@@ -296,6 +304,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                 <Link href={`/gigs/${g.id}`} className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-white">
                   <span className="min-w-0 truncate text-zinc-300">
                     {g.title}
+                    {tagOf(g.band_id)}
                     <span className="ml-2 text-xs text-zinc-500">{new Date(g.start_time).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'America/Sao_Paulo' })}</span>
                   </span>
                   <span className="shrink-0 font-semibold tabular-nums text-amber-300">{brl(owed)}</span>
@@ -372,7 +381,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
             {pendingGigs.map((r) => (
               <li key={r.g.id}>
                 <Link href={`/gigs/${r.g.id}`} className="flex items-center justify-between gap-3 py-3 text-sm hover:opacity-80">
-                  <span className="min-w-0 truncate text-zinc-300">{dayLabel(r.g.start_time)} · {r.g.title}</span>
+                  <span className="min-w-0 truncate text-zinc-300">{dayLabel(r.g.start_time)} · {r.g.title}{tagOf(r.g.band_id)}</span>
                   <span className="shrink-0 font-semibold tabular-nums text-amber-300">{brl(r.fin.pending)}</span>
                 </Link>
               </li>

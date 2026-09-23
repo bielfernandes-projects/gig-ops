@@ -18,6 +18,7 @@ import {
 } from '@/app/profile/actions';
 import type { BandOption } from '@/components/band-switcher';
 import type { SubscriptionState } from '@/lib/subscription';
+import { ALL_BANDS } from '@/lib/band-view';
 
 export type BandMemberView = { userId: string; email: string; label: string; role: 'owner' | 'member'; isSelf: boolean; share: number | null };
 
@@ -82,6 +83,15 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
         <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
           <Users className="w-5 h-5 text-indigo-400" />
           <h3 className="text-zinc-100 font-bold">Suas bandas</h3>
+          {memberships.length > 1 && bandId && (
+            <button
+              type="button"
+              onClick={() => run(() => switchBand(ALL_BANDS), 'Mostrando todas as bandas.')}
+              className="ml-auto rounded-md border border-zinc-700 px-2.5 py-1 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
+            >
+              Ver todas
+            </button>
+          )}
         </div>
 
         <ul className="flex flex-col gap-2">
@@ -157,6 +167,13 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
           </form>
         </div>
       </section>
+
+      {/* In "Todas as bandas" there is no single band to manage: point to "Usar" above. */}
+      {!bandId && memberships.some((m) => m.role === 'owner') && (
+        <p className="rounded-xl border border-dashed border-zinc-800 px-4 py-3 text-sm text-zinc-400">
+          Você está vendo <strong className="text-zinc-200">todas as bandas</strong>. Para gerenciar uma delas (nome, código de convite, sócios e assinatura), toque em <strong className="text-zinc-200">Usar</strong> na banda acima.
+        </p>
+      )}
 
       {/* ─── GESTÃO DA BANDA (DONO) ─── */}
       {role === 'admin' && bandId && (

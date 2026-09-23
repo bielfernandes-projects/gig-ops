@@ -1,10 +1,10 @@
 'use server';
 
-import { requireOwner } from '@/lib/auth';
+import { requireOwner, requireOwnerFor } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
 export async function addMember(formData: FormData) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwner(undefined, formData.get('band_id') as string | null);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -44,7 +44,7 @@ export async function addMember(formData: FormData) {
 }
 
 export async function updateMember(formData: FormData) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_members', formData.get('id') as string);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -83,7 +83,7 @@ export async function updateMember(formData: FormData) {
 }
 
 export async function toggleMemberFixed(memberId: string, isFixed: boolean) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_members', memberId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -104,7 +104,7 @@ export async function toggleMemberFixed(memberId: string, isFixed: boolean) {
 }
 
 export async function deleteMember(memberId: string) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_members', memberId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 

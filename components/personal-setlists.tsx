@@ -6,11 +6,15 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus, Lock } from 'lucide-react';
 import { createPersonalSetlist } from '@/app/actions/setlist-actions';
+import { BandTag } from '@/components/band-tag';
+import type { BandChoice } from '@/components/band-select-field';
 
 /** "Meus repertórios": setlists only the creator sees (e.g. blocks a member can sing when asked). */
-export function PersonalSetlists({ lists }: { lists: { id: string; name: string }[] }) {
+export function PersonalSetlists({ lists, bands }: { lists: { id: string; name: string; bandName?: string }[]; bands: BandChoice[] }) {
   const router = useRouter();
   const [name, setName] = useState('');
+  // A personal setlist still hangs off a band (it can use that band's catalog).
+  const [bandId, setBandId] = useState(bands[0]?.bandId ?? '');
   const [pending, setPending] = useState(false);
 
   return (
@@ -26,7 +30,7 @@ export function PersonalSetlists({ lists }: { lists: { id: string; name: string 
         onSubmit={async (e) => {
           e.preventDefault();
           setPending(true);
-          const res = await createPersonalSetlist(name);
+          const res = await createPersonalSetlist(name, bandId);
           setPending(false);
           if (res?.error) return toast.error(res.error);
           setName('');
@@ -40,6 +44,18 @@ export function PersonalSetlists({ lists }: { lists: { id: string; name: string 
           aria-label="Nome do novo repertório pessoal"
           className="min-w-0 flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
         />
+        {bands.length > 1 && (
+          <select
+            value={bandId}
+            onChange={(e) => setBandId(e.target.value)}
+            aria-label="Banda do repertório"
+            className="max-w-[40%] rounded-md border border-zinc-800 bg-zinc-900 px-2 py-2 text-sm text-zinc-100 focus:border-zinc-600 focus:outline-none"
+          >
+            {bands.map((b) => (
+              <option key={b.bandId} value={b.bandId}>{b.name}</option>
+            ))}
+          </select>
+        )}
         <button
           type="submit"
           disabled={pending || !name.trim()}
@@ -57,8 +73,9 @@ export function PersonalSetlists({ lists }: { lists: { id: string; name: string 
         <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900">
           {lists.map((l) => (
             <li key={l.id}>
-              <Link href={`/repertorio/lista/${l.id}`} className="block px-4 py-3 text-sm font-semibold text-zinc-100 hover:bg-zinc-800/40">
-                {l.name}
+              <Link href={`/repertorio/lista/${l.id}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-zinc-100 hover:bg-zinc-800/40">
+                <span className="min-w-0 truncate">{l.name}</span>
+                <BandTag name={l.bandName} />
               </Link>
             </li>
           ))}

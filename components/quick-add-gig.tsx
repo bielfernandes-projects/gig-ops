@@ -16,8 +16,31 @@ interface LineupEntry {
   fee_amount: number;
 }
 
-export function QuickAddGig({ projects, members, cloneData, defaultMemberIds }: { projects: GoProject[]; members: GoMember[]; cloneData?: Partial<GoGig> | null; defaultMemberIds?: string[] }) {
+type BandChoice = { bandId: string; name: string };
+
+/**
+ * New-show form. `bands` are the bands the person owns in the current view; with more than one
+ * (the "Todas as bandas" view) the form asks which band the show belongs to, and projects/crew
+ * follow that choice.
+ */
+export function QuickAddGig({
+  projects: allProjects,
+  members: allMembers,
+  cloneData,
+  defaultMemberIds: allDefaultMemberIds,
+  bands,
+}: {
+  projects: GoProject[];
+  members: GoMember[];
+  cloneData?: Partial<GoGig> | null;
+  defaultMemberIds?: string[];
+  bands: BandChoice[];
+}) {
   const router = useRouter();
+  const [bandId, setBandId] = useState(() => (cloneData?.band_id && bands.some((b) => b.bandId === cloneData.band_id) ? cloneData.band_id : bands[0]?.bandId) ?? '');
+  const projects = allProjects.filter((p) => p.band_id === bandId);
+  const members = allMembers.filter((m) => m.band_id === bandId);
+  const defaultMemberIds = allDefaultMemberIds?.filter((id) => members.some((m) => m.id === id));
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [recurrence, setRecurrence] = useState('none');
@@ -182,6 +205,34 @@ export function QuickAddGig({ projects, members, cloneData, defaultMemberIds }: 
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <input type="hidden" name="clone_id" value={cloneData?.id || ''} />
+              <input type="hidden" name="band_id" value={bandId} />
+
+              {bands.length > 1 && (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="band_choice" className="text-xs font-medium text-zinc-400">
+                    Banda <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    id="band_choice"
+                    value={bandId}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setBandId(next);
+                      // Crew belongs to a band: restart the lineup with the new band's fixed musicians.
+                      const nextDefaults = (allDefaultMemberIds ?? [])
+                        .map((id) => allMembers.find((m) => m.id === id && m.band_id === next))
+                        .filter((m): m is GoMember => !!m)
+                        .map((m) => ({ member_id: m.id, name: m.name, instrument: m.instrument, fee_amount: 0 }));
+                      setLineup(isClone ? [] : nextDefaults);
+                    }}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50"
+                  >
+                    {bands.map((b) => (
+                      <option key={b.bandId} value={b.bandId}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="title" className="text-xs font-medium text-zinc-400">
@@ -203,9 +254,10 @@ export function QuickAddGig({ projects, members, cloneData, defaultMemberIds }: 
                 <label htmlFor="project_id" className="text-xs font-medium text-zinc-400">
                   Projeto <span className="text-red-400">*</span>
                 </label>
-                <select 
-                  id="project_id" 
-                  name="project_id" 
+                <select
+                  key={`project-${bandId}`}
+                  id="project_id"
+                  name="project_id"
                   required
                   defaultValue={cloneData?.project_id ?? ''}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none"
@@ -352,6 +404,7 @@ export function QuickAddGig({ projects, members, cloneData, defaultMemberIds }: 
                         Responsavel pelo Som
                       </label>
                       <select
+                        key={`sound-${bandId}`}
                         id="qs-sound-person"
                         name="sound_person_id"
                         className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all appearance-none"

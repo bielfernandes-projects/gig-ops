@@ -16,15 +16,18 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   const { p: paymentId } = await searchParams;
   const info = await getUserInfo();
   if (!info.userId) redirect('/login');
-  if (info.role !== 'admin' || !info.bandId) redirect(`/gigs/${id}`);
+  // Receipts are for the owners of the gig's band (whatever the band filter says).
+  const ownedIds = info.memberships.filter((m) => m.role === 'owner').map((m) => m.bandId);
+  if (ownedIds.length === 0) redirect(`/gigs/${id}`);
 
   const supabase = await createClient();
   const [{ data: gig }, { data: payments }] = await Promise.all([
-    supabase.from('go_gigs').select('id, title, start_time, location, gross_value, client_name, track_receipts').eq('id', id).eq('band_id', info.bandId).maybeSingle(),
+    supabase.from('go_gigs').select('id, title, start_time, location, gross_value, client_name, track_receipts, band_id').eq('id', id).in('band_id', ownedIds).maybeSingle(),
     supabase.from('gig_payments').select('id, amount, paid_at, note').eq('gig_id', id).order('paid_at'),
   ]);
 
   if (!gig) redirect('/agenda');
+  const bandName = info.bands[gig.band_id as string]?.name ?? '';
 
   const list = (payments ?? []).map((p) => ({ ...p, amount: Number(p.amount) }));
   const single = paymentId ? list.find((p) => p.id === paymentId) : undefined;
@@ -50,7 +53,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
         </p>
       ) : (
         <article className="rounded-xl bg-white p-8 text-black shadow-sm md:p-12 print:rounded-none print:p-0 print:shadow-none">
-          <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500">{info.bandName}</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500">{bandName}</p>
           <h1 className="mt-1 text-3xl font-black tracking-tight">Recibo</h1>
           <p className="mt-6 text-3xl font-black tabular-nums">{brl(amount)}</p>
 
@@ -74,7 +77,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
           <div className="mt-16 flex flex-wrap items-end justify-between gap-8 text-sm">
             <p className="text-zinc-600">{issuedOn}</p>
             <div className="w-64 border-t border-black pt-2 text-center">
-              <p className="font-semibold">{info.bandName}</p>
+              <p className="font-semibold">{bandName}</p>
               <p className="text-xs text-zinc-500">Assinatura do responsável</p>
             </div>
           </div>

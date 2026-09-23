@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { BAND_COOKIE, getUserInfo, requireOwner } from '@/lib/auth';
+import { ALL_BANDS, BAND_COOKIE, getUserInfo, requireOwner } from '@/lib/auth';
 import { createBandFor, joinBandByCode, nameOf } from '@/lib/bands';
 import { sendPushToBandOwners } from '@/lib/push';
 
@@ -28,11 +28,11 @@ export async function setDisplayName(name: string) {
   return { success: true };
 }
 
-/** Switch the band the user is working in (must be one they belong to). */
+/** Switch the band the user is working in (one they belong to, or ALL_BANDS for the consolidated view). */
 export async function switchBand(bandId: string) {
   const info = await getUserInfo();
   if (!info.userId) return { error: 'Não autenticado.' };
-  if (!info.memberships.some((m) => m.bandId === bandId)) return { error: 'Você não faz parte desta banda.' };
+  if (bandId !== ALL_BANDS && !info.memberships.some((m) => m.bandId === bandId)) return { error: 'Você não faz parte desta banda.' };
 
   await rememberBand(bandId);
   revalidateAll();

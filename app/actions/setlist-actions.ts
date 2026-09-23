@@ -1,8 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireBand, requireOwner } from '@/lib/auth';
+import { bandOf, requireBand, requireOwnerFor } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 
 type Ctx = Extract<Awaited<ReturnType<typeof requireBand>>, { ok: true }>;
 type SetlistRow = { id: string; scope: 'band' | 'personal'; owner_user_id: string | null; band_id: string; gig_id: string | null };
@@ -40,9 +41,25 @@ function refresh(sl: Pick<SetlistRow, 'id' | 'gig_id'>) {
 
 const NO_PERMISSION = { error: 'Você não tem permissão para editar este repertório.' };
 
+// Band of a block / block item, so edits work from the "Todas as bandas" view too.
+type SetlistRef = { band_id: string } | { band_id: string }[] | null | undefined;
+const one = (r: SetlistRef) => (Array.isArray(r) ? r[0]?.band_id : r?.band_id) ?? null;
+
+async function blockBand(blockId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from('blocks').select('setlists!inner(band_id)').eq('id', blockId).maybeSingle();
+  return one(data?.setlists as SetlistRef);
+}
+
+async function itemBand(itemId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from('block_songs').select('block_id').eq('id', itemId).maybeSingle();
+  return data ? blockBand(data.block_id) : null;
+}
+
 /** Official setlist of a gig: band owners only. */
 export async function createGigSetlist(gigId: string) {
-  const ctx = await requireOwner('repertorio');
+  const ctx = await requireOwnerFor('go_gigs', gigId, 'repertorio');
   if (!ctx.ok) return { error: ctx.error };
 
   const { data: gig } = await ctx.supabase.from('go_gigs').select('id, title').eq('id', gigId).eq('band_id', ctx.bandId).maybeSingle();
@@ -62,8 +79,9 @@ export async function createGigSetlist(gigId: string) {
 }
 
 /** A personal setlist only its creator sees (any member of the band can have them). */
-export async function createPersonalSetlist(name: string) {
-  const ctx = await requireBand('repertorio');
+/** Personal setlists still hang off a band (its catalog is what they can use). */
+export async function createPersonalSetlist(name: string, bandId?: string | null) {
+  const ctx = await requireBand('repertorio', bandId);
   if (!ctx.ok) return { error: ctx.error };
 
   const clean = name.trim().slice(0, 80);
@@ -83,7 +101,7 @@ export async function createPersonalSetlist(name: string) {
 }
 
 export async function deleteSetlist(setlistId: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await bandOf('setlists', setlistId));
   if (!ctx.ok) return { error: ctx.error };
 
   const sl = await editableSetlist(ctx, setlistId);
@@ -97,7 +115,7 @@ export async function deleteSetlist(setlistId: string) {
 }
 
 export async function addBlock(setlistId: string, name: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await bandOf('setlists', setlistId));
   if (!ctx.ok) return { error: ctx.error };
 
   const clean = name.trim().slice(0, 80);
@@ -115,7 +133,7 @@ export async function addBlock(setlistId: string, name: string) {
 }
 
 export async function renameBlock(blockId: string, name: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await blockBand(blockId));
   if (!ctx.ok) return { error: ctx.error };
 
   const clean = name.trim().slice(0, 80);
@@ -132,7 +150,7 @@ export async function renameBlock(blockId: string, name: string) {
 }
 
 export async function deleteBlock(blockId: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await blockBand(blockId));
   if (!ctx.ok) return { error: ctx.error };
 
   const sl = await editableBlock(ctx, blockId);
@@ -147,7 +165,7 @@ export async function deleteBlock(blockId: string) {
 
 /** Swaps a block with its neighbour ('up' or 'down'). */
 export async function moveBlock(blockId: string, direction: 'up' | 'down') {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await blockBand(blockId));
   if (!ctx.ok) return { error: ctx.error };
 
   const sl = await editableBlock(ctx, blockId);
@@ -169,7 +187,7 @@ export async function moveBlock(blockId: string, direction: 'up' | 'down') {
 }
 
 export async function addSongToBlock(blockId: string, songId: string, requestedKey: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await blockBand(blockId));
   if (!ctx.ok) return { error: ctx.error };
 
   const sl = await editableBlock(ctx, blockId);
@@ -194,7 +212,7 @@ export async function addSongToBlock(blockId: string, songId: string, requestedK
 }
 
 export async function updateBlockSong(id: string, fields: { requested_key: string; note: string; transition_note: string }) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await itemBand(id));
   if (!ctx.ok) return { error: ctx.error };
 
   const item = await editableItem(ctx, id);
@@ -216,7 +234,7 @@ export async function updateBlockSong(id: string, fields: { requested_key: strin
 }
 
 export async function removeBlockSong(id: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await itemBand(id));
   if (!ctx.ok) return { error: ctx.error };
 
   const item = await editableItem(ctx, id);
@@ -230,7 +248,7 @@ export async function removeBlockSong(id: string) {
 }
 
 export async function moveBlockSong(id: string, direction: 'up' | 'down') {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await itemBand(id));
   if (!ctx.ok) return { error: ctx.error };
 
   const item = await editableItem(ctx, id);
@@ -252,7 +270,7 @@ export async function moveBlockSong(id: string, direction: 'up' | 'down') {
 
 /** Creates (or returns the active) read-only public link. The token is only ever read on the server. */
 export async function createShareLink(setlistId: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await bandOf('setlists', setlistId));
   if (!ctx.ok) return { error: ctx.error };
 
   const sl = await editableSetlist(ctx, setlistId);
@@ -270,7 +288,7 @@ export async function createShareLink(setlistId: string) {
 }
 
 export async function revokeShareLink(setlistId: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', await bandOf('setlists', setlistId));
   if (!ctx.ok) return { error: ctx.error };
 
   const sl = await editableSetlist(ctx, setlistId);

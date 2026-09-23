@@ -24,14 +24,13 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
   const info = await getUserInfo();
-  const { role, memberId: userMemberId, bandId } = info;
   const supabase = await createClient();
 
-  // Multi-tenant isolation. With no tenant (e.g. an unlinked viewer) we
-  // use a sentinel UUID so the .eq('band_id', ...) filter matches nothing
-  // and the gig becomes "não encontrado" — not "acessible to other tenant".
+  // Multi-tenant isolation: the gig must belong to one of the person's bands (whatever the band
+  // filter says — a detail page follows the gig's own band). With no band we use a sentinel UUID
+  // so the filter matches nothing and the gig becomes "não encontrado".
   const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
-  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
+  const myBandIds = info.memberships.length > 0 ? info.memberships.map((m) => m.bandId) : [SENTINEL_NO_TENANT];
 
   // Fetch Gig with Project Join (must happen first — we need the gig data).
   // We filter by band_id at the SQL layer so an unlinked viewer can never
@@ -58,7 +57,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       go_projects ( * )
     `)
     .eq('id', id)
-    .eq('band_id', effectiveTenantId)
+    .in('band_id', myBandIds)
     .single() as { data: (GigWithProject & { band_id?: string }) | null, error: PostgrestError | null };
 
   if (gigError || !gigData) {
@@ -76,6 +75,13 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       </div>
     );
   }
+
+  // Everything else is decided by the gig's band: the person's role and member id there.
+  const bandId = gigData.band_id ?? null;
+  const band = bandId ? info.bands[bandId] : undefined;
+  const role = band?.role ?? 'viewer';
+  const userMemberId = band?.memberId ?? null;
+  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
 
   // Build admin-scoped queries for members and projects
   const membersQuery = supabase

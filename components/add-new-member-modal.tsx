@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { addMember } from '@/app/actions/member-actions';
 import { toast } from 'sonner';
+import { BandSelectField, type BandChoice } from '@/components/band-select-field';
 
-export function AddNewMemberModal() {
+export function AddNewMemberModal({ bands }: { bands: BandChoice[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
@@ -57,6 +58,7 @@ export function AddNewMemberModal() {
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <BandSelectField bands={bands} />
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="name" className="text-xs font-medium text-zinc-400">
                   Nome do Músico

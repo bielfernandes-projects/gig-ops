@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireOwner } from '@/lib/auth';
+import { requireOwner, requireOwnerFor } from '@/lib/auth';
 
 function money(value: FormDataEntryValue | null): number | null {
   const n = parseFloat(String(value ?? '').replace(',', '.'));
@@ -21,7 +21,7 @@ async function ownGig(ctx: Extract<Awaited<ReturnType<typeof requireOwner>>, { o
 }
 
 export async function addExpense(formData: FormData) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', String(formData.get('gig_id') ?? ''));
   if (!ctx.ok) return { error: ctx.error };
 
   const gigId = String(formData.get('gig_id') ?? '');
@@ -43,7 +43,7 @@ export async function addExpense(formData: FormData) {
 }
 
 export async function deleteExpense(id: string, gigId: string) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
 
   const { error } = await ctx.supabase.from('gig_expenses').delete().eq('id', id).eq('band_id', ctx.bandId);
@@ -55,7 +55,7 @@ export async function deleteExpense(id: string, gigId: string) {
 
 /** Registers money received from the client (sinal, restante). Turns receipt tracking on for the gig. */
 export async function addPayment(formData: FormData) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', String(formData.get('gig_id') ?? ''));
   if (!ctx.ok) return { error: ctx.error };
 
   const gigId = String(formData.get('gig_id') ?? '');
@@ -79,7 +79,7 @@ export async function addPayment(formData: FormData) {
 }
 
 export async function deletePayment(id: string, gigId: string) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
 
   const { error } = await ctx.supabase.from('gig_payments').delete().eq('id', id).eq('band_id', ctx.bandId);
@@ -90,7 +90,7 @@ export async function deletePayment(id: string, gigId: string) {
 }
 
 export async function setTrackReceipts(gigId: string, on: boolean) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
 
   const { error } = await ctx.supabase

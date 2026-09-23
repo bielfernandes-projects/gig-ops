@@ -1,13 +1,13 @@
 'use server';
 
-import { requireOwner } from '@/lib/auth';
+import { bandOfLineup, requireOwner, requireOwnerFor } from '@/lib/auth';
 import { findConflicts } from '@/lib/conflicts';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { sendPushToMember } from '@/lib/push';
 
 export async function addQuickGig(formData: FormData) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwner(undefined, formData.get('band_id') as string | null);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -186,7 +186,7 @@ export async function addQuickGig(formData: FormData) {
 }
 
 export async function updateGig(formData: FormData) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', formData.get('id') as string);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -228,7 +228,7 @@ export async function updateGig(formData: FormData) {
 }
 
 export async function cancelGig(gigId: string, reason: string, deleteMode: 'single' | 'future' | 'all' = 'single') {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -287,7 +287,7 @@ export async function cancelGig(gigId: string, reason: string, deleteMode: 'sing
 }
 
 export async function addMemberToLineup(formData: FormData) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', formData.get('gig_id') as string);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -354,7 +354,7 @@ export async function addMemberToLineup(formData: FormData) {
 }
 
 export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolean) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwner(undefined, await bandOfLineup(lineupId));
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -403,7 +403,7 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
 }
 
 export async function removeFromLineup(lineupId: string, gigId: string) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -426,7 +426,7 @@ export async function removeFromLineup(lineupId: string, gigId: string) {
 }
 
 export async function updateLineupFee(formData: FormData) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', formData.get('gig_id') as string);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -459,7 +459,7 @@ export async function updateLineupFee(formData: FormData) {
 }
 
 export async function toggleSoundPayment(gigId: string, targetIsPaid: boolean) {
-  const ctx = await requireOwner();
+  const ctx = await requireOwnerFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 

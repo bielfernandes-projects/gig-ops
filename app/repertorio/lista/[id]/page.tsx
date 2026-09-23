@@ -8,18 +8,18 @@ import { GigSetlist, type SetlistTree, type CatalogOption } from '@/components/g
 
 export const revalidate = 0;
 
-type Personal = SetlistTree & { scope: 'band' | 'personal'; owner_user_id: string | null };
+type Personal = SetlistTree & { scope: 'band' | 'personal'; owner_user_id: string | null; band_id: string };
 
 export default async function PersonalSetlistPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const info = await getUserInfo();
   if (!info.userId) redirect('/login');
-  if (!info.bandId) redirect('/onboarding');
+  if (info.memberships.length === 0) redirect('/onboarding');
 
   const supabase = await createClient();
   const { data: setlist } = (await supabase
     .from('setlists')
-    .select('id, name, scope, owner_user_id, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text, pdf_path)))')
+    .select('id, name, scope, owner_user_id, band_id, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text, pdf_path)))')
     .eq('id', id)
     .maybeSingle()) as unknown as { data: Personal | null };
 
@@ -34,7 +34,7 @@ export default async function PersonalSetlistPage({ params }: { params: Promise<
   }
 
   const [{ data: catalog }, { data: link }] = await Promise.all([
-    supabase.from('songs').select('id, title, artist, original_key').eq('band_id', info.bandId).order('title') as unknown as Promise<{ data: CatalogOption[] | null }>,
+    supabase.from('songs').select('id, title, artist, original_key').eq('band_id', setlist.band_id).order('title') as unknown as Promise<{ data: CatalogOption[] | null }>,
     createAdminClient().from('setlist_share_links').select('token').eq('setlist_id', setlist.id).is('revoked_at', null).limit(1).maybeSingle(),
   ]);
 

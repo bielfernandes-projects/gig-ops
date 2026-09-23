@@ -1,31 +1,25 @@
 import { redirect } from 'next/navigation';
 import { getUserInfo } from '@/lib/auth';
+import { toBandRoles } from '@/lib/band-view';
 import { createClient } from '@/lib/supabase/server';
 import { GigWithProject, GoLineup } from '@/lib/types';
 import DashboardClient from '@/components/dashboard-client';
 
 export const revalidate = 0;
 
-const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
-
 export default async function DashboardPage() {
-  const { role, memberId: userMemberId, bandId, bandName, memberships, subscription } = await getUserInfo();
-  if (!bandId) redirect('/onboarding');
+  const info = await getUserInfo();
+  if (info.memberships.length === 0) redirect('/onboarding');
   const supabase = await createClient();
 
-  // Multi-tenant isolation. With no tenant (e.g. an unlinked viewer) we use
-  // a sentinel UUID so the .eq('band_id', ...) filter matches nothing,
-  // and the page renders with empty data — not data from other tenants.
-  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
-
-  // Build gig query with tenant isolation
+  // Tenant isolation: only the bands in the current view (one band, or all of the person's bands).
   const { data: gigsData } = await supabase
     .from('go_gigs')
     .select(`
-      id, project_id, title, start_time, end_time, gross_value, bring_sound, sound_cost, is_sound_paid,
+      id, project_id, title, start_time, end_time, gross_value, bring_sound, sound_cost, is_sound_paid, band_id,
       go_projects ( name, color_hex )
     `)
-    .eq('band_id', effectiveTenantId)
+    .in('band_id', info.bandIds)
     .order('start_time', { ascending: true }) as unknown as { data: GigWithProject[] | null };
   const allGigs = gigsData || [];
 
@@ -41,14 +35,15 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      role={role}
-      userMemberId={userMemberId}
+      role={info.role}
+      bandRoles={toBandRoles(info.bands)}
+      allBands={info.allBands}
       gigs={allGigs}
       lineups={lineups}
-      bandId={bandId}
-      bandName={bandName}
-      memberships={memberships}
-      subscription={subscription}
+      bandId={info.bandId}
+      bandName={info.bandName}
+      memberships={info.memberships}
+      subscription={info.subscription}
     />
   );
 }

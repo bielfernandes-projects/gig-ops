@@ -34,7 +34,7 @@ function cifraClubSearch(title: string, artist: string) {
   return `https://www.cifraclub.com.br/?q=${encodeURIComponent(`${title} ${artist}`.trim())}`;
 }
 
-function SongForm({ song, onDone }: { song: CatalogSong | null; onDone: () => void }) {
+function SongForm({ song, bandId, onDone }: { song: CatalogSong | null; bandId: string; onDone: () => void }) {
   const router = useRouter();
   const [title, setTitle] = useState(song?.title ?? '');
   const [artist, setArtist] = useState(song?.artist ?? '');
@@ -57,6 +57,7 @@ function SongForm({ song, onDone }: { song: CatalogSong | null; onDone: () => vo
       }}
       className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-950 p-4"
     >
+      <input type="hidden" name="band_id" value={bandId} />
       <div className="grid gap-3 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
           Música
@@ -140,7 +141,8 @@ function SongForm({ song, onDone }: { song: CatalogSong | null; onDone: () => vo
   );
 }
 
-export function CatalogClient({ songs, userId, isOwner }: { songs: CatalogSong[]; userId: string; isOwner: boolean }) {
+/** Catalog of one band (`bandId` is where new songs go). */
+export function CatalogClient({ songs, userId, isOwner, bandId }: { songs: CatalogSong[]; userId: string; isOwner: boolean; bandId: string }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<CatalogSong | 'new' | null>(null);
@@ -175,7 +177,7 @@ export function CatalogClient({ songs, userId, isOwner }: { songs: CatalogSong[]
 
       {editing && (
         <div className="mb-4">
-          <SongForm key={editing === 'new' ? 'new' : editing.id} song={editing === 'new' ? null : editing} onDone={() => setEditing(null)} />
+          <SongForm key={editing === 'new' ? 'new' : editing.id} song={editing === 'new' ? null : editing} bandId={bandId} onDone={() => setEditing(null)} />
         </div>
       )}
 

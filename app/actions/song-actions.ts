@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireBand, type BandContext } from '@/lib/auth';
+import { requireBand, requireBandFor, type BandContext } from '@/lib/auth';
 
 const PDF_BUCKET = 'song-pdfs';
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
@@ -45,7 +45,7 @@ function invalid(song: ReturnType<typeof readSong>): string | null {
 
 /** Any band member can add songs to the band catalog. */
 export async function addSong(formData: FormData) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBand('repertorio', formData.get('band_id') as string | null);
   if (!ctx.ok) return { error: ctx.error };
 
   const song = readSong(formData);
@@ -80,7 +80,7 @@ export async function addSong(formData: FormData) {
 
 /** Owners edit any song; other members edit the ones they created (enforced by RLS too). */
 export async function updateSong(id: string, formData: FormData) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBandFor('songs', id, 'repertorio');
   if (!ctx.ok) return { error: ctx.error };
 
   const song = readSong(formData);
@@ -110,7 +110,7 @@ export async function updateSong(id: string, formData: FormData) {
 }
 
 export async function deleteSong(id: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBandFor('songs', id, 'repertorio');
   if (!ctx.ok) return { error: ctx.error };
 
   // Storage RLS checks the song row still exists, so the PDF must go before the song does.
@@ -125,7 +125,7 @@ export async function deleteSong(id: string) {
 
 /** Signed URL to view a song's PDF; storage RLS enforces the same permission as reading the song. */
 export async function getSongPdfUrl(songId: string) {
-  const ctx = await requireBand('repertorio');
+  const ctx = await requireBandFor('songs', songId, 'repertorio');
   if (!ctx.ok) return { error: ctx.error };
 
   const { data, error } = await ctx.supabase.storage.from(PDF_BUCKET).createSignedUrl(`${songId}.pdf`, 300);

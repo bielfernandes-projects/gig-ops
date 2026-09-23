@@ -5,8 +5,9 @@ import { Plus, X, Loader2 } from 'lucide-react';
 import { addProject } from '@/app/actions/project-actions';
 import { toast } from 'sonner';
 import { HexColorPicker } from 'react-colorful';
+import { BandSelectField, type BandChoice } from '@/components/band-select-field';
 
-export function AddProjectModal() {
+export function AddProjectModal({ bands }: { bands: BandChoice[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [color, setColor] = useState('#3b82f6');
@@ -61,6 +62,7 @@ export function AddProjectModal() {
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <BandSelectField bands={bands} />
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="name" className="text-xs font-medium text-zinc-400">
                   Nome do Formato

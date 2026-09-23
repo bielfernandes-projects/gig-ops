@@ -8,9 +8,11 @@ import { PostgrestError } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 import { redirect } from 'next/navigation';
-import { getUserInfo } from '@/lib/auth';
+import { getUserInfo, ownedBands } from '@/lib/auth';
 import { Suspense } from 'react';
 import { AgendaCalendar } from '@/components/agenda-calendar';
+import { BandSwitcher } from '@/components/band-switcher';
+import { BandTag } from '@/components/band-tag';
 
 export const revalidate = 0;
 
@@ -118,63 +120,61 @@ export default async function Home({
   };
 
   // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const { role, memberId: userMemberId, bandId } = await getUserInfo();
-  if (!bandId) redirect('/onboarding');
+  const info = await getUserInfo();
+  if (info.memberships.length === 0) redirect('/onboarding');
+  const { bandIds, bands, allBands } = info;
   const supabase = await createClient();
 
-  // Multi-tenant isolation: every read is scoped to a single "tenant admin id".
-  //   - Admins own themselves (userId).
-  //   - Everyone is scoped to the band they are currently working in (bandId).
-  //   - Without a tenant id we MUST return nothing (defense in depth).
-  //     Using a sentinel UUID that no row can match (Postgres "all-0" UUID)
-  //     ensures RLS-equivalent isolation at the application layer even when
-  //     the viewer is unlinked.
-  const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
-  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
+  // Multi-tenant isolation: every read is scoped to the bands in the current view (one band, or
+  // all of the person's bands). Role and member id are decided per gig, by the gig's band.
+  const roleOf = (gig: GigWithProject) => (gig.band_id ? bands[gig.band_id]?.role : undefined) ?? 'viewer';
+  const myIdOf = (gig: GigWithProject) => (gig.band_id ? bands[gig.band_id]?.memberId : null) ?? null;
+  const owned = ownedBands(info);
+  const ownedIds = owned.map((b) => b.bandId);
 
-  // Build queries with tenant-admin isolation
-  let gigsQuery = supabase
+  const gigsQuery = supabase
     .from('go_gigs')
     .select(`
-      id, project_id, title, location, start_time, end_time, gross_value, 
-      bring_sound, sound_cost, sound_person_id, notes, is_sound_paid,
+      id, project_id, title, location, start_time, end_time, gross_value,
+      bring_sound, sound_cost, sound_person_id, notes, is_sound_paid, band_id,
       go_projects ( name, color_hex )
     `)
-    .eq('band_id', effectiveTenantId)
+    .in('band_id', bandIds)
     .order('start_time', { ascending: true });
 
-  let projectsQuery = supabase
+  const projectsQuery = supabase
     .from('go_projects')
     .select('*')
-    .eq('band_id', effectiveTenantId)
+    .in('band_id', bandIds)
     .order('name', { ascending: true });
 
-  let membersQuery = supabase
+  // Only owners create shows, so the new-show form only needs the crews of the bands they own.
+  const membersQuery = supabase
     .from('go_members')
     .select('*')
-    .eq('band_id', effectiveTenantId)
+    .in('band_id', ownedIds)
     .order('name', { ascending: true });
 
   const ownersQuery = supabase
     .from('band_members')
-    .select('user_id')
-    .eq('band_id', effectiveTenantId)
+    .select('user_id, band_id')
+    .in('band_id', ownedIds)
     .eq('role', 'owner');
 
   // Parallel data fetching — all queries run simultaneously
   const [gigsResult, projectsResult, cloneResult, membersResult, ownersResult] = await Promise.all([
     gigsQuery as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
     projectsQuery as unknown as Promise<{ data: GoProject[] | null }>,
-    cloneId && bandId
+    cloneId && ownedIds.length > 0
       ? supabase
           .from('go_gigs')
-          .select('id, project_id, title, location, gross_value, bring_sound, sound_cost, sound_person_id, notes')
+          .select('id, project_id, title, location, gross_value, bring_sound, sound_cost, sound_person_id, notes, band_id')
           .eq('id', cloneId)
-          .eq('band_id', bandId)
+          .in('band_id', ownedIds)
           .single() as unknown as Promise<{ data: Partial<GigWithProject> | null }>
       : Promise.resolve({ data: null }),
     membersQuery as unknown as Promise<{ data: GoMember[] | null }>,
-    ownersQuery as unknown as Promise<{ data: { user_id: string }[] | null }>,
+    ownersQuery as unknown as Promise<{ data: { user_id: string; band_id: string }[] | null }>,
   ]);
 
   const allGigs = gigsResult.data || [];
@@ -182,9 +182,9 @@ export default async function Home({
   const projects = projectsResult.data || [];
   const cloneData = cloneResult.data ?? null;
   const members = membersResult.data || [];
-  const ownerUserIds = new Set((ownersResult.data || []).map((o) => o.user_id));
+  const ownerKeys = new Set((ownersResult.data || []).map((o) => `${o.band_id}:${o.user_id}`));
   const defaultMemberIds = members
-    .filter((m) => m.is_fixed || (m.user_id && ownerUserIds.has(m.user_id)))
+    .filter((m) => m.is_fixed || (m.user_id && ownerKeys.has(`${m.band_id}:${m.user_id}`)))
     .map((m) => m.id);
 
   // Fetch lineups only for the gigs we already have — this is the multi-tenant seam.
@@ -200,11 +200,9 @@ export default async function Home({
     lineups = (data as GoLineup[] | null) || [];
   }
 
-  // Admins see every gig in their tenant. Viewers see only gigs where they
-  // (their resolved go_members.id) appear in the lineup.
-  let visibleGigs = (role === 'admin')
-    ? allGigs
-    : allGigs.filter(gig => lineups.some(l => l.gig_id === gig.id && l.member_id === userMemberId));
+  // Owners see every gig of their band. Musicians see only gigs where they
+  // (their go_members.id in that band) appear in the lineup.
+  let visibleGigs = allGigs.filter(gig => roleOf(gig) === 'admin' || lineups.some(l => l.gig_id === gig.id && l.member_id === myIdOf(gig)));
 
   // Filter by selected project
   if (project !== 'all') {
@@ -219,12 +217,12 @@ export default async function Home({
     
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
     
-    if (role === 'admin') {
+    if (roleOf(gig) === 'admin') {
       const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
       const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
       return anyMusicianUnpaid || soundUnpaid;
     } else {
-      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+      const myLineup = gigLineups.find(l => l.member_id === myIdOf(gig));
       return myLineup && myLineup.status !== 'pago';
     }
   });
@@ -237,44 +235,44 @@ export default async function Home({
   // My cachê on the shows still to come (respects the current filter).
   const upcomingFee = filtered.reduce((acc, gig) => {
     if (new Date(gig.start_time) < now2) return acc;
-    const myLineup = lineups.find(l => l.gig_id === gig.id && l.member_id === userMemberId);
+    const myLineup = lineups.find(l => l.gig_id === gig.id && l.member_id === myIdOf(gig));
     return acc + (myLineup ? myLineup.fee_amount : 0);
   }, 0);
 
   // My cachê on shows already played that has not been paid to me yet.
   const feeToReceive = pendingGigs.reduce((acc, gig) => {
-    const myLineup = lineups.find(l => l.gig_id === gig.id && l.member_id === userMemberId);
+    const myLineup = lineups.find(l => l.gig_id === gig.id && l.member_id === myIdOf(gig));
     return acc + (myLineup && myLineup.status !== 'pago' ? myLineup.fee_amount : 0);
   }, 0);
 
-  // Owners: what the band still owes its crew (musicians + sound) for shows already played.
-  const feeToPay = role === 'admin'
-    ? pendingGigs.reduce((acc, gig) => {
-        const unpaid = lineups.filter(l => l.gig_id === gig.id && l.status !== 'pago').reduce((s, l) => s + l.fee_amount, 0);
-        const sound = gig.bring_sound && !gig.is_sound_paid ? Number(gig.sound_cost ?? 0) : 0;
-        return acc + unpaid + sound;
-      }, 0)
-    : 0;
+  // Owners: what their bands still owe the crew (musicians + sound) for shows already played.
+  const feeToPay = pendingGigs.reduce((acc, gig) => {
+    if (roleOf(gig) !== 'admin') return acc;
+    const unpaid = lineups.filter(l => l.gig_id === gig.id && l.status !== 'pago').reduce((s, l) => s + l.fee_amount, 0);
+    const sound = gig.bring_sound && !gig.is_sound_paid ? Number(gig.sound_cost ?? 0) : 0;
+    return acc + unpaid + sound;
+  }, 0);
 
   // "Shows Total" stat:
-  //   - Admin: every gig in their tenant (all statuses, past + future).
-  //   - Viewer: only past gigs where they were actually in the lineup
+  //   - Owner: every gig of the band (all statuses, past + future).
+  //   - Musician: only past gigs where they were actually in the lineup
   //     (cancelled gigs that never happened don't count).
-  const totalShows = role === 'admin'
-    ? allGigs.length
-    : allGigs.filter(gig => {
-        const gigDate = new Date(gig.start_time);
-        if (gigDate >= now2) return false; // only past
-        return lineups.some(l => l.gig_id === gig.id && l.member_id === userMemberId);
-      }).length;
+  const totalShows = allGigs.filter(gig => {
+    if (roleOf(gig) === 'admin') return true;
+    if (new Date(gig.start_time) >= now2) return false; // only past
+    return lineups.some(l => l.gig_id === gig.id && l.member_id === myIdOf(gig));
+  }).length;
+
+  const bandNameOf = (gig: GigWithProject) => (allBands && gig.band_id ? bands[gig.band_id]?.name : undefined);
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50 mb-6">
-          Agenda
-        </h1>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50">Agenda</h1>
+          <BandSwitcher memberships={info.memberships} currentBandId={info.bandId} />
+        </div>
 
         {/* Stats strip */}
         <div className="flex gap-3 overflow-x-auto pb-3 snap-x hide-scrollbar mb-6">
@@ -286,7 +284,7 @@ export default async function Home({
             <span className="text-xs font-medium text-zinc-500 block mb-1">A receber</span>
             <span className={`text-xl font-bold ${feeToReceive > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>R$ {feeToReceive.toFixed(2)}</span>
           </div>
-          {role === 'admin' && (
+          {owned.length > 0 && (
             <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
               <span className="text-xs font-medium text-zinc-500 block mb-1">A pagar à equipe</span>
               <span className={`text-xl font-bold ${feeToPay > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>R$ {feeToPay.toFixed(2)}</span>
@@ -347,7 +345,7 @@ export default async function Home({
             {tab !== 'all' && (
               <p className="text-zinc-500 text-sm mt-1">Tente a <span className="text-zinc-400 font-semibold">Agenda Completa</span>.</p>
             )}
-            {role === 'admin' && tab === 'all' && (
+            {owned.length > 0 && tab === 'all' && (
               <p className="text-zinc-500 text-sm mt-1">Toque no + para agendar o primeiro show.</p>
             )}
           </div>
@@ -373,18 +371,18 @@ export default async function Home({
                   
                   let isFullyPaid = false;
                   if (isPast) {
-                    if (role === 'admin') {
+                    if (roleOf(gig) === 'admin') {
                       const anyMusicianUnpaid = lineupData.some(l => l.status !== 'pago');
                       const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
                       isFullyPaid = !anyMusicianUnpaid && !soundUnpaid && lineupData.length > 0;
                     } else {
-                      const myLineup = lineupData.find(l => l.member_id === userMemberId);
+                      const myLineup = lineupData.find(l => l.member_id === myIdOf(gig));
                       isFullyPaid = myLineup ? myLineup.status === 'pago' : false;
                     }
                   }
-                  
+
                   return (
-                    <GigCard key={gig.id} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} isPastFullyPaid={isFullyPaid} />
+                    <GigCard key={gig.id} gig={gig} lineupData={lineupData} role={roleOf(gig)} userMemberId={myIdOf(gig)} bandName={bandNameOf(gig)} isPastFullyPaid={isFullyPaid} />
                   );
                 })}
               </div>
@@ -393,7 +391,15 @@ export default async function Home({
         )}
       </main>
 
-      {role === 'admin' && <QuickAddGig projects={projects} members={members} cloneData={cloneData} defaultMemberIds={defaultMemberIds} />}
+      {owned.length > 0 && (
+        <QuickAddGig
+          projects={projects.filter((p) => p.band_id && ownedIds.includes(p.band_id))}
+          members={members}
+          cloneData={cloneData}
+          defaultMemberIds={defaultMemberIds}
+          bands={owned}
+        />
+      )}
 
       {/* Pending Gigs Section */}
       {pendingGigs.length > 0 && (
@@ -409,7 +415,7 @@ export default async function Home({
             {pendingGigs.map((gig) => {
               const lineupData = lineups.filter((l) => l.gig_id === gig.id);
               return (
-                <GigCard key={`pending-${gig.id}`} gig={gig} lineupData={lineupData} role={role} userMemberId={userMemberId} isPastFullyPaid={false} />
+                <GigCard key={`pending-${gig.id}`} gig={gig} lineupData={lineupData} role={roleOf(gig)} userMemberId={myIdOf(gig)} bandName={bandNameOf(gig)} isPastFullyPaid={false} />
               );
             })}
           </div>
@@ -421,7 +427,7 @@ export default async function Home({
 
 // ─── GigCard ────────────────────────────────────────────────────────────────
 
-function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null, isPastFullyPaid?: boolean }) {
+function GigCard({ gig, lineupData, role, userMemberId, bandName, isPastFullyPaid = false }: { gig: GigWithProject; lineupData: GoLineup[], role: string, userMemberId: string | null, bandName?: string, isPastFullyPaid?: boolean }) {
   const lineupFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
   
@@ -470,6 +476,7 @@ function GigCard({ gig, lineupData, role, userMemberId, isPastFullyPaid = false 
             <span className="text-xs font-semibold truncate" style={{ color: projectColor }}>
               {gig.go_projects?.name || '—'}
             </span>
+            <BandTag name={bandName} />
           </div>
           {isPastFullyPaid && (
             <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 shrink-0">

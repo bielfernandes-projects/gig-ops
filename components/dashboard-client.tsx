@@ -8,12 +8,15 @@ import { CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { GigWithProject, GoLineup } from '@/lib/types';
+import { isOwnerOf, myMemberIdIn, type BandRoles } from '@/lib/band-view';
+import { BandTag } from '@/components/band-tag';
 
 const AppTour = dynamic(() => import('@/components/app-tour'), { ssr: false });
 
 type Props = {
   role: string | null;
-  userMemberId: string | null;
+  bandRoles: BandRoles;
+  allBands: boolean;
   gigs: GigWithProject[];
   lineups: GoLineup[];
   bandId: string | null;
@@ -22,7 +25,7 @@ type Props = {
   subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
 };
 
-export default function DashboardClient({ role, userMemberId, gigs, lineups, bandId, bandName, memberships, subscription }: Props) {
+export default function DashboardClient({ role, bandRoles, allBands, gigs, lineups, bandId, bandName, memberships, subscription }: Props) {
   const [pieFilter, setPieFilter] = useState<'month' | 'all' | 'custom'>('all'); 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -31,10 +34,12 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups, ban
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
+  // Role and member id depend on the band each gig belongs to (the view may span several bands).
+  const ownsGig = (gig: GigWithProject) => isOwnerOf(bandRoles, gig.band_id);
+  const myIdFor = (gig: GigWithProject) => myMemberIdIn(bandRoles, gig.band_id);
+
   // 1. Visible Gigs
-  const visibleGigs = (role === 'admin') 
-    ? gigs 
-    : gigs.filter(gig => lineups.some(l => l.gig_id === gig.id && l.member_id === userMemberId));
+  const visibleGigs = gigs.filter(gig => ownsGig(gig) || lineups.some(l => l.gig_id === gig.id && l.member_id === myIdFor(gig)));
 
   // 2. Next Gig
   const futureGigs = visibleGigs.filter(g => new Date(g.start_time) >= now);
@@ -50,12 +55,12 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups, ban
     
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
     
-    if (role === 'admin') {
+    if (ownsGig(gig)) {
       const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
       const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
       return anyMusicianUnpaid || soundUnpaid;
     } else {
-      const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+      const myLineup = gigLineups.find(l => l.member_id === myIdFor(gig));
       return myLineup && myLineup.status !== 'pago';
     }
   }).length;
@@ -81,7 +86,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups, ban
 
   filteredGigsForPie.forEach(gig => {
     const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    const myLineup = gigLineups.find(l => l.member_id === userMemberId);
+    const myLineup = gigLineups.find(l => l.member_id === myIdFor(gig));
 
     if (myLineup && myLineup.status === 'pago') {
       const profit = Number(myLineup.fee_amount) || 0;
@@ -192,6 +197,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups, ban
               <h3 className="text-sm font-semibold text-zinc-200 mb-4">Próximo Show</h3>
               {nextGig ? (
                 <>
+                   {allBands && <BandTag name={nextGig.band_id ? bandRoles[nextGig.band_id]?.name : null} className="mb-2" />}
                    <h4 className="text-xl font-bold text-zinc-100 leading-tight mb-2 line-clamp-2">{nextGig.title}</h4>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: nextGig.go_projects?.color_hex || '#71717a' }} />
