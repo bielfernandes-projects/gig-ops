@@ -388,3 +388,10 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Domínio `gigueiros.com.br` verificado no Resend. SMTP customizado configurado no Supabase (Authentication → Emails → SMTP Settings): host `smtp.resend.com`, porta 465, usuário `resend`, senha = API key do Resend, remetente `naoresponda@gigueiros.com.br`.
 - Templates de e-mail (Confirm signup, Reset Password) personalizados em HTML, versionados em `supabase/email-templates/` — colados manualmente no painel do Supabase (Authentication → Emails → Templates), pois a configuração de Auth não é exposta pela API/MCP disponível, só pelo dashboard.
 - Fora do escopo por enquanto: convite (Invite) e magic link, que o app não usa hoje (login é por senha ou Google OAuth).
+
+## 26. SEO e Analytics
+- `app/robots.ts` e `app/sitemap.ts`: geram `/robots.txt` e `/sitemap.xml`. Rotas internas do app (dashboard, agenda, etc.) ficam bloqueadas pro crawler — não têm valor de indexação e a maioria já exige login.
+- `app/opengraph-image.tsx`: imagem de Open Graph gerada dinamicamente (sem arquivo estático), no visual da LP, usada em compartilhamentos (WhatsApp, LinkedIn, etc.) para todas as páginas.
+- Metadados: `metadataBase`, Open Graph e Twitter Card configurados em `app/layout.tsx` (padrão) e sobrescritos na LP (`app/page.tsx`) com título/descrição específicos e `alternates.canonical`.
+- Dados estruturados: JSON-LD `SoftwareApplication` na LP (nome, descrição, preço).
+- `@vercel/analytics` e `@vercel/speed-insights` instalados e adicionados ao layout raiz. **Pendente**: habilitar as abas "Analytics" e "Speed Insights" no dashboard da Vercel (Project → Analytics / Speed Insights → Enable) — não é exposto pela API do projeto, só pelo dashboard.

@@ -9,10 +9,31 @@ export const revalidate = 3600;
 
 const FOUNDER_LIMIT = 50;
 
+const title = 'Gigueiros: agenda, escala e cachês da sua banda';
+const description = 'Chega de planilha e grupo de WhatsApp. Organize shows, escala de músicos, cachês, repertório e financeiro em um app feito para bandas.';
+
 export const metadata: Metadata = {
-  title: 'Gigueiros: agenda, escala e cachês da sua banda',
-  description:
-    'Chega de planilha e grupo de WhatsApp. Organize shows, escala de músicos, cachês e lembretes em um app feito para bandas.',
+  title,
+  description,
+  alternates: { canonical: '/' },
+  openGraph: { title, description, url: '/' },
+  twitter: { title, description },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Gigueiros',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web, iOS, Android',
+  description,
+  url: 'https://www.gigueiros.com.br',
+  offers: {
+    '@type': 'Offer',
+    price: '49.90',
+    priceCurrency: 'BRL',
+    priceValidUntil: '2027-12-31',
+  },
 };
 
 const features = [
@@ -74,6 +95,7 @@ export default async function Landing() {
 
   return (
     <div className="landing fixed inset-0 z-[999] overflow-y-auto bg-[var(--l-bg)] text-[var(--l-fg)]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <header className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <Logo className="h-auto w-32 sm:w-36" priority />
         <Link

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { Navigation } from '@/components/navigation';
 import { OfflineSetup } from '@/components/offline-setup';
@@ -8,7 +10,8 @@ import { ThemeToaster } from '@/components/theme-toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Gigueiros',
+  metadataBase: new URL('https://www.gigueiros.com.br'),
+  title: { default: 'Gigueiros', template: '%s' },
   description: 'Gestão Logística e Financeira Musical',
   icons: {
     icon: '/favicon.ico',
@@ -21,6 +24,15 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+  },
+  robots: { index: true, follow: true },
+  openGraph: {
+    siteName: 'Gigueiros',
+    locale: 'pt_BR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
   },
 };
 
@@ -74,6 +86,8 @@ export default function RootLayout({
 
         <ThemeToaster />
         <OfflineSetup />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
