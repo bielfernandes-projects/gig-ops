@@ -434,4 +434,4 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 ## 34. Filtro de banda global e cabeçalho padrão
 - O filtro de banda saiu das páginas: agora é global (`BandFilter` em `components/band-switcher.tsx`), acima de "Dashboard" na barra lateral (desktop) e na barra superior do celular, à esquerda do "Sair" (a logo do topo saiu; ela fica só dentro do menu hambúrguer). Como vive no layout raiz, carrega as bandas por `GET /api/bands`; recarrega ao trocar de página e no evento `gg:bands-changed` (disparado pelo Perfil ao entrar/criar/sair de banda). Só aparece com 2+ bandas.
 - Todas as páginas usam `components/page-header.tsx`: título + descrição curta, largura total, conteúdo logo abaixo (sem o nome da banda no subtítulo). No Relatório, o seletor Banda/Meus cachês e a navegação por mês ficam numa linha abaixo do cabeçalho.
-- O botão de tema saiu do Dashboard: fica em Perfil > Aparência e, no celular, no rodapé do menu.
+- Botão de tema: no Dashboard aparece só no desktop (canto superior direito); no celular fica no rodapé do menu; e sempre em Perfil > Aparência.

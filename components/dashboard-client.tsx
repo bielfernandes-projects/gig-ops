@@ -1,6 +1,7 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useState } from 'react';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
@@ -152,7 +153,11 @@ export default function DashboardClient({ role, bandRoles, allBands, gigs, lineu
   return (
     <div className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
       <AppTour role={role === 'admin' ? 'admin' : 'viewer'} />
-      <PageHeader title="Dashboard" description="Visão geral da agenda e das finanças." className="mb-0" />
+      <div className="relative">
+        <PageHeader title="Dashboard" description="Visão geral da agenda e das finanças." className="mb-0" />
+        {/* Desktop only: on phones the theme toggle lives in the menu */}
+        <div className="absolute right-0 top-0 hidden md:block"><ThemeToggle /></div>
+      </div>
 
       {role === 'admin' && subscription && (subscription.state === 'expired' || (subscription.state === 'trial' && subscription.daysLeft !== null && subscription.daysLeft <= 7)) && (
         <div
