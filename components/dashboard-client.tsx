@@ -6,7 +6,10 @@ import { useState } from 'react';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { GigWithProject, GoLineup } from '@/lib/types';
+
+const AppTour = dynamic(() => import('@/components/app-tour'), { ssr: false });
 
 type Props = {
   role: string | null;
@@ -147,6 +150,7 @@ export default function DashboardClient({ role, userMemberId, gigs, lineups, ban
 
   return (
     <div className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
+      <AppTour role={role === 'admin' ? 'admin' : 'viewer'} />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50 mb-2">Dashboard</h1>

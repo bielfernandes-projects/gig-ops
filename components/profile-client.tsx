@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { EditableLine } from '@/components/editable-line';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useState, useEffect } from 'react';
@@ -97,6 +98,18 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
             <p className="text-zinc-500 text-xs">Alternar entre tema claro e escuro.</p>
           </div>
           <ThemeToggle />
+        </div>
+        <div className="p-4 border-t border-zinc-800/80 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-zinc-100 text-sm font-semibold">Tour do app</p>
+            <p className="text-zinc-500 text-xs">Rever a apresentação das principais funções.</p>
+          </div>
+          <Link
+            href="/dashboard?tour=1"
+            className="shrink-0 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
+          >
+            Ver tour
+          </Link>
         </div>
       </section>
 

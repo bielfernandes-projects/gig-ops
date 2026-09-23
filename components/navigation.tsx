@@ -30,6 +30,7 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
             <Link
               key={item.name}
               href={item.href}
+              data-tour-nav={item.href}
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors relative ${
                 isActive ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
               }`}
@@ -60,6 +61,7 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
             <Link
               key={item.name}
               href={item.href}
+              data-tour-nav={item.href}
               className={`flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
                   ? 'bg-zinc-800/80 text-zinc-100 rounded-lg'
