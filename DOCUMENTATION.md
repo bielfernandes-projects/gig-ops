@@ -422,3 +422,6 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Escrita: ações sobre registros existentes resolvem a banda pelo próprio registro (`requireOwnerFor` / `requireBandFor` / `bandOf` / `bandOfLineup` em `lib/auth.ts`), então funcionam em qualquer visão. Criações recebem `band_id` do formulário: `components/band-select-field.tsx` (campo "Banda", escondido quando só há uma opção) em músico e projeto; "Novo Show" tem o seletor e troca projetos/equipe conforme a banda; música nova vai pro catálogo em que foi criada; repertório pessoal tem seletor de banda.
 - Páginas de detalhe (show, recibo, repertório pessoal) seguem a banda do próprio registro, independente do filtro.
 - "Gestão da banda" no Perfil (nome, convite, sócios, assinatura) continua exigindo uma banda selecionada; em "Todas" o Perfil orienta a tocar em "Usar", e há um botão "Ver todas" pra voltar à visão consolidada.
+
+## 32. Sair pela navegação
+- Botão "Sair" no rodapé da barra lateral (desktop) e como último item da barra inferior (mobile), em `components/navigation.tsx`, usando a mesma ação `signout` do Perfil.

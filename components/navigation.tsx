@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
-import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3, Music } from 'lucide-react';
+import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3, Music, LogOut } from 'lucide-react';
+import { signout } from '@/app/login/actions';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -43,6 +44,15 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
             </Link>
           );
         })}
+        <form action={signout} className="w-full h-full">
+          <button
+            type="submit"
+            className="flex flex-col items-center justify-center w-full h-full space-y-1 text-zinc-500 hover:text-red-400 transition-colors"
+          >
+            <LogOut className="w-5 h-5 stroke-[1.5]" />
+            <span className="w-full truncate text-center text-[10px] font-medium tracking-tight">Sair</span>
+          </button>
+        </form>
       </nav>
     );
   }
@@ -74,6 +84,15 @@ export function Navigation({ isMobile }: { isMobile: boolean }) {
           );
         })}
       </nav>
+      <form action={signout} className="px-4 pb-6">
+        <button
+          type="submit"
+          className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-zinc-900 rounded-lg transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          Sair
+        </button>
+      </form>
     </div>
   );
 }
