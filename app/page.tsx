@@ -83,7 +83,7 @@ const adminSees = [
 
 const musicianSees = ['Só os shows em que está escalado', 'Só o próprio cachê', 'Nenhum valor dos colegas'];
 
-const priceItems = ['30 dias grátis, sem cartão', 'Músicos ilimitados na banda', 'Assinatura no cartão de crédito', 'Cancele quando quiser'];
+const priceItems = ['7 dias grátis, sem cartão', 'Músicos ilimitados na banda', 'Assinatura no cartão de crédito', 'Cancele quando quiser'];
 
 export default async function Landing() {
   let founders = 0;
@@ -121,7 +121,7 @@ export default async function Landing() {
                 href="/login"
                 className="inline-flex items-center rounded-md bg-[var(--l-fg)] px-6 py-3.5 text-base font-bold text-[var(--l-bg)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
               >
-                Testar 30 dias grátis
+                Testar 7 dias grátis
               </Link>
               <span className="text-sm text-[var(--l-mute)]">Sem cartão de crédito.</span>
             </div>

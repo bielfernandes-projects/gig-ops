@@ -16,7 +16,7 @@ Documento de decisão. Nada aqui foi implementado ainda. Objetivo: transformar o
 | Catálogo | É da **banda**. Membros podem adicionar músicas a ele. |
 | Repertório oficial do show | Só **donos** montam. Membros criam repertórios **pessoais** (só eles veem). |
 | Link de show | Quem recebe só o link (sem conta) **visualiza** aquele repertório e nada mais. |
-| Trial | 30 dias com os dois módulos liberados. |
+| Trial | 7 dias com os dois módulos liberados. |
 | Preços | Plano **Banda** (completo) R$ 49,90/mês. **Fundadores**: as 50 primeiras bandas pagam R$ 24,90 com o preço travado enquanto a assinatura estiver ativa. Detalhes e dúvidas em aberto na seção 4. |
 
 Posicionamento frente ao Meu Cachê (R$ 19,90 por pessoa; uma banda de 5 paga ~R$ 99,50/mês lá): aqui **a banda paga uma vez e todos usam**.
@@ -89,7 +89,7 @@ Duas opções no lançamento, para não confundir:
 
 O modular (só Gestão ou só Repertório) fica **adiado**: a tabela `subscriptions` já guarda os direitos por módulo, então dá para liberar depois sem refazer nada.
 
-- **Trial:** 30 dias, com tudo liberado. Sem cartão.
+- **Trial:** 7 dias, com tudo liberado. Sem cartão. (Público-alvo são bandas médias/grandes com frequência alta de shows — várias por semana —, então um ciclo completo de show já acontece dentro do teste.)
 - **Fim do trial ou atraso:** dados preservados; o app fica somente leitura. Nada é apagado.
 - **Direito de arrependimento:** 7 dias para compra online (CDC). O processo de reembolso precisa existir.
 

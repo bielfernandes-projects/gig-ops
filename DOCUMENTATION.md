@@ -307,7 +307,7 @@ Viewers sem `go_members` correspondente (ex: admin não os cadastrou como músic
 
 Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
-* **Modelo:** `bands` (nome, `invite_code`, `calendar_token`), `band_members` (`owner` | `member`) e `subscriptions` (por banda: trial de 30 dias, `active`, `expired`, plano). Uma pessoa pode estar em várias bandas com papéis diferentes; os donos têm direitos iguais.
+* **Modelo:** `bands` (nome, `invite_code`, `calendar_token`), `band_members` (`owner` | `member`) e `subscriptions` (por banda: trial de 7 dias, `active`, `expired`, plano). Uma pessoa pode estar em várias bandas com papéis diferentes; os donos têm direitos iguais.
 * **Compatibilidade:** as bandas existentes usam o mesmo id do antigo admin. `admin_id` continua nas tabelas, mantido igual a `band_id` por trigger, e as políticas antigas seguem valendo até a migration de limpeza (drop de `admin_id`, `go_settings` e políticas antigas).
 * **Código:** `lib/auth.ts` (`getUserInfo` devolve `bandId`, `memberships`, `subscription`; `requireOwner()` valida dono e assinatura), `lib/bands.ts` (criar banda, entrar por código), `lib/subscription.ts`. A banda ativa fica no cookie `gg_band`, validado contra as participações reais.
 * **Assinatura:** `expired` (teste vencido ou pagamento vencido) bloqueia toda escrita nas ações do dono (`requireOwner`); os dados ficam intactos. Ativação manual: `UPDATE subscriptions SET status='active', paid_until=... WHERE band_id='<uuid>'`.

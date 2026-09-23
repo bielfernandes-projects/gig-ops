@@ -12,7 +12,7 @@ export default function Termos() {
         <h2 className="font-semibold text-zinc-100">Conta e responsabilidade</h2>
         <p>Você é responsável pelas informações que cadastra e por manter sua senha em segurança. O administrador da banda decide quem entra e o que cada músico pode ver.</p>
         <h2 className="font-semibold text-zinc-100">Teste e cobrança</h2>
-        <p>Toda banda tem 30 dias de teste grátis. Depois, o uso continua mediante assinatura mensal por banda, paga por cartão de crédito. Sem pagamento após o teste, o acesso pode ser suspenso; os dados são mantidos por 30 dias e podem ser exportados a pedido.</p>
+        <p>Toda banda tem 7 dias de teste grátis. Depois, o uso continua mediante assinatura mensal por banda, paga por cartão de crédito. Sem pagamento após o teste, o acesso pode ser suspenso; os dados são mantidos por 30 dias e podem ser exportados a pedido.</p>
         <h2 className="font-semibold text-zinc-100">Disponibilidade</h2>
         <p>Buscamos manter o serviço no ar, mas ele é fornecido no estado em que se encontra, sem garantia de disponibilidade contínua. Os valores calculados no app são apoio de gestão e não substituem contabilidade.</p>
         <h2 className="font-semibold text-zinc-100">Cancelamento</h2>
