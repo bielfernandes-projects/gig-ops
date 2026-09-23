@@ -1,17 +1,37 @@
 <!-- Assunto: Confirme seu e-mail no Gigueiros -->
+<meta name="color-scheme" content="light dark" />
+<meta name="supported-color-schemes" content="light dark" />
+<style>
+  .gg-logo-dark { display: none; }
+  @media (prefers-color-scheme: dark) {
+    .gg-card { background-color: #18181b !important; }
+    .gg-footer { background-color: #111113 !important; border-color: #27272a !important; }
+    .gg-heading { color: #fafafa !important; }
+    .gg-body-text { color: #d4d4d8 !important; }
+    .gg-logo-light { display: none !important; }
+    .gg-logo-dark { display: block !important; }
+  }
+  [data-ogsc] .gg-card { background-color: #18181b !important; }
+  [data-ogsc] .gg-footer { background-color: #111113 !important; border-color: #27272a !important; }
+  [data-ogsc] .gg-heading { color: #fafafa !important; }
+  [data-ogsc] .gg-body-text { color: #d4d4d8 !important; }
+  [data-ogsc] .gg-logo-light { display: none !important; }
+  [data-ogsc] .gg-logo-dark { display: block !important; }
+</style>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:40px 0; font-family:Helvetica,Arial,sans-serif;">
   <tr>
     <td align="center">
-      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:12px; overflow:hidden; max-width:480px; width:100%;">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" class="gg-card" style="background-color:#ffffff; border-radius:12px; overflow:hidden; max-width:480px; width:100%;">
         <tr>
           <td style="padding:32px 32px 0 32px;" align="center">
-            <img src="https://www.gigueiros.com.br/logo-horizontal-light.png" width="160" alt="Gigueiros" style="display:block; height:auto;" />
+            <img src="https://gigueiros.com.br/logo-horizontal-light.png" width="160" alt="Gigueiros" class="gg-logo-light" style="display:block; height:auto;" />
+            <img src="https://gigueiros.com.br/logo-horizontal-dark.png" width="160" alt="Gigueiros" class="gg-logo-dark" style="height:auto;" />
           </td>
         </tr>
         <tr>
           <td style="padding:32px;">
-            <h1 style="margin:0 0 16px 0; font-size:22px; line-height:1.3; color:#09090b; font-weight:800;">Confirme seu e-mail</h1>
-            <p style="margin:0 0 24px 0; font-size:15px; line-height:1.6; color:#3f3f46;">
+            <h1 class="gg-heading" style="margin:0 0 16px 0; font-size:22px; line-height:1.3; color:#09090b; font-weight:800;">Confirme seu e-mail</h1>
+            <p class="gg-body-text" style="margin:0 0 24px 0; font-size:15px; line-height:1.6; color:#3f3f46;">
               Falta pouco para organizar a agenda e o caixa da sua banda. Clique no botão abaixo para confirmar seu e-mail e ativar sua conta.
             </p>
             <table role="presentation" cellpadding="0" cellspacing="0">
@@ -29,7 +49,7 @@
           </td>
         </tr>
         <tr>
-          <td style="padding:20px 32px; background-color:#fafafa; border-top:1px solid #e4e4e7;">
+          <td class="gg-footer" style="padding:20px 32px; background-color:#fafafa; border-top:1px solid #e4e4e7;">
             <p style="margin:0; font-size:12px; color:#a1a1aa;">Gigueiros — agenda, escala e cachês da sua banda.</p>
           </td>
         </tr>
