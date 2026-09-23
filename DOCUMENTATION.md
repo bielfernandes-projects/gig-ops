@@ -399,3 +399,13 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Não mexe em `price_plan`: fica `standard` (padrão), de propósito, pra não contar como vaga real no contador de "Fundadores" da landing page.
 - Pré-requisito: a pessoa precisa ter feito login e criado a banda no onboarding antes de rodar o script (precisa existir a linha em `band_members`/`subscriptions`).
 - Reverter depois: `update subscriptions set status = 'expired' where band_id = '<uuid>';`.
+
+## 28. Conflito de e-mail no login com Google
+- Quando alguém tenta "Continuar com Google" usando um e-mail que já tem conta por senha (e o linking automático está desligado no Supabase, o padrão), o GoTrue recusa a troca do `code` por sessão com um código de erro (`email_exists`, `user_already_exists`, `identity_already_exists`, `manual_linking_disabled` ou `email_conflict_identity_not_deletable`, dependendo da versão).
+- `app/auth/callback/route.ts` agora repassa esse código pra `/login?erro=google&motivo=<code>` (antes só mandava pra `/login?erro=google` e a página nunca lia esse parâmetro — a pessoa só via o formulário de login vazio de novo, sem nenhum aviso).
+- `app/login/page.tsx` lê `erro`/`motivo` da URL (via `useSearchParams`, por isso a página virou um `Suspense` por fora) e mostra uma mensagem específica pra conflito de e-mail ("Esse e-mail já tem uma conta... entre com e-mail e senha") ou uma genérica pros demais casos; a URL é limpa (`history.replaceState`) depois de ler.
+
+## 29. Gestão da assinatura no Perfil
+- Card "Gestão da banda" no Perfil (dono) agora mostra: nome do plano (`price_plan`: Banda / Banda (Fundador) / Solo), status (teste grátis com dias restantes, ativa ou expirada) e a data relevante — fim do teste (`trial_ends_at`) ou renovação (`paid_until`; sem data quando o acesso foi liberado manualmente via `grant-free-access.ts`, seção 27).
+- Botão "Cancelar assinatura" (só aparece em trial/ativa): `cancelSubscription()` em `app/profile/actions.ts` marca `status = 'expired'` na hora — não existe cobrança recorrente automática pra "desligar" (hoje é tudo manual/Pix), então cancelar significa abrir mão do acesso de escrita imediatamente; os dados continuam salvos, e reativar depois é manual (SQL, `grant-free-access.ts` ou o Stripe quando existir). Escreve via `createAdminClient()` porque `subscriptions` não aceita update do cliente de sessão (revogado em `supabase/migrations/20260922000000_fase0_bands.sql`).
+- `lib/subscription.ts` (`SubscriptionState`) e `lib/auth.ts` (`UserInfo.pricePlan`) passaram a expor as datas cruas e o plano, além do estado computado, pra alimentar esse card.

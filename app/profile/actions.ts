@@ -209,3 +209,21 @@ export async function updatePassword(formData: FormData) {
 
   return { success: true };
 }
+
+/**
+ * Downgrades the band's subscription to expired right away — no auto-renewal exists yet to
+ * "turn off", so cancelling means giving up write access now (data stays intact, exactly like a
+ * lapsed trial). Writes go through the service role: `subscriptions` revokes direct writes from
+ * the session client (see supabase/migrations/20260922000000_fase0_bands.sql).
+ */
+export async function cancelSubscription() {
+  const ctx = await requireOwner();
+  if (!ctx.ok) return { error: ctx.error };
+
+  const admin = createAdminClient();
+  const { error } = await admin.from('subscriptions').update({ status: 'expired' }).eq('band_id', ctx.bandId);
+  if (error) return { error: 'Não foi possível cancelar a assinatura.' };
+
+  revalidateAll();
+  return { success: true };
+}

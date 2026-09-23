@@ -25,6 +25,7 @@ export type UserInfo = {
   modules: { gestao: boolean; repertorio: boolean };
   /** True for one of the first 50 bands, locked into the founder price forever. */
   isFounder: boolean;
+  pricePlan: 'standard' | 'founder' | 'solo';
 };
 
 const EMPTY: UserInfo = {
@@ -38,6 +39,7 @@ const EMPTY: UserInfo = {
   subscription: null,
   modules: { gestao: true, repertorio: true },
   isFounder: false,
+  pricePlan: 'standard',
 };
 
 type MembershipRow = { band_id: string; role: 'owner' | 'member'; bands: { name: string } | { name: string }[] | null };
@@ -90,7 +92,9 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
       .from('subscriptions')
       .select('status, trial_ends_at, paid_until, module_gestao, module_repertorio, price_plan')
       .eq('band_id', current.bandId)
-      .maybeSingle() as unknown as Promise<{ data: (SubscriptionRow & { module_gestao: boolean; module_repertorio: boolean; price_plan: string }) | null }>,
+      .maybeSingle() as unknown as Promise<{
+        data: (SubscriptionRow & { module_gestao: boolean; module_repertorio: boolean; price_plan: 'standard' | 'founder' | 'solo' }) | null;
+      }>,
   ]);
 
   return {
@@ -104,6 +108,7 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
     subscription: subscriptionState(sub),
     modules: { gestao: sub?.module_gestao ?? true, repertorio: sub?.module_repertorio ?? true },
     isFounder: sub?.price_plan === 'founder',
+    pricePlan: sub?.price_plan ?? 'standard',
   };
 });
 

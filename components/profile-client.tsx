@@ -10,6 +10,7 @@ import { savePushSubscription, removePushSubscription } from '@/app/actions/push
 import { signout } from '@/app/login/actions';
 import { BandSections, type BandMemberView } from '@/components/band-sections';
 import type { BandOption } from '@/components/band-switcher';
+import type { SubscriptionState } from '@/lib/subscription';
 
 type Props = {
   role: 'admin' | 'viewer';
@@ -20,11 +21,12 @@ type Props = {
   memberships: BandOption[];
   inviteCode: string | null;
   members: BandMemberView[];
-  subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
+  subscription: SubscriptionState | null;
+  pricePlan: 'standard' | 'founder' | 'solo';
   founderWhatsappUrl: string | null;
 };
 
-export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, founderWhatsappUrl }: Props) {
+export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, founderWhatsappUrl }: Props) {
   const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
 
   useEffect(() => {
@@ -220,6 +222,7 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
         inviteCode={inviteCode}
         members={members}
         subscription={subscription}
+        pricePlan={pricePlan}
         founderWhatsappUrl={founderWhatsappUrl}
       />
 

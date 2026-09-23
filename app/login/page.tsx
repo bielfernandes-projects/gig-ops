@@ -1,23 +1,52 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Logo } from '@/components/logo';
 import { CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { login, signup, forgotPassword, adminSignup } from './actions';
 import { createClient } from '@/lib/supabase/client';
 import { PasswordStrengthIndicator, isPasswordValid } from '@/components/password-strength-indicator';
 
+/** Codes GoTrue returns when an OAuth email collides with an account under another provider (linking is off). */
+const GOOGLE_EMAIL_CONFLICT_CODES = new Set([
+  'email_exists',
+  'user_already_exists',
+  'identity_already_exists',
+  'manual_linking_disabled',
+  'email_conflict_identity_not_deletable',
+]);
+
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
+  const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [isAdminSignup, setIsAdminSignup] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState(() => {
+    if (searchParams.get('erro') !== 'google') return '';
+    const motivo = searchParams.get('motivo') ?? '';
+    return GOOGLE_EMAIL_CONFLICT_CODES.has(motivo)
+      ? 'Esse e-mail já tem uma conta no Gigueiros com senha. Entre com e-mail e senha, ou clique em "Esqueci minha senha" se não lembrar.'
+      : 'Não foi possível continuar com o Google. Tente novamente.';
+  });
   const [forgotMessage, setForgotMessage] = useState('');
   const [successMsg, setSuccessMsg] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotLoading, setIsForgotLoading] = useState(false);
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (searchParams.get('erro') === 'google') window.history.replaceState(null, '', '/login');
+  }, [searchParams]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;

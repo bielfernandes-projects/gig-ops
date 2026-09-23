@@ -17,7 +17,10 @@ export async function GET(request: Request) {
         : { count: 0 };
       return NextResponse.redirect(`${origin}${count ? '/dashboard' : '/onboarding'}`);
     }
+    return NextResponse.redirect(`${origin}/login?erro=google&motivo=${encodeURIComponent(error.code ?? '')}`);
   }
 
-  return NextResponse.redirect(`${origin}/login?erro=google`);
+  // Google/Supabase can also reject before ever issuing a code (e.g. denied consent).
+  const providerError = searchParams.get('error_description') ?? searchParams.get('error');
+  return NextResponse.redirect(`${origin}/login?erro=google${providerError ? `&motivo=${encodeURIComponent(providerError)}` : ''}`);
 }

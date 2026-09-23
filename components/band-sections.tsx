@@ -14,8 +14,10 @@ import {
   createAnotherBand,
   switchBand,
   setProfitShare,
+  cancelSubscription,
 } from '@/app/profile/actions';
 import type { BandOption } from '@/components/band-switcher';
+import type { SubscriptionState } from '@/lib/subscription';
 
 export type BandMemberView = { userId: string; email: string; label: string; role: 'owner' | 'member'; isSelf: boolean; share: number | null };
 
@@ -26,13 +28,18 @@ type Props = {
   memberships: BandOption[];
   inviteCode: string | null;
   members: BandMemberView[];
-  subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
+  subscription: SubscriptionState | null;
+  pricePlan: 'standard' | 'founder' | 'solo';
   founderWhatsappUrl: string | null;
 };
 
 const inputCls =
   'bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500 placeholder-zinc-600';
 const primaryBtn = 'bg-zinc-100 hover:bg-white text-zinc-900 font-bold px-4 py-2 rounded-lg text-sm transition-colors';
+
+const PLAN_NAMES: Record<Props['pricePlan'], string> = { standard: 'Banda', founder: 'Banda (Fundador)', solo: 'Solo' };
+
+const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 
 function subscriptionLabel(s: Props['subscription']) {
   if (!s) return null;
@@ -43,7 +50,15 @@ function subscriptionLabel(s: Props['subscription']) {
   return { text: 'Assinatura expirada: dados preservados, edição bloqueada', tone: 'text-red-400' };
 }
 
-export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, founderWhatsappUrl }: Props) {
+/** Extra line under the status: when the trial/renewal date falls, or that it never expires (manual free access). */
+function subscriptionDateLine(s: Props['subscription']) {
+  if (!s) return null;
+  if (s.state === 'trial' && s.trialEndsAt) return `Termina em ${fmtDate(s.trialEndsAt)}.`;
+  if (s.state === 'active') return s.paidUntil ? `Renova até ${fmtDate(s.paidUntil)}.` : 'Sem data de expiração (acesso liberado manualmente).';
+  return null;
+}
+
+export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, founderWhatsappUrl }: Props) {
   const router = useRouter();
   const [editingInvite, setEditingInvite] = useState(false);
   const [inviteInput, setInviteInput] = useState(inviteCode || '');
@@ -151,7 +166,30 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
             <h3 className="text-zinc-100 font-bold">Gestão da banda</h3>
           </div>
 
-          {sub && <p className={`text-sm font-semibold ${sub.tone}`}>{sub.text}</p>}
+          {sub && (
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 flex flex-col gap-2">
+              <p className="text-xs font-medium text-zinc-500">Plano {PLAN_NAMES[pricePlan]}</p>
+              <p className={`text-sm font-semibold ${sub.tone}`}>{sub.text}</p>
+              {subscriptionDateLine(subscription) && <p className="text-xs text-zinc-500">{subscriptionDateLine(subscription)}</p>}
+              {(subscription?.state === 'trial' || subscription?.state === 'active') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        'Cancelar a assinatura bloqueia a edição imediatamente (os dados continuam salvos). Pra voltar a usar depois, é só assinar de novo. Continuar?'
+                      )
+                    ) {
+                      run(() => cancelSubscription(), 'Assinatura cancelada.');
+                    }
+                  }}
+                  className="mt-1 self-start text-xs font-semibold text-red-400 hover:text-red-300"
+                >
+                  Cancelar assinatura
+                </button>
+              )}
+            </div>
+          )}
 
           {founderWhatsappUrl && (
             <a
