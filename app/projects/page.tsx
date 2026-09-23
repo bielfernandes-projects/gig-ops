@@ -3,7 +3,7 @@ import { GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import { AddProjectModal } from '@/components/add-project-modal';
 import { ProjectCard } from '@/components/project-card';
-import { BandSwitcher } from '@/components/band-switcher';
+import { PageHeader } from '@/components/page-header';
 import { getUserInfo, ownedBands } from '@/lib/auth';
 
 export const revalidate = 0;
@@ -39,17 +39,7 @@ export default async function ProjectsPage() {
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
-      <header className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-50 mb-2">
-            Projetos
-          </h1>
-          <p className="text-zinc-400 text-sm md:text-base">
-            Gerencie os formatos de apresentação da sua banda.
-          </p>
-        </div>
-        <BandSwitcher memberships={info.memberships} currentBandId={info.bandId} />
-      </header>
+      <PageHeader title="Projetos" description="Os formatos de apresentação da banda, como baile, casamento ou acústico." />
 
       {error && (
         <div className="p-4 text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">

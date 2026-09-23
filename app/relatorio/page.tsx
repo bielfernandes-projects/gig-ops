@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getUserInfo, ownedBands } from '@/lib/auth';
-import { BandSwitcher } from '@/components/band-switcher';
+import { PageHeader } from '@/components/page-header';
 import { BandTag } from '@/components/band-tag';
 import { createClient } from '@/lib/supabase/server';
 import { brl, gigFinance, splitProfit } from '@/lib/finance';
@@ -81,17 +81,13 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const base = view === 'meus' ? '&view=meus' : '';
 
   const header = (
-    <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-50 md:text-4xl">
-          {mode === 'banda' ? 'Relatório' : 'Meus cachês'}
-        </h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          {mode === 'banda' ? `${info.bandName}: faturamento, custos e lucro por mês.` : 'O que você tem a receber em todas as bandas em que toca.'}
-        </p>
-      </div>
-      <div className="flex flex-col items-end gap-3">
-        <BandSwitcher memberships={info.memberships} currentBandId={info.bandId} />
+    <>
+      <PageHeader
+        title={mode === 'banda' ? 'Relatório' : 'Meus cachês'}
+        description={mode === 'banda' ? 'Faturamento, custos e lucro da banda, mês a mês.' : 'O que você tem a receber em todas as bandas em que toca.'}
+        className="mb-4"
+      />
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         {isOwner && (
           <div className="flex rounded-lg border border-zinc-800 p-0.5 text-xs font-semibold">
             <Link href={`/relatorio?m=${asParam(y, m)}`} className={`rounded-md px-3 py-1.5 ${mode === 'banda' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400'}`}>
@@ -112,7 +108,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           </Link>
         </nav>
       </div>
-    </header>
+    </>
   );
 
   const supabase = await createClient();

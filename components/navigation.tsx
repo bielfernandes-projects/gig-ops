@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
 import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3, Music, LogOut } from 'lucide-react';
 import { signout } from '@/app/login/actions';
+import { BandFilter } from '@/components/band-switcher';
 
 export const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -31,7 +32,8 @@ export function Navigation() {
       <div className="p-6">
         <Logo className="h-auto w-40" priority />
       </div>
-      <nav className="flex-1 px-4 space-y-2 mt-4">
+      <div className="px-4"><BandFilter /></div>
+      <nav className="flex-1 px-4 space-y-2 mt-3">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;

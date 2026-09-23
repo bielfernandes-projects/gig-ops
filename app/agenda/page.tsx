@@ -11,7 +11,7 @@ import { redirect } from 'next/navigation';
 import { getUserInfo, ownedBands } from '@/lib/auth';
 import { Suspense } from 'react';
 import { AgendaCalendar } from '@/components/agenda-calendar';
-import { BandSwitcher } from '@/components/band-switcher';
+import { PageHeader } from '@/components/page-header';
 import { BandTag } from '@/components/band-tag';
 
 export const revalidate = 0;
@@ -269,10 +269,7 @@ export default async function Home({
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
       {/* Header */}
       <header className="mb-8">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50">Agenda</h1>
-          <BandSwitcher memberships={info.memberships} currentBandId={info.bandId} />
-        </div>
+        <PageHeader title="Agenda" description="Seus shows, escalas e cachês, em calendário ou em lista." />
 
         {/* Stats strip */}
         <div className="flex gap-3 overflow-x-auto pb-3 snap-x hide-scrollbar mb-6">

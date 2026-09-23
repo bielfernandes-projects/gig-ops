@@ -40,9 +40,6 @@ export default async function DashboardPage() {
       allBands={info.allBands}
       gigs={allGigs}
       lineups={lineups}
-      bandId={info.bandId}
-      bandName={info.bandName}
-      memberships={info.memberships}
       subscription={info.subscription}
     />
   );

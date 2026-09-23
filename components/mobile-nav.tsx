@@ -8,6 +8,7 @@ import { Logo } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { navItems, hideNav } from '@/components/navigation';
 import { signout } from '@/app/login/actions';
+import { BandFilter } from '@/components/band-switcher';
 
 export const NAV_EVENT = 'gg:nav';
 
@@ -37,12 +38,14 @@ export function MobileNav() {
         <button type="button" onClick={() => setOpen(true)} aria-label="Abrir menu" data-tour-menu className="rounded-lg p-2 text-zinc-300 hover:bg-zinc-900">
           <Menu className="h-6 w-6" />
         </button>
-        <Logo className="h-auto w-24" />
-        <form action={signout}>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 pl-3">
+          <div className="min-w-0 max-w-[60%] flex-1"><BandFilter compact /></div>
+          <form action={signout}>
           <button type="submit" aria-label="Sair" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-900 hover:text-red-400">
             <LogOut className="h-5 w-5" />
           </button>
         </form>
+        </div>
       </header>
 
       <div

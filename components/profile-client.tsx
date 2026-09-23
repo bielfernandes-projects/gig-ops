@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { PageHeader } from '@/components/page-header';
 import { EditableLine } from '@/components/editable-line';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useState, useEffect } from 'react';
@@ -41,10 +42,7 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
     <div className="flex-1 w-full max-w-2xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
       
       {/* ─── HEADER ─── */}
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-50 mb-2">Perfil</h1>
-        <p className="text-zinc-400 text-sm">Gerencie sua conta e visualize suas métricas.</p>
-      </header>
+      <PageHeader title="Perfil" description="Sua conta, suas bandas, notificações e assinatura." className="mb-0" />
 
       {/* ─── SECTION A: MEU PERFIL ─── */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">

@@ -1,7 +1,6 @@
 'use client';
 
-import { ThemeToggle } from '@/components/theme-toggle';
-import { BandSwitcher, type BandOption } from '@/components/band-switcher';
+import { PageHeader } from '@/components/page-header';
 import { useState } from 'react';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
@@ -19,13 +18,10 @@ type Props = {
   allBands: boolean;
   gigs: GigWithProject[];
   lineups: GoLineup[];
-  bandId: string | null;
-  bandName: string | null;
-  memberships: BandOption[];
   subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
 };
 
-export default function DashboardClient({ role, bandRoles, allBands, gigs, lineups, bandId, bandName, memberships, subscription }: Props) {
+export default function DashboardClient({ role, bandRoles, allBands, gigs, lineups, subscription }: Props) {
   const [pieFilter, setPieFilter] = useState<'month' | 'all' | 'custom'>('all'); 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -156,18 +152,7 @@ export default function DashboardClient({ role, bandRoles, allBands, gigs, lineu
   return (
     <div className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
       <AppTour role={role === 'admin' ? 'admin' : 'viewer'} />
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-50 mb-2">Dashboard</h1>
-          <p className="text-zinc-400 text-sm md:text-base">
-            {bandName ? `${bandName}: ` : ''}visão geral da agenda e das finanças.
-          </p>
-        </div>
-        <div className="flex items-end gap-3">
-          <BandSwitcher memberships={memberships} currentBandId={bandId} />
-          <ThemeToggle />
-        </div>
-      </header>
+      <PageHeader title="Dashboard" description="Visão geral da agenda e das finanças." className="mb-0" />
 
       {role === 'admin' && subscription && (subscription.state === 'expired' || (subscription.state === 'trial' && subscription.daysLeft !== null && subscription.daysLeft <= 7)) && (
         <div

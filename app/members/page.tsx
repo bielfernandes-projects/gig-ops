@@ -3,7 +3,7 @@ import { GoMember } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
 import { AddNewMemberModal } from '@/components/add-new-member-modal';
 import { MembersSearch } from '@/components/members-search';
-import { BandSwitcher } from '@/components/band-switcher';
+import { PageHeader } from '@/components/page-header';
 import { getUserInfo, ownedBands } from '@/lib/auth';
 
 export const revalidate = 0;
@@ -49,17 +49,7 @@ export default async function MembersPage() {
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
-      <header className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-50 mb-1">
-            Músicos
-          </h1>
-          <p className="text-zinc-500 text-sm">
-            {members.length} {members.length === 1 ? 'profissional' : 'profissionais'} no banco de talentos
-          </p>
-        </div>
-        <BandSwitcher memberships={info.memberships} currentBandId={info.bandId} />
-      </header>
+      <PageHeader title="Músicos" description="O banco de talentos: quem toca com a banda e em qual instrumento." />
 
       {error && (
         <div className="p-4 text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">

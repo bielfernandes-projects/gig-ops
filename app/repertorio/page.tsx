@@ -4,7 +4,7 @@ import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { CatalogClient, type CatalogSong } from '@/components/catalog-client';
 import { PersonalSetlists } from '@/components/personal-setlists';
-import { BandSwitcher } from '@/components/band-switcher';
+import { PageHeader } from '@/components/page-header';
 import { BandTag } from '@/components/band-tag';
 
 export const revalidate = 0;
@@ -62,13 +62,7 @@ export default async function RepertorioPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 pb-32 md:p-10">
-      <header className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-50 md:text-4xl">Repertório</h1>
-          <p className="mt-1 text-sm text-zinc-400">{info.bandName}: catálogo da banda e repertório de cada show.</p>
-        </div>
-        <BandSwitcher memberships={info.memberships} currentBandId={info.bandId} />
-      </header>
+      <PageHeader title="Repertório" description="O catálogo de músicas da banda e o repertório de cada show." className="mb-8" />
 
       <section className="mb-10">
         <h2 className="mb-3 text-sm font-semibold text-zinc-200">Repertório dos próximos shows</h2>

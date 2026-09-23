@@ -16,7 +16,7 @@ import {
   setProfitShare,
   cancelSubscription,
 } from '@/app/profile/actions';
-import type { BandOption } from '@/components/band-switcher';
+import { BANDS_CHANGED, type BandOption } from '@/components/band-switcher';
 import type { SubscriptionState } from '@/lib/subscription';
 import { ALL_BANDS } from '@/lib/band-view';
 
@@ -69,6 +69,7 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
     if (res?.error) toast.error(res.error);
     else {
       toast.success(okMsg);
+      window.dispatchEvent(new Event(BANDS_CHANGED));
       router.refresh();
     }
     return res;

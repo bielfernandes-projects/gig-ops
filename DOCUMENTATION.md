@@ -430,3 +430,8 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Celular: sem barra inferior; `components/mobile-nav.tsx` tem barra superior fixa (hambúrguer à esquerda, logo, "Sair" à direita) e um menu lateral com as páginas e, no rodapé, "Sair" e tema (só ícones). Desktop segue com a barra lateral. A classe `has-mobile-nav` (em `<html>`) dá o espaço do topo ao `main`.
 - Tour no celular: os passos abrem/fecham o menu por evento (`NAV_EVENT`) antes de apontar pros itens.
 - Login redireciona direto pra `/dashboard` (antes ia pra `/`, que o proxy redirecionava; em produção o `usePathname` do layout ficava em `/` e o menu só aparecia após atualizar, o que também fazia o tour perder os alvos e sumir).
+
+## 34. Filtro de banda global e cabeçalho padrão
+- O filtro de banda saiu das páginas: agora é global (`BandFilter` em `components/band-switcher.tsx`), acima de "Dashboard" na barra lateral (desktop) e na barra superior do celular, à esquerda do "Sair" (a logo do topo saiu; ela fica só dentro do menu hambúrguer). Como vive no layout raiz, carrega as bandas por `GET /api/bands`; recarrega ao trocar de página e no evento `gg:bands-changed` (disparado pelo Perfil ao entrar/criar/sair de banda). Só aparece com 2+ bandas.
+- Todas as páginas usam `components/page-header.tsx`: título + descrição curta, largura total, conteúdo logo abaixo (sem o nome da banda no subtítulo). No Relatório, o seletor Banda/Meus cachês e a navegação por mês ficam numa linha abaixo do cabeçalho.
+- O botão de tema saiu do Dashboard: fica em Perfil > Aparência e, no celular, no rodapé do menu.
