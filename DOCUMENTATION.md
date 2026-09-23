@@ -425,3 +425,8 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
 ## 32. Sair pela navegação
 - Botão "Sair" no rodapé da barra lateral (desktop) e como último item da barra inferior (mobile), em `components/navigation.tsx`, usando a mesma ação `signout` do Perfil.
+
+## 33. Menu do celular e fluxo pós-login
+- Celular: sem barra inferior; `components/mobile-nav.tsx` tem barra superior fixa (hambúrguer à esquerda, logo, "Sair" à direita) e um menu lateral com as páginas e, no rodapé, "Sair" e tema (só ícones). Desktop segue com a barra lateral. A classe `has-mobile-nav` (em `<html>`) dá o espaço do topo ao `main`.
+- Tour no celular: os passos abrem/fecham o menu por evento (`NAV_EVENT`) antes de apontar pros itens.
+- Login redireciona direto pra `/dashboard` (antes ia pra `/`, que o proxy redirecionava; em produção o `usePathname` do layout ficava em `/` e o menu só aparecia após atualizar, o que também fazia o tour perder os alvos e sumir).

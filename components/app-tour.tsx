@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useJoyride, STATUS, type Status, type Step } from 'react-joyride';
+import { NAV_EVENT } from '@/components/mobile-nav';
 
 const STORAGE_KEY = (role: string) => `gg-tour-v1:${role}`;
 
@@ -9,8 +10,16 @@ const STORAGE_KEY = (role: string) => `gg-tour-v1:${role}`;
 const navItem = (href: string) => () =>
   Array.from(document.querySelectorAll<HTMLElement>(`[data-tour-nav="${href}"]`)).find((el) => el.getClientRects().length > 0) ?? null;
 
-const welcome = (content: string): Step => ({ target: 'body', placement: 'center', title: 'Bem-vindo ao Gigueiros!', content });
-const nav = (href: string, title: string, content: string): Step => ({ target: navItem(href), placement: 'auto', isFixed: true, title, content });
+const isPhone = () => window.matchMedia('(max-width: 767px)').matches;
+/** On phones the menu items live in a drawer: open/close it around the steps that point at them. */
+const drawer = (open: boolean) => async () => {
+  if (!isPhone()) return;
+  window.dispatchEvent(new CustomEvent(NAV_EVENT, { detail: open }));
+  if (open) await new Promise((r) => setTimeout(r, 350));
+};
+
+const welcome = (content: string): Step => ({ target: 'body', placement: 'center', title: 'Bem-vindo ao Gigueiros!', content, before: drawer(false) });
+const nav = (href: string, title: string, content: string): Step => ({ target: navItem(href), placement: 'auto', isFixed: true, title, content, before: drawer(true) });
 
 const OWNER_STEPS: Step[] = [
   welcome('Em menos de 1 minuto te mostro o caminho pra tirar a banda da planilha e do grupo de WhatsApp.'),
@@ -71,6 +80,7 @@ export default function AppTour({ role }: { role: 'admin' | 'viewer' }) {
           localStorage.setItem(STORAGE_KEY(role), '1');
         } catch {}
         setRun(false);
+        window.dispatchEvent(new CustomEvent(NAV_EVENT, { detail: false }));
         if (window.location.search.includes('tour')) window.history.replaceState(null, '', window.location.pathname);
       }
     },

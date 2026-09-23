@@ -31,7 +31,7 @@ export function AddNewMemberModal({ bands }: { bands: BandChoice[] }) {
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-[88px] md:bottom-10 right-4 md:right-10 z-40 flex items-center justify-center w-14 h-14 bg-zinc-100 text-zinc-900 rounded-full hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl select-none"
+        className="fixed bottom-6 md:bottom-10 right-4 md:right-10 z-40 flex items-center justify-center w-14 h-14 bg-zinc-100 text-zinc-900 rounded-full hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl select-none"
         aria-label="Novo Músico"
       >
         <Plus className="w-6 h-6 stroke-[2.5]" />

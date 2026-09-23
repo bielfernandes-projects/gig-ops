@@ -169,3 +169,8 @@
 @media (prefers-reduced-motion: reduce) {
   .gg-marquee-track { animation: none; }
 }
+
+/* Phone layout: the top bar (MobileNav) is fixed, so leave room for it while it is shown */
+@media (max-width: 767px) {
+  :root.has-mobile-nav main { padding-top: 3.5rem; }
+}

@@ -6,7 +6,7 @@ import { Logo } from '@/components/logo';
 import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3, Music, LogOut } from 'lucide-react';
 import { signout } from '@/app/login/actions';
 
-const navItems = [
+export const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Agenda', href: '/agenda', icon: CalendarDays },
   { name: 'Projetos', href: '/projects', icon: FolderOpen },
@@ -16,46 +16,14 @@ const navItems = [
   { name: 'Perfil', href: '/profile', icon: UserRound },
 ];
 
-export function Navigation({ isMobile }: { isMobile: boolean }) {
+export const HIDE_NAV_PATHS = ['/', '/login', '/onboarding', '/termos', '/privacidade'];
+export const hideNav = (pathname: string) => HIDE_NAV_PATHS.includes(pathname) || pathname.startsWith('/auth') || pathname.startsWith('/palco') || pathname.startsWith('/s/');
+
+/** Desktop sidebar. The phone layout lives in MobileNav. */
+export function Navigation() {
   const pathname = usePathname();
 
-  if (['/', '/login', '/onboarding', '/termos', '/privacidade'].includes(pathname) || pathname.startsWith('/auth') || pathname.startsWith('/palco') || pathname.startsWith('/s/')) return null;
-
-  if (isMobile) {
-    return (
-      <nav className="flex justify-around items-center h-16 px-2">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              data-tour-nav={item.href}
-              className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors relative ${
-                isActive ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-emerald-400 rounded-full" />
-              )}
-              <Icon className={`w-5 h-5 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
-              <span className="w-full truncate text-center text-[10px] font-medium tracking-tight">{item.name}</span>
-            </Link>
-          );
-        })}
-        <form action={signout} className="w-full h-full">
-          <button
-            type="submit"
-            className="flex flex-col items-center justify-center w-full h-full space-y-1 text-zinc-500 hover:text-red-400 transition-colors"
-          >
-            <LogOut className="w-5 h-5 stroke-[1.5]" />
-            <span className="w-full truncate text-center text-[10px] font-medium tracking-tight">Sair</span>
-          </button>
-        </form>
-      </nav>
-    );
-  }
+  if (hideNav(pathname)) return null;
 
   // Desktop Component
   return (

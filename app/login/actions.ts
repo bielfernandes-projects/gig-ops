@@ -23,7 +23,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath('/', 'layout');
-  redirect('/');
+  redirect('/dashboard');
 }
 
 /** Sign-up of a musician invited by a band (invite code). */
