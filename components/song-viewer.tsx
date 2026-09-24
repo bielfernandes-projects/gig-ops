@@ -19,8 +19,14 @@ export type SongView = {
   note?: string | null;
 };
 
-/** Full-screen reader for a song's chart/lyrics (the text the musician pasted). */
-export function SongViewer({ song, onClose }: { song: SongView; onClose: () => void }) {
+type PdfUrlFetcher = (songId: string) => Promise<{ url?: string; error?: string }>;
+
+/**
+ * Full-screen reader for a song's chart/lyrics (the text the musician pasted). `fetchPdfUrl`
+ * defaults to the band-membership-gated action; the public (no-login) setlist view passes a
+ * token-scoped one instead, since the caller there has no authenticated session.
+ */
+export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl }: { song: SongView; onClose: () => void; fetchPdfUrl?: PdfUrlFetcher }) {
   const key = song.requested_key || song.original_key;
   const changed = !!(song.requested_key && song.original_key && song.requested_key !== song.original_key);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -57,8 +63,8 @@ export function SongViewer({ song, onClose }: { song: SongView; onClose: () => v
               <button
                 type="button"
                 onClick={async () => {
-                  const res = await getSongPdfUrl(song.id!);
-                  if (res.error) return toast.error(res.error);
+                  const res = await fetchPdfUrl(song.id!);
+                  if (res.error || !res.url) return toast.error(res.error ?? 'Não foi possível abrir o PDF.');
                   window.open(res.url, '_blank', 'noopener,noreferrer');
                 }}
                 className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-zinc-200"
