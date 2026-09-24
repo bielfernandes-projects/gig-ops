@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireBand, requireBandFor, type BandContext } from '@/lib/auth';
 
-export const PDF_BUCKET = 'song-pdfs';
+const PDF_BUCKET = 'song-pdfs';
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
 async function uploadPdf(ctx: Extract<BandContext, { ok: true }>, songId: string, file: File): Promise<string | null> {

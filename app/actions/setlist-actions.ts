@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { bandOf, requireBand, requireBandFor, requireOwner, requireOwnerFor } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
-import { PDF_BUCKET } from './song-actions';
+
+const PDF_BUCKET = 'song-pdfs';
 
 type Ctx = Extract<Awaited<ReturnType<typeof requireBand>>, { ok: true }>;
 type SetlistRow = { id: string; scope: 'band' | 'personal'; owner_user_id: string | null; band_id: string };
@@ -58,6 +59,28 @@ async function itemBand(itemId: string): Promise<string | null> {
   const supabase = await createClient();
   const { data } = await supabase.from('block_songs').select('block_id').eq('id', itemId).maybeSingle();
   return data ? blockBand(data.block_id) : null;
+}
+
+/** Creates a personal setlist scoped to a gig (legacy function for component compatibility). */
+export async function createGigSetlist(gigId: string) {
+  const ctx = await requireOwnerFor('go_gigs', gigId, 'repertorio');
+  if (!ctx.ok) return { error: ctx.error };
+
+  const { data: gig } = await ctx.supabase.from('go_gigs').select('id, title').eq('id', gigId).maybeSingle();
+  if (!gig) return { error: 'Show não encontrado.' };
+
+  const { data: setlist, error } = await ctx.supabase
+    .from('setlists')
+    .insert({ band_id: ctx.bandId, name: gig.title, scope: 'personal', owner_user_id: ctx.userId, created_by: ctx.userId })
+    .select('id')
+    .single();
+  if (error || !setlist) return { error: 'Não foi possível criar o repertório.' };
+
+  await ctx.supabase.from('blocks').insert({ setlist_id: setlist.id, name: 'Bloco 1', position: 0 });
+
+  revalidatePath(`/gigs/${gigId}`);
+  revalidatePath('/repertorio');
+  return { success: true };
 }
 
 /** A reusable band setlist (library): created empty, then anexado a shows / marcado como principal. */
