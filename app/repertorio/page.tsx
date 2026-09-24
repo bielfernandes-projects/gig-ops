@@ -1,15 +1,12 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { CatalogClient, type CatalogSong } from '@/components/catalog-client';
 import { PersonalSetlists } from '@/components/personal-setlists';
+import { BandSetlists } from '@/components/band-setlists';
 import { PageHeader } from '@/components/page-header';
-import { BandTag } from '@/components/band-tag';
 
 export const revalidate = 0;
-
-const TZ = 'America/Sao_Paulo';
 
 export default async function RepertorioPage() {
   const info = await getUserInfo();
@@ -30,19 +27,18 @@ export default async function RepertorioPage() {
   }
 
   const supabase = await createClient();
-  const [songsResult, gigsResult, personalResult] = await Promise.all([
+  const [songsResult, bandListsResult, personalResult] = await Promise.all([
     supabase
       .from('songs')
       .select('id, title, artist, original_key, bpm, source_url, chart_text, pdf_path, created_by, scope, band_id')
       .in('band_id', repBandIds)
       .order('title', { ascending: true }),
     supabase
-      .from('go_gigs')
-      .select('id, title, start_time, band_id, setlists(id)')
+      .from('setlists')
+      .select('id, name, is_default, band_id')
       .in('band_id', repBandIds)
-      .gte('start_time', new Date().toISOString())
-      .order('start_time', { ascending: true })
-      .limit(8),
+      .eq('scope', 'band')
+      .order('name', { ascending: true }),
     supabase
       .from('setlists')
       .select('id, name, band_id')
@@ -53,44 +49,23 @@ export default async function RepertorioPage() {
   ]);
 
   const songs = (songsResult.data ?? []) as (CatalogSong & { band_id: string })[];
+  const bandLists = ((bandListsResult.data ?? []) as { id: string; name: string; is_default: boolean; band_id: string }[]).map((l) => ({
+    id: l.id,
+    name: l.name,
+    isDefault: l.is_default,
+    bandName: info.allBands ? nameOf(l.band_id) : undefined,
+  }));
   const personalLists = ((personalResult.data ?? []) as { id: string; name: string; band_id: string }[]).map((l) => ({
     id: l.id,
     name: l.name,
     bandName: info.allBands ? nameOf(l.band_id) : undefined,
   }));
-  const gigs = (gigsResult.data ?? []) as unknown as { id: string; title: string; start_time: string; band_id: string; setlists: { id: string }[] | null }[];
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 pb-32 md:p-10">
-      <PageHeader title="Repertório" description="O catálogo de músicas da banda e o repertório de cada show." className="mb-8" />
+      <PageHeader title="Repertório" description="O catálogo de músicas da banda e os repertórios reutilizáveis em qualquer show." className="mb-8" />
 
-      <section className="mb-10">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-200">Repertório dos próximos shows</h2>
-        {gigs.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">Nenhum show futuro.</p>
-        ) : (
-          <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900">
-            {gigs.map((g) => {
-              const has = (g.setlists ?? []).length > 0;
-              return (
-                <li key={g.id}>
-                  <Link href={`/gigs/${g.id}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-zinc-800/40">
-                    <span className="flex min-w-0 items-center gap-2 text-zinc-200">
-                      <span className="truncate">
-                        {new Date(g.start_time).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: TZ })} · {g.title}
-                      </span>
-                      {info.allBands && <BandTag name={nameOf(g.band_id)} />}
-                    </span>
-                    <span className={`shrink-0 text-xs font-semibold ${has ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                      {has ? 'Com repertório' : info.bands[g.band_id]?.role === 'admin' ? 'Criar repertório' : 'Sem repertório'}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      <BandSetlists lists={bandLists} bands={repBandIds.map((id) => ({ bandId: id, name: nameOf(id) }))} />
 
       <PersonalSetlists lists={personalLists} bands={repBandIds.map((id) => ({ bandId: id, name: nameOf(id) }))} />
 
