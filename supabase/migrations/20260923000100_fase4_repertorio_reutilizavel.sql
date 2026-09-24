@@ -30,6 +30,7 @@ begin
 end $$;
 revoke all on function private.set_default_setlist(uuid) from public;
 grant execute on function private.set_default_setlist(uuid) to authenticated;
+grant usage on schema private to authenticated;
 
 -- 6. Leitura de repertorios 'band' abre pra qualquer membro (nao so o dono/quem esta escalado
 -- no show vinculado, ja que o repertorio deixa de ser um detalhe de um show so). Escrita continua
