@@ -61,28 +61,6 @@ async function itemBand(itemId: string): Promise<string | null> {
   return data ? blockBand(data.block_id) : null;
 }
 
-/** Creates a personal setlist scoped to a gig (legacy function for component compatibility). */
-export async function createGigSetlist(gigId: string) {
-  const ctx = await requireOwnerFor('go_gigs', gigId, 'repertorio');
-  if (!ctx.ok) return { error: ctx.error };
-
-  const { data: gig } = await ctx.supabase.from('go_gigs').select('id, title').eq('id', gigId).maybeSingle();
-  if (!gig) return { error: 'Show não encontrado.' };
-
-  const { data: setlist, error } = await ctx.supabase
-    .from('setlists')
-    .insert({ band_id: ctx.bandId, name: gig.title, scope: 'personal', owner_user_id: ctx.userId, created_by: ctx.userId })
-    .select('id')
-    .single();
-  if (error || !setlist) return { error: 'Não foi possível criar o repertório.' };
-
-  await ctx.supabase.from('blocks').insert({ setlist_id: setlist.id, name: 'Bloco 1', position: 0 });
-
-  revalidatePath(`/gigs/${gigId}`);
-  revalidatePath('/repertorio');
-  return { success: true };
-}
-
 /** A reusable band setlist (library): created empty, then anexado a shows / marcado como principal. */
 export async function createBandSetlist(name: string, bandId?: string | null) {
   const ctx = await requireOwner('repertorio', bandId);

@@ -4,9 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowUp, ArrowDown, Trash2, Pencil, FileText, Plus, Link2, PlayCircle, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Trash2, Pencil, FileText, Plus, Link2, PlayCircle, X, Copy, MessageCircle } from 'lucide-react';
 import {
-  createGigSetlist,
   deleteSetlist,
   addBlock,
   renameBlock,
@@ -16,6 +15,9 @@ import {
   updateBlockSong,
   removeBlockSong,
   moveBlockSong,
+  attachSetlistToGig,
+  detachSetlistFromGig,
+  duplicateSetlistForGig,
   createShareLink,
   revokeShareLink,
 } from '@/app/actions/setlist-actions';
@@ -44,12 +46,55 @@ export type SetlistItem = {
 export type SetlistBlock = { id: string; name: string; position: number; block_songs: SetlistItem[] };
 export type SetlistTree = { id: string; name: string; blocks: SetlistBlock[] };
 export type CatalogOption = { id: string; title: string; artist: string | null; original_key: string | null };
+export type BandSetlistOption = { id: string; name: string; is_default: boolean };
 
 const inputCls =
   'bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-600 placeholder-zinc-600';
 const iconBtn = 'p-1.5 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 disabled:opacity-30';
 
-type Result = { error?: string; success?: boolean; token?: string } | undefined;
+type Result = { error?: string; success?: boolean; token?: string; id?: string } | undefined;
+
+function ShareButtons({ shareToken, onCreate, onRevoke, setlistName }: { shareToken: string | null; onCreate: () => void; onRevoke: () => void; setlistName: string }) {
+  const shareUrl = shareToken && typeof window !== 'undefined' ? `${window.location.origin}/s/${shareToken}` : null;
+
+  if (!shareToken) {
+    return (
+      <button type="button" onClick={onCreate} className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">
+        <Link2 className="h-4 w-4" /> Gerar link para compartilhar
+      </button>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={async () => {
+          if (!shareUrl) return;
+          await navigator.clipboard.writeText(shareUrl);
+          toast.success('Link copiado. Quem tiver o link vê o repertório completo, sem editar.');
+        }}
+        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
+      >
+        <Copy className="h-4 w-4" /> Copiar link
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (!shareUrl) return;
+          const msg = `Repertório "${setlistName}": ${shareUrl}`;
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+        }}
+        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
+      >
+        <MessageCircle className="h-4 w-4" /> WhatsApp
+      </button>
+      <button type="button" onClick={onRevoke} className="rounded-md px-2 py-1.5 text-xs text-zinc-500 underline underline-offset-4 hover:text-zinc-300">
+        Revogar link
+      </button>
+    </>
+  );
+}
 
 export function GigSetlist({
   gigId,
@@ -57,17 +102,22 @@ export function GigSetlist({
   catalog,
   isOwner,
   shareToken,
+  bandSetlists,
+  usageCount,
 }: {
   gigId: string;
   setlist: SetlistTree | null;
   catalog: CatalogOption[];
   isOwner: boolean;
   shareToken: string | null;
+  bandSetlists: BandSetlistOption[];
+  usageCount: number;
 }) {
   const router = useRouter();
   const [viewing, setViewing] = useState<SongView | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [newBlock, setNewBlock] = useState('');
+  const [picked, setPicked] = useState(bandSetlists.find((s) => s.is_default)?.id ?? bandSetlists[0]?.id ?? '');
 
   const run = async (action: () => Promise<Result>, okMsg?: string) => {
     const res = await action();
@@ -85,14 +135,26 @@ export function GigSetlist({
         <h2 className="mb-1 text-sm font-semibold text-zinc-200">Repertório do show</h2>
         {isOwner ? (
           <>
-            <p className="mb-4 text-xs text-zinc-500">Monte a ordem das músicas, os tons e compartilhe com a banda.</p>
-            <button
-              type="button"
-              onClick={() => run(() => createGigSetlist(gigId), 'Repertório criado.')}
-              className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-bold text-zinc-900 hover:bg-white"
-            >
-              Criar repertório do show
-            </button>
+            <p className="mb-4 text-xs text-zinc-500">Anexe um repertório já existente da banda ou crie um novo.</p>
+            {bandSetlists.length > 0 && (
+              <div className="mx-auto mb-3 flex max-w-sm flex-wrap items-center justify-center gap-2">
+                <select value={picked} onChange={(e) => setPicked(e.target.value)} aria-label="Repertório da banda" className={`${inputCls} min-w-0 flex-1 appearance-none`}>
+                  {bandSetlists.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}{s.is_default ? ' (principal)' : ''}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => run(() => attachSetlistToGig(gigId, picked), 'Repertório anexado.')}
+                  className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-bold text-zinc-900 hover:bg-white"
+                >
+                  Anexar
+                </button>
+              </div>
+            )}
+            <Link href="/repertorio" className="text-xs text-zinc-500 underline underline-offset-4 hover:text-zinc-300">
+              Criar um repertório novo em Repertório
+            </Link>
           </>
         ) : (
           <p className="text-xs text-zinc-500">O repertório deste show ainda não foi montado.</p>
@@ -103,7 +165,7 @@ export function GigSetlist({
 
   const blocks = [...setlist.blocks].sort((a, b) => a.position - b.position);
   const total = blocks.reduce((n, b) => n + b.block_songs.length, 0);
-  const shareUrl = shareToken && typeof window !== 'undefined' ? `${window.location.origin}/s/${shareToken}` : null;
+  const shared = usageCount > 1;
 
   return (
     <section className="mb-10">
@@ -120,40 +182,31 @@ export function GigSetlist({
               <PlayCircle className="h-4 w-4" /> Modo palco
             </Link>
           )}
-          {isOwner &&
-            (shareToken ? (
-              <>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (shareUrl) {
-                      await navigator.clipboard.writeText(shareUrl);
-                      toast.success('Link copiado. Quem tiver o link só visualiza a ordem e os tons.');
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
-                >
-                  <Link2 className="h-4 w-4" /> Copiar link
-                </button>
-                <button
-                  type="button"
-                  onClick={() => run(() => revokeShareLink(setlist.id), 'Link revogado.')}
-                  className="rounded-md px-2 py-1.5 text-xs text-zinc-500 underline underline-offset-4 hover:text-zinc-300"
-                >
-                  Revogar link
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => run(() => createShareLink(setlist.id), 'Link criado. Clique em "Copiar link".')}
-                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
-              >
-                <Link2 className="h-4 w-4" /> Gerar link para compartilhar
-              </button>
-            ))}
+          {isOwner && (
+            <ShareButtons
+              shareToken={shareToken}
+              setlistName={setlist.name}
+              onCreate={() => run(() => createShareLink(setlist.id), 'Link criado. Clique em "Copiar link".')}
+              onRevoke={() => run(() => revokeShareLink(setlist.id), 'Link revogado.')}
+            />
+          )}
         </div>
       </div>
+
+      {isOwner && shared && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+          <span>Este repertório é usado em {usageCount} shows — mudanças aqui afetam todos eles.</span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => run(() => duplicateSetlistForGig(gigId, setlist.id), 'Repertório duplicado só para este show.')}
+              className="rounded-md border border-amber-400/40 px-3 py-1 font-semibold text-amber-100 hover:bg-amber-500/10"
+            >
+              Duplicar para este show
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-4">
         {blocks.map((block, bi) => {
@@ -295,15 +348,45 @@ export function GigSetlist({
               <input value={newBlock} onChange={(e) => setNewBlock(e.target.value)} placeholder="Novo bloco (ex: Pagode, Louvor)" className={`${inputCls} min-w-0 flex-1`} aria-label="Nome do novo bloco" />
               <button type="submit" disabled={!newBlock.trim()} className="rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-zinc-800 disabled:opacity-40">Novo bloco</button>
             </form>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm('Remover todo o repertório deste show?')) run(() => deleteSetlist(setlist.id), 'Repertório removido.');
-              }}
-              className="w-fit text-xs text-zinc-600 underline underline-offset-4 hover:text-red-400"
-            >
-              Remover repertório do show
-            </button>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {bandSetlists.length > 1 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <select value={picked} onChange={(e) => setPicked(e.target.value)} aria-label="Trocar repertório" className={`${inputCls} appearance-none`}>
+                    {bandSetlists.filter((s) => s.id !== setlist.id).map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}{s.is_default ? ' (principal)' : ''}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => picked && run(() => attachSetlistToGig(gigId, picked), 'Repertório trocado.')}
+                    className="rounded-md border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
+                  >
+                    Trocar repertório
+                  </button>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('Desanexar o repertório deste show? O repertório continua existindo (e disponível em outros shows).')) run(() => detachSetlistFromGig(gigId), 'Repertório desanexado.');
+                }}
+                className="text-xs text-zinc-600 underline underline-offset-4 hover:text-red-400"
+              >
+                Desanexar repertório
+              </button>
+              {!shared && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Remover este repertório (não é usado por nenhum outro show)?')) run(() => deleteSetlist(setlist.id), 'Repertório removido.');
+                  }}
+                  className="text-xs text-zinc-600 underline underline-offset-4 hover:text-red-400"
+                >
+                  Excluir repertório
+                </button>
+              )}
+            </div>
           </>
         )}
       </div>
