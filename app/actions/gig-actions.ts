@@ -81,6 +81,14 @@ export async function addQuickGig(formData: FormData) {
   const endDt = end_time ? new Date(end_time) : null;
   const durationMs = endDt ? endDt.getTime() - startDt.getTime() : 0;
 
+  const { data: defaultSetlist } = await supabase
+    .from('setlists')
+    .select('id')
+    .eq('band_id', bandId)
+    .eq('scope', 'band')
+    .eq('is_default', true)
+    .maybeSingle();
+
   const gigsToInsert = [];
   const currentStart = new Date(startDt);
 
@@ -103,6 +111,7 @@ export async function addQuickGig(formData: FormData) {
       recurrence_group_id,
       band_id: bandId,
       reminder_minutes: reminderMinutes.length > 0 ? reminderMinutes : [],
+      setlist_id: originalGig ? originalGig.setlist_id : (defaultSetlist?.id ?? null),
     });
 
     if (!recurrence || recurrence === 'none' || !endRecurrenceDate) break;
