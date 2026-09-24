@@ -1,18 +1,19 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { bandOf, requireBand, requireOwnerFor } from '@/lib/auth';
+import { bandOf, requireBand, requireBandFor, requireOwner, requireOwnerFor } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { PDF_BUCKET } from './song-actions';
 
 type Ctx = Extract<Awaited<ReturnType<typeof requireBand>>, { ok: true }>;
-type SetlistRow = { id: string; scope: 'band' | 'personal'; owner_user_id: string | null; band_id: string; gig_id: string | null };
+type SetlistRow = { id: string; scope: 'band' | 'personal'; owner_user_id: string | null; band_id: string };
 
 /** Band setlists are edited by band owners; personal ones only by the person who created them. */
 async function editableSetlist(ctx: Ctx, setlistId: string): Promise<SetlistRow | null> {
   const { data } = await ctx.supabase
     .from('setlists')
-    .select('id, scope, owner_user_id, band_id, gig_id')
+    .select('id, scope, owner_user_id, band_id')
     .eq('id', setlistId)
     .maybeSingle();
   const sl = data as SetlistRow | null;
@@ -33,8 +34,10 @@ async function editableItem(ctx: Ctx, itemId: string): Promise<{ sl: SetlistRow;
   return sl ? { sl, blockId: data.block_id } : null;
 }
 
-function refresh(sl: Pick<SetlistRow, 'id' | 'gig_id'>) {
-  if (sl.gig_id) revalidatePath(`/gigs/${sl.gig_id}`);
+/** Revalidates every gig currently using this setlist (a setlist can now be shared by several). */
+async function refresh(ctx: Pick<Ctx, 'supabase'>, sl: Pick<SetlistRow, 'id'>) {
+  const { data: gigs } = await ctx.supabase.from('go_gigs').select('id').eq('setlist_id', sl.id);
+  for (const g of gigs ?? []) revalidatePath(`/gigs/${g.id}`);
   revalidatePath('/repertorio');
   revalidatePath(`/repertorio/lista/${sl.id}`);
 }
@@ -57,25 +60,25 @@ async function itemBand(itemId: string): Promise<string | null> {
   return data ? blockBand(data.block_id) : null;
 }
 
-/** Official setlist of a gig: band owners only. */
-export async function createGigSetlist(gigId: string) {
-  const ctx = await requireOwnerFor('go_gigs', gigId, 'repertorio');
+/** A reusable band setlist (library): created empty, then anexado a shows / marcado como principal. */
+export async function createBandSetlist(name: string, bandId?: string | null) {
+  const ctx = await requireOwner('repertorio', bandId);
   if (!ctx.ok) return { error: ctx.error };
 
-  const { data: gig } = await ctx.supabase.from('go_gigs').select('id, title').eq('id', gigId).eq('band_id', ctx.bandId).maybeSingle();
-  if (!gig) return { error: 'Show não encontrado.' };
+  const clean = name.trim().slice(0, 80);
+  if (!clean) return { error: 'Informe o nome do repertório.' };
 
   const { data: setlist, error } = await ctx.supabase
     .from('setlists')
-    .insert({ band_id: ctx.bandId, gig_id: gigId, name: gig.title, created_by: ctx.userId, scope: 'band' })
+    .insert({ band_id: ctx.bandId, name: clean, scope: 'band', created_by: ctx.userId })
     .select('id')
     .single();
-  if (error || !setlist) return { error: 'Não foi possível criar o repertório (este show já tem um?).' };
+  if (error || !setlist) return { error: 'Não foi possível criar o repertório.' };
 
   await ctx.supabase.from('blocks').insert({ setlist_id: setlist.id, name: 'Bloco 1', position: 0 });
 
-  refresh({ id: setlist.id, gig_id: gigId });
-  return { success: true };
+  revalidatePath('/repertorio');
+  return { success: true, id: setlist.id };
 }
 
 /** A personal setlist only its creator sees (any member of the band can have them). */
@@ -96,7 +99,7 @@ export async function createPersonalSetlist(name: string, bandId?: string | null
 
   await ctx.supabase.from('blocks').insert({ setlist_id: setlist.id, name: 'Bloco 1', position: 0 });
 
-  refresh({ id: setlist.id, gig_id: null });
+  revalidatePath('/repertorio');
   return { success: true, id: setlist.id };
 }
 
@@ -110,7 +113,7 @@ export async function deleteSetlist(setlistId: string) {
   const { data, error } = await ctx.supabase.from('setlists').delete().eq('id', setlistId).select('id');
   if (error || !data?.length) return { error: 'Não foi possível remover o repertório.' };
 
-  refresh(sl);
+  await refresh(ctx, sl);
   return { success: true };
 }
 
@@ -128,7 +131,7 @@ export async function addBlock(setlistId: string, name: string) {
   const { error } = await ctx.supabase.from('blocks').insert({ setlist_id: setlistId, name: clean, position: (last?.position ?? -1) + 1 });
   if (error) return { error: 'Não foi possível criar o bloco.' };
 
-  refresh(sl);
+  await refresh(ctx, sl);
   return { success: true };
 }
 
@@ -145,7 +148,7 @@ export async function renameBlock(blockId: string, name: string) {
   const { data, error } = await ctx.supabase.from('blocks').update({ name: clean }).eq('id', blockId).select('id');
   if (error || !data?.length) return { error: 'Não foi possível renomear o bloco.' };
 
-  refresh(sl);
+  await refresh(ctx, sl);
   return { success: true };
 }
 
@@ -159,7 +162,7 @@ export async function deleteBlock(blockId: string) {
   const { data, error } = await ctx.supabase.from('blocks').delete().eq('id', blockId).select('id');
   if (error || !data?.length) return { error: 'Não foi possível remover o bloco.' };
 
-  refresh(sl);
+  await refresh(ctx, sl);
   return { success: true };
 }
 
@@ -182,7 +185,7 @@ export async function moveBlock(blockId: string, direction: 'up' | 'down') {
   [order[i], order[j]] = [order[j], order[i]];
   await Promise.all(order.map((id, position) => ctx.supabase.from('blocks').update({ position }).eq('id', id)));
 
-  refresh(sl);
+  await refresh(ctx, sl);
   return { success: true };
 }
 
@@ -207,7 +210,7 @@ export async function addSongToBlock(blockId: string, songId: string, requestedK
   });
   if (error) return { error: 'Não foi possível adicionar a música.' };
 
-  refresh(sl);
+  await refresh(ctx, sl);
   return { success: true };
 }
 
@@ -229,7 +232,7 @@ export async function updateBlockSong(id: string, fields: { requested_key: strin
     .select('id');
   if (error || !data?.length) return { error: 'Não foi possível salvar.' };
 
-  refresh(item.sl);
+  await refresh(ctx, item.sl);
   return { success: true };
 }
 
@@ -243,7 +246,7 @@ export async function removeBlockSong(id: string) {
   const { data, error } = await ctx.supabase.from('block_songs').delete().eq('id', id).select('id');
   if (error || !data?.length) return { error: 'Não foi possível remover.' };
 
-  refresh(item.sl);
+  await refresh(ctx, item.sl);
   return { success: true };
 }
 
@@ -264,7 +267,106 @@ export async function moveBlockSong(id: string, direction: 'up' | 'down') {
   [order[i], order[j]] = [order[j], order[i]];
   await Promise.all(order.map((rowId, position) => ctx.supabase.from('block_songs').update({ position }).eq('id', rowId)));
 
-  refresh(item.sl);
+  await refresh(ctx, item.sl);
+  return { success: true };
+}
+
+/** Attaches an existing band setlist to a gig (the gig's owner picks from the band's library). */
+export async function attachSetlistToGig(gigId: string, setlistId: string) {
+  const ctx = await requireOwnerFor('go_gigs', gigId, 'repertorio');
+  if (!ctx.ok) return { error: ctx.error };
+
+  const { data: setlist } = await ctx.supabase.from('setlists').select('id, band_id, scope').eq('id', setlistId).maybeSingle();
+  if (!setlist || setlist.band_id !== ctx.bandId || setlist.scope !== 'band') return { error: 'Repertório não encontrado.' };
+
+  const { error } = await ctx.supabase.from('go_gigs').update({ setlist_id: setlistId }).eq('id', gigId);
+  if (error) return { error: 'Não foi possível anexar o repertório.' };
+
+  revalidatePath(`/gigs/${gigId}`);
+  revalidatePath(`/repertorio/lista/${setlistId}`);
+  return { success: true };
+}
+
+export async function detachSetlistFromGig(gigId: string) {
+  const ctx = await requireOwnerFor('go_gigs', gigId, 'repertorio');
+  if (!ctx.ok) return { error: ctx.error };
+
+  const { error } = await ctx.supabase.from('go_gigs').update({ setlist_id: null }).eq('id', gigId);
+  if (error) return { error: 'Não foi possível desanexar o repertório.' };
+
+  revalidatePath(`/gigs/${gigId}`);
+  return { success: true };
+}
+
+type SourceSetlist = {
+  id: string;
+  name: string;
+  band_id: string;
+  blocks: {
+    id: string;
+    name: string;
+    theme: string | null;
+    position: number;
+    block_songs: { song_id: string; reference_key: string | null; requested_key: string | null; note: string | null; transition_note: string | null; position: number }[];
+  }[];
+};
+
+/** Forks a shared setlist into an independent copy, attached only to this gig. */
+export async function duplicateSetlistForGig(gigId: string, setlistId: string) {
+  const ctx = await requireOwnerFor('go_gigs', gigId, 'repertorio');
+  if (!ctx.ok) return { error: ctx.error };
+
+  const { data: source } = (await ctx.supabase
+    .from('setlists')
+    .select('id, name, band_id, blocks(id, name, theme, position, block_songs(song_id, reference_key, requested_key, note, transition_note, position))')
+    .eq('id', setlistId)
+    .maybeSingle()) as unknown as { data: SourceSetlist | null };
+  if (!source || source.band_id !== ctx.bandId) return { error: 'Repertório não encontrado.' };
+
+  const { data: copy, error } = await ctx.supabase
+    .from('setlists')
+    .insert({ band_id: ctx.bandId, name: source.name, scope: 'band', created_by: ctx.userId })
+    .select('id')
+    .single();
+  if (error || !copy) return { error: 'Não foi possível duplicar o repertório.' };
+
+  const newBlocks = await Promise.all(
+    source.blocks.map((block) =>
+      ctx.supabase.from('blocks').insert({ setlist_id: copy.id, name: block.name, theme: block.theme, position: block.position }).select('id').single()
+    )
+  );
+
+  const allBlockSongs = source.blocks.flatMap((block, i) => {
+    const newBlockId = newBlocks[i].data?.id;
+    if (!newBlockId) return [];
+    return block.block_songs.map((bs) => ({
+      block_id: newBlockId,
+      song_id: bs.song_id,
+      reference_key: bs.reference_key,
+      requested_key: bs.requested_key,
+      note: bs.note,
+      transition_note: bs.transition_note,
+      position: bs.position,
+    }));
+  });
+  if (allBlockSongs.length > 0) await ctx.supabase.from('block_songs').insert(allBlockSongs);
+
+  await ctx.supabase.from('go_gigs').update({ setlist_id: copy.id }).eq('id', gigId);
+
+  revalidatePath(`/gigs/${gigId}`);
+  revalidatePath('/repertorio');
+  return { success: true, id: copy.id };
+}
+
+/** Marks a band setlist as the one new gigs auto-attach to (at most one per band). */
+export async function setDefaultSetlist(setlistId: string) {
+  const ctx = await requireOwnerFor('setlists', setlistId, 'repertorio');
+  if (!ctx.ok) return { error: ctx.error };
+
+  const { error } = await ctx.supabase.rpc('set_default_setlist', { target_id: setlistId });
+  if (error) return { error: 'Não foi possível marcar como principal.' };
+
+  revalidatePath('/repertorio');
   return { success: true };
 }
 
@@ -283,7 +385,7 @@ export async function createShareLink(setlistId: string) {
   const { data, error } = await admin.from('setlist_share_links').insert({ setlist_id: setlistId }).select('token').single();
   if (error || !data) return { error: 'Não foi possível criar o link.' };
 
-  refresh(sl);
+  await refresh(ctx, sl);
   return { token: data.token };
 }
 
@@ -301,6 +403,32 @@ export async function revokeShareLink(setlistId: string) {
     .is('revoked_at', null);
   if (error) return { error: 'Não foi possível revogar o link.' };
 
-  refresh(sl);
+  await refresh(ctx, sl);
   return { success: true };
+}
+
+/**
+ * Signed PDF URL for the public (no-login) setlist view: validates via the share token instead
+ * of band membership, and only for a song that's actually in a block of that shared setlist —
+ * never an arbitrary songId.
+ */
+export async function getPublicSongPdfUrl(token: string, songId: string) {
+  if (!/^[a-f0-9]{64}$/.test(token)) return { error: 'Link inválido.' };
+
+  const admin = createAdminClient();
+  const { data: link } = await admin.from('setlist_share_links').select('setlist_id').eq('token', token).is('revoked_at', null).maybeSingle();
+  if (!link) return { error: 'Link inválido.' };
+
+  const { data: match } = await admin
+    .from('block_songs')
+    .select('id, blocks!inner(setlist_id)')
+    .eq('song_id', songId)
+    .eq('blocks.setlist_id', link.setlist_id)
+    .limit(1)
+    .maybeSingle();
+  if (!match) return { error: 'Música não encontrada neste repertório.' };
+
+  const { data, error } = await admin.storage.from(PDF_BUCKET).createSignedUrl(`${songId}.pdf`, 300);
+  if (error || !data) return { error: 'Não foi possível abrir o PDF.' };
+  return { url: data.signedUrl };
 }
