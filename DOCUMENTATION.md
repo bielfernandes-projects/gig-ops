@@ -332,9 +332,9 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
 * **Sem raspagem.** O app não busca cifra em site nenhum. O músico cola o texto da cifra ou da letra (campo `songs.chart_text`, visível só à banda) e pode guardar o link da fonte; o formulário oferece um atalho "Procurar no Cifra Club" que apenas abre a busca do site.
 * **Catálogo da banda** (`songs`, página `/repertorio`): qualquer membro adiciona; edita e apaga quem criou ou um dono. Tom original, BPM, link e texto.
-* **Repertório do show** (`setlists`, `blocks`, `block_songs`): um por show, montado só por donos na página do show (blocos, ordem, tom pedido, observação e nota de passagem). Músicos escalados no show leem; os demais não.
+* **Repertório do show** (`setlists`, `blocks`, `block_songs`): montado só por donos na página do show ou em `/repertorio` (desde o §35 não é mais um por show: vários shows podem usar o mesmo repertório) (blocos, ordem, tom pedido, observação e nota de passagem). Músicos escalados no show leem; os demais não.
 * **Modo palco** (`/palco/[id]`): tela escura de alto contraste, uma música por vez, botões grandes, tamanho de letra ajustável e tela sempre ligada (Wake Lock).
-* **Link público** (`/s/[token]`, `setlist_share_links`): somente leitura, sem login, mostra só ordem e tons. O token (64 caracteres) só é lido pelo servidor e o dono pode revogar.
+* **Link público** (`/s/[token]`, `setlist_share_links`): somente leitura, sem login (desde o §35 mostra o repertório completo, com cifra e PDF). O token (64 caracteres) só é lido pelo servidor e o dono pode revogar.
 * **Módulo por plano:** as ações exigem `subscriptions.module_repertorio` (`requireBand('repertorio')` / `requireOwner('repertorio')`).
 * **Transposição** (`lib/transpose.ts`, teste em `npm run check:transpose`): o texto colado é transposto do tom original para o tom pedido no repertório (linhas de acordes e acordes entre colchetes), mantendo o alinhamento; escolhe bemóis ou sustenidos conforme o tom de destino. O visualizador oferece "Ver no tom original".
 * **Repertórios pessoais** (`setlists.scope = 'personal'`, `songs.scope = 'personal'`): qualquer membro cria os seus em `/repertorio`; só quem criou vê e edita (nem os donos da banda). Repertórios pessoais podem usar músicas da banda e as próprias; repertórios oficiais de show só usam músicas da banda.
@@ -370,7 +370,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - `songs.pdf_path` guarda o path do arquivo. Upload/remoção pelo formulário de música em `/repertorio` (`catalog-client.tsx`); a mesma música pode ter cifra colada, link e PDF ao mesmo tempo.
 - Visualização via `getSongPdfUrl` (`app/actions/song-actions.ts`): gera signed URL sob demanda (5 min) e abre em nova aba. Botão "Abrir PDF" aparece no catálogo, no `SongViewer` (repertório de show e catálogo) e no modo palco.
 - Ao apagar uma música, o PDF é removido do storage antes da linha ser apagada (a policy de Storage depende da música ainda existir).
-- O link público de repertório (`/s/[token]`) não expõe PDF nem cifra — só ordem e tom, como já era.
+- O link público de repertório (`/s/[token]`) não expunha PDF nem cifra na época; hoje expõe (ver §35).
 
 ## 23. Grupo do WhatsApp dos Fundadores
 - `FOUNDER_WHATSAPP_URL` (env var, vazia por padrão): link de convite do grupo exclusivo.
@@ -435,3 +435,16 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - O filtro de banda saiu das páginas: agora é global (`BandFilter` em `components/band-switcher.tsx`), acima de "Dashboard" na barra lateral (desktop) e na barra superior do celular, à esquerda do "Sair" (a logo do topo saiu; ela fica só dentro do menu hambúrguer). Como vive no layout raiz, carrega as bandas por `GET /api/bands`; recarrega ao trocar de página e no evento `gg:bands-changed` (disparado pelo Perfil ao entrar/criar/sair de banda). Só aparece com 2+ bandas.
 - Todas as páginas usam `components/page-header.tsx`: título + descrição curta, largura total, conteúdo logo abaixo (sem o nome da banda no subtítulo). No Relatório, o seletor Banda/Meus cachês e a navegação por mês ficam numa linha abaixo do cabeçalho.
 - Botão de tema: no Dashboard aparece só no desktop (canto superior direito); no celular fica no rodapé do menu; e sempre em Perfil > Aparência.
+
+## 35. Repertórios reutilizáveis e repertório principal (Fase 4 do plano unificado)
+
+* **Repertório deixa de ser 1-para-1 com o show**: `go_gigs.setlist_id` aponta pro repertório usado (vários shows podem apontar pro mesmo). `setlists` não tem mais `gig_id`. No show, o dono pode anexar (`attachSetlistToGig`), trocar ou desanexar um repertório.
+* **Repertório principal** (`setlists.is_default`, um por banda entre os de escopo `band`): todo show novo nasce com o repertório principal da banda já anexado (`addQuickGig` em `app/actions/gig-actions.ts`). Marcar/trocar o principal é feito em `/repertorio` (`setDefaultSetlist`, RPC `set_default_setlist` — troca atômica).
+* **Referência viva + duplicar**: editar um repertório compartilhado por N shows afeta todos eles (inclusive shows passados). "Duplicar para este show" (`duplicateSetlistForGig`) cria uma cópia independente e anexa só a esse show.
+* **Biblioteca de repertórios da banda** (`/repertorio`, `components/band-setlists.tsx`): lista os repertórios da banda com selo "Principal" e ação "Tornar principal". `/repertorio/lista/[id]` também abre repertórios da banda (dono edita, qualquer membro lê). Repertórios `scope='band'` são legíveis por qualquer membro da banda (RLS) — escrita continua só dono. A antiga seção "Repertório dos próximos shows" foi removida de `/repertorio` (a escolha agora é feita dentro de cada show).
+* **Link público completo** (`/s/[token]`, `components/public-setlist-view.tsx`): mostra música, artista, tom, observação, nota de passagem, cifra colada e PDF anexado — sem login, sem nenhuma ação de edição. PDFs usam `getPublicSongPdfUrl`, que valida pelo token (não por sessão de membro).
+* **Compartilhamento por WhatsApp**: botão ao lado de "Copiar link" (`components/gig-setlist.tsx`, na tela do show e na biblioteca), abre `https://api.whatsapp.com/send?text=...` (app no celular, WhatsApp Web no desktop).
+* Substitui os trechos do §16 e do §22 sobre "um [repertório] por show" e sobre o link público mostrar só ordem e tom.
+
+## 36. Item "Indicações" na navegação (placeholder)
+* `components/navigation.tsx` e `components/mobile-nav.tsx` têm um item "Indicações" (ícone Gift) antes de "Perfil", desabilitado: não clicável, com tooltip "Em breve". É só um marcador da futura página de indicações (o crédito por indicação já existe no backend, ver §18). Não tem `data-tour-nav`, então o tour guiado nunca o mira.
