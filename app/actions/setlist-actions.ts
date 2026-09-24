@@ -302,6 +302,7 @@ type SourceSetlist = {
   id: string;
   name: string;
   band_id: string;
+  scope: 'band' | 'personal';
   blocks: {
     id: string;
     name: string;
@@ -318,10 +319,10 @@ export async function duplicateSetlistForGig(gigId: string, setlistId: string) {
 
   const { data: source } = (await ctx.supabase
     .from('setlists')
-    .select('id, name, band_id, blocks(id, name, theme, position, block_songs(song_id, reference_key, requested_key, note, transition_note, position))')
+    .select('id, name, band_id, scope, blocks(id, name, theme, position, block_songs(song_id, reference_key, requested_key, note, transition_note, position))')
     .eq('id', setlistId)
     .maybeSingle()) as unknown as { data: SourceSetlist | null };
-  if (!source || source.band_id !== ctx.bandId) return { error: 'Repertório não encontrado.' };
+  if (!source || source.band_id !== ctx.bandId || source.scope !== 'band') return { error: 'Repertório não encontrado.' };
 
   const { data: copy, error } = await ctx.supabase
     .from('setlists')
