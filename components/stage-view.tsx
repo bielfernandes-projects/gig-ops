@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, X, Minus, Plus, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import { transposeChart } from '@/lib/transpose';
@@ -26,6 +27,14 @@ const SIZES = [16, 20, 24, 30, 38, 48];
 
 /** Dark, high-contrast performance view: one song at a time, screen kept awake. */
 export function StageView({ name, items, backHref }: { name: string; items: StageItem[]; backHref: string }) {
+  const router = useRouter();
+  // volta pra tela de onde veio (show ou biblioteca); sem historico, cai no backHref
+  const goBack = (e: React.MouseEvent) => {
+    if (window.history.length > 1) {
+      e.preventDefault();
+      router.back();
+    }
+  };
   const [index, setIndex] = useState(0);
   const [size, setSize] = useState(2);
 
@@ -85,7 +94,7 @@ export function StageView({ name, items, backHref }: { name: string; items: Stag
     return (
       <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center gap-4 bg-black p-6 text-center text-zinc-300">
         <p>Este repertório ainda não tem músicas.</p>
-        <Link href={backHref} className="rounded-md bg-white px-4 py-2 text-sm font-bold text-black">Voltar</Link>
+        <Link href={backHref} onClick={goBack} className="rounded-md bg-white px-4 py-2 text-sm font-bold text-black">Voltar</Link>
       </div>
     );
   }
@@ -93,7 +102,7 @@ export function StageView({ name, items, backHref }: { name: string; items: Stag
   return (
     <div className="fixed inset-0 z-[999] flex flex-col bg-black text-white">
       <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-2">
-        <Link href={backHref} aria-label="Sair do modo palco" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-900 hover:text-white">
+        <Link href={backHref} onClick={goBack} aria-label="Sair do modo palco" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-900 hover:text-white">
           <X className="h-6 w-6" />
         </Link>
         <div className="min-w-0 text-center">

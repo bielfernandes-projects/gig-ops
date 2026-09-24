@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { bandOf, requireBand, requireBandFor, requireOwner, requireOwnerFor } from '@/lib/auth';
+import { bandOf, requireBand, requireOwner, requireOwnerFor } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
@@ -277,7 +277,10 @@ export async function attachSetlistToGig(gigId: string, setlistId: string) {
   const ctx = await requireOwnerFor('go_gigs', gigId, 'repertorio');
   if (!ctx.ok) return { error: ctx.error };
 
-  const { data: setlist } = await ctx.supabase.from('setlists').select('id, band_id, scope').eq('id', setlistId).maybeSingle();
+  const [{ data: setlist }, { data: gig }] = await Promise.all([
+    ctx.supabase.from('setlists').select('id, band_id, scope').eq('id', setlistId).maybeSingle() as unknown as Promise<{ data: { id: string; band_id: string; scope: string } | null }>,
+    ctx.supabase.from('go_gigs').select('setlist_id').eq('id', gigId).maybeSingle() as unknown as Promise<{ data: { setlist_id: string | null } | null }>,
+  ]);
   if (!setlist || setlist.band_id !== ctx.bandId || setlist.scope !== 'band') return { error: 'Repertório não encontrado.' };
 
   const { error } = await ctx.supabase.from('go_gigs').update({ setlist_id: setlistId }).eq('id', gigId);
@@ -285,6 +288,7 @@ export async function attachSetlistToGig(gigId: string, setlistId: string) {
 
   revalidatePath(`/gigs/${gigId}`);
   revalidatePath(`/repertorio/lista/${setlistId}`);
+  if (gig?.setlist_id && gig.setlist_id !== setlistId) revalidatePath(`/repertorio/lista/${gig.setlist_id}`);
   return { success: true };
 }
 
@@ -292,10 +296,12 @@ export async function detachSetlistFromGig(gigId: string) {
   const ctx = await requireOwnerFor('go_gigs', gigId, 'repertorio');
   if (!ctx.ok) return { error: ctx.error };
 
+  const { data: gig } = await ctx.supabase.from('go_gigs').select('setlist_id').eq('id', gigId).maybeSingle();
   const { error } = await ctx.supabase.from('go_gigs').update({ setlist_id: null }).eq('id', gigId);
   if (error) return { error: 'Não foi possível desanexar o repertório.' };
 
   revalidatePath(`/gigs/${gigId}`);
+  if (gig?.setlist_id) revalidatePath(`/repertorio/lista/${gig.setlist_id}`);
   return { success: true };
 }
 
@@ -327,7 +333,7 @@ export async function duplicateSetlistForGig(gigId: string, setlistId: string) {
 
   const { data: copy, error } = await ctx.supabase
     .from('setlists')
-    .insert({ band_id: ctx.bandId, name: source.name, scope: 'band', created_by: ctx.userId })
+    .insert({ band_id: ctx.bandId, name: `${source.name} (cópia)`.slice(0, 80), scope: 'band', created_by: ctx.userId })
     .select('id')
     .single();
   if (error || !copy) return { error: 'Não foi possível duplicar o repertório.' };
@@ -337,6 +343,14 @@ export async function duplicateSetlistForGig(gigId: string, setlistId: string) {
       ctx.supabase.from('blocks').insert({ setlist_id: copy.id, name: block.name, theme: block.theme, position: block.position }).select('id').single()
     )
   );
+
+  // sem transacao: se algo falhar, apaga a copia (blocos caem em cascata) e nada aponta pra ela
+  const DUP_ERROR = { error: 'Não foi possível duplicar o repertório.' };
+  const rollback = async () => {
+    await ctx.supabase.from('setlists').delete().eq('id', copy.id);
+    return DUP_ERROR;
+  };
+  if (newBlocks.some((r) => r.error || !r.data?.id)) return rollback();
 
   const allBlockSongs = source.blocks.flatMap((block, i) => {
     const newBlockId = newBlocks[i].data?.id;
@@ -351,9 +365,13 @@ export async function duplicateSetlistForGig(gigId: string, setlistId: string) {
       position: bs.position,
     }));
   });
-  if (allBlockSongs.length > 0) await ctx.supabase.from('block_songs').insert(allBlockSongs);
+  if (allBlockSongs.length > 0) {
+    const { error: songsError } = await ctx.supabase.from('block_songs').insert(allBlockSongs);
+    if (songsError) return rollback();
+  }
 
-  await ctx.supabase.from('go_gigs').update({ setlist_id: copy.id }).eq('id', gigId);
+  const { error: gigError } = await ctx.supabase.from('go_gigs').update({ setlist_id: copy.id }).eq('id', gigId);
+  if (gigError) return rollback();
 
   revalidatePath(`/gigs/${gigId}`);
   revalidatePath('/repertorio');

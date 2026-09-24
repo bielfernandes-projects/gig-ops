@@ -7,20 +7,18 @@ import type { SetlistTree } from '@/components/gig-setlist';
 
 export const revalidate = 0;
 
-type Tree = SetlistTree & { gig_id: string | null };
-
 export default async function StagePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const info = await getUserInfo();
   if (!info.userId) redirect('/login');
 
   const supabase = await createClient();
-  // RLS: only band owners and musicians scheduled on the gig can read this setlist
+  // RLS: qualquer membro da banda le repertorios 'band'; os pessoais so o dono
   const { data } = (await supabase
     .from('setlists')
-    .select('id, name, gig_id, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text, pdf_path)))')
+    .select('id, name, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text, pdf_path)))')
     .eq('id', id)
-    .maybeSingle()) as unknown as { data: Tree | null };
+    .maybeSingle()) as unknown as { data: SetlistTree | null };
 
   if (!data) {
     return (
@@ -52,5 +50,5 @@ export default async function StagePage({ params }: { params: Promise<{ id: stri
         }))
     );
 
-  return <StageView name={data.name} items={items} backHref={data.gig_id ? `/gigs/${data.gig_id}` : '/repertorio'} />;
+  return <StageView name={data.name} items={items} backHref="/repertorio" />;
 }

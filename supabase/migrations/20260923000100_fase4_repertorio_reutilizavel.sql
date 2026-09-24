@@ -17,7 +17,7 @@ create unique index setlists_one_default_per_band
   on public.setlists (band_id) where is_default and scope = 'band';
 
 -- 5. Troca atomica do principal.
-create or replace function private.set_default_setlist(target_id uuid) returns void
+create or replace function public.set_default_setlist(target_id uuid) returns void
 language plpgsql security definer set search_path = public as $$
 declare target_band uuid;
 begin
@@ -28,9 +28,8 @@ begin
   update setlists set is_default = false where band_id = target_band and scope = 'band' and is_default;
   update setlists set is_default = true where id = target_id;
 end $$;
-revoke all on function private.set_default_setlist(uuid) from public;
-grant execute on function private.set_default_setlist(uuid) to authenticated;
-grant usage on schema private to authenticated;
+revoke all on function public.set_default_setlist(uuid) from public, anon;
+grant execute on function public.set_default_setlist(uuid) to authenticated;
 
 -- 6. Leitura de repertorios 'band' abre pra qualquer membro (nao so o dono/quem esta escalado
 -- no show vinculado, ja que o repertorio deixa de ser um detalhe de um show so). Escrita continua

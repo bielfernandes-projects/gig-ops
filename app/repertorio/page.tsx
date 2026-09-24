@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getUserInfo } from '@/lib/auth';
+import { getUserInfo, ownedBands } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { CatalogClient, type CatalogSong } from '@/components/catalog-client';
 import { PersonalSetlists } from '@/components/personal-setlists';
@@ -53,6 +53,7 @@ export default async function RepertorioPage() {
     id: l.id,
     name: l.name,
     isDefault: l.is_default,
+    bandId: l.band_id,
     bandName: info.allBands ? nameOf(l.band_id) : undefined,
   }));
   const personalLists = ((personalResult.data ?? []) as { id: string; name: string; band_id: string }[]).map((l) => ({
@@ -65,7 +66,7 @@ export default async function RepertorioPage() {
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 pb-32 md:p-10">
       <PageHeader title="Repertório" description="O catálogo de músicas da banda e os repertórios reutilizáveis em qualquer show." className="mb-8" />
 
-      <BandSetlists lists={bandLists} bands={repBandIds.map((id) => ({ bandId: id, name: nameOf(id) }))} />
+      <BandSetlists lists={bandLists} bands={ownedBands(info).filter((b) => repBandIds.includes(b.bandId))} />
 
       <PersonalSetlists lists={personalLists} bands={repBandIds.map((id) => ({ bandId: id, name: nameOf(id) }))} />
 

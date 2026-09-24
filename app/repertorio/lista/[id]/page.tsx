@@ -42,7 +42,9 @@ export default async function SetlistLibraryPage({ params }: { params: Promise<{
 
   const [{ data: catalog }, { data: link }, usageCountResult] = await Promise.all([
     supabase.from('songs').select('id, title, artist, original_key').eq('band_id', setlist.band_id).order('title') as unknown as Promise<{ data: CatalogOption[] | null }>,
-    createAdminClient().from('setlist_share_links').select('token').eq('setlist_id', setlist.id).is('revoked_at', null).limit(1).maybeSingle(),
+    (isOwner
+      ? createAdminClient().from('setlist_share_links').select('token').eq('setlist_id', setlist.id).is('revoked_at', null).limit(1).maybeSingle()
+      : Promise.resolve({ data: null })) as unknown as Promise<{ data: { token: string } | null }>,
     supabase.from('go_gigs').select('id', { count: 'exact', head: true }).eq('setlist_id', setlist.id),
   ]);
   const usageCount = (usageCountResult as { count: number | null }).count ?? 0;

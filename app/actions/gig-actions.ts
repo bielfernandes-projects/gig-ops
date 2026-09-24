@@ -81,13 +81,10 @@ export async function addQuickGig(formData: FormData) {
   const endDt = end_time ? new Date(end_time) : null;
   const durationMs = endDt ? endDt.getTime() - startDt.getTime() : 0;
 
-  const { data: defaultSetlist } = await supabase
-    .from('setlists')
-    .select('id')
-    .eq('band_id', bandId)
-    .eq('scope', 'band')
-    .eq('is_default', true)
-    .maybeSingle();
+  // clone herda o repertorio do show original; so shows novos pegam o principal da banda
+  const defaultSetlist = clone_id
+    ? null
+    : (await supabase.from('setlists').select('id').eq('band_id', bandId).eq('scope', 'band').eq('is_default', true).maybeSingle()).data;
 
   const gigsToInsert = [];
   const currentStart = new Date(startDt);

@@ -10,13 +10,13 @@ export async function GET() {
 
   const { data: gigs } = await supabase
     .from('go_gigs')
-    .select('id, band_id')
+    .select('id, band_id, setlist_id')
     .in('band_id', info.bandIds)
     .gte('start_time', new Date().toISOString())
     .order('start_time', { ascending: true })
     .limit(15);
 
-  const list = (gigs ?? []) as { id: string; band_id: string }[];
+  const list = (gigs ?? []) as { id: string; band_id: string; setlist_id: string | null }[];
   // Owners get every upcoming show of their band; musicians only the ones they're in.
   const memberIds = info.bandIds.map((id) => info.bands[id]?.memberId).filter((m): m is string => !!m);
   const toCheck = list.filter((g) => info.bands[g.band_id]?.role !== 'admin').map((g) => g.id);
@@ -25,11 +25,10 @@ export async function GET() {
     const { data: lineup } = await supabase.from('go_lineup').select('gig_id').in('member_id', memberIds).in('gig_id', toCheck);
     mine = new Set((lineup ?? []).map((l) => l.gig_id as string));
   }
-  const gigIds = list.filter((g) => info.bands[g.band_id]?.role === 'admin' || mine.has(g.id)).map((g) => g.id);
+  const relevant = list.filter((g) => info.bands[g.band_id]?.role === 'admin' || mine.has(g.id));
+  const setlistIds = [...new Set(relevant.map((g) => g.setlist_id).filter((id): id is string => !!id))];
 
-  const { data: setlists } = gigIds.length > 0 ? await supabase.from('setlists').select('id').in('gig_id', gigIds) : { data: [] };
-
-  const urls = [...gigIds.map((id) => `/gigs/${id}`), ...(setlists ?? []).map((s) => `/palco/${s.id as string}`)];
+  const urls = [...relevant.map((g) => `/gigs/${g.id}`), ...setlistIds.map((id) => `/palco/${id}`)];
 
   return NextResponse.json({ urls });
 }

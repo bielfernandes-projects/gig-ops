@@ -26,7 +26,7 @@ type PdfUrlFetcher = (songId: string) => Promise<{ url?: string; error?: string 
  * defaults to the band-membership-gated action; the public (no-login) setlist view passes a
  * token-scoped one instead, since the caller there has no authenticated session.
  */
-export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl }: { song: SongView; onClose: () => void; fetchPdfUrl?: PdfUrlFetcher }) {
+export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMessage = 'Esta música ainda não tem cifra ou letra. Edite a música no catálogo e cole o texto.' }: { song: SongView; onClose: () => void; fetchPdfUrl?: PdfUrlFetcher; emptyMessage?: string }) {
   const key = song.requested_key || song.original_key;
   const changed = !!(song.requested_key && song.original_key && song.requested_key !== song.original_key);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -85,7 +85,7 @@ export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl }: { son
           <pre className="mx-auto max-w-4xl whitespace-pre-wrap break-words font-mono text-lg leading-relaxed text-zinc-100 md:text-xl">{text}</pre>
         ) : (
           <p className="mx-auto max-w-md pt-16 text-center text-zinc-500">
-            Esta música ainda não tem cifra ou letra. Edite a música no catálogo e cole o texto.
+            {emptyMessage}
           </p>
         )}
       </div>

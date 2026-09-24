@@ -75,7 +75,7 @@ export function PublicSetlistView({ token, name, blocks }: { token: string; name
       </main>
 
       {viewing && (
-        <SongViewer song={viewing} onClose={() => setViewing(null)} fetchPdfUrl={(songId) => getPublicSongPdfUrl(token, songId)} />
+        <SongViewer song={viewing} onClose={() => setViewing(null)} fetchPdfUrl={(songId) => getPublicSongPdfUrl(token, songId)} emptyMessage="Esta música não tem cifra ou letra cadastrada." />
       )}
     </div>
   );

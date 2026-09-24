@@ -118,6 +118,7 @@ export function GigSetlist({
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [newBlock, setNewBlock] = useState('');
   const [picked, setPicked] = useState(bandSetlists.find((s) => s.is_default)?.id ?? bandSetlists[0]?.id ?? '');
+  const [swapPick, setSwapPick] = useState('');
 
   const run = async (action: () => Promise<Result>, okMsg?: string) => {
     const res = await action();
@@ -166,6 +167,10 @@ export function GigSetlist({
   const blocks = [...setlist.blocks].sort((a, b) => a.position - b.position);
   const total = blocks.reduce((n, b) => n + b.block_songs.length, 0);
   const shared = usageCount > 1;
+  const swapOptions = bandSetlists.filter((s) => s.id !== setlist.id);
+  // a escolha sempre e uma das opcoes exibidas (a lista muda apos trocar/refresh)
+  const swapId = swapOptions.some((s) => s.id === swapPick) ? swapPick : (swapOptions[0]?.id ?? '');
+  const isCurrentDefault = bandSetlists.find((s) => s.id === setlist.id)?.is_default ?? false;
 
   return (
     <section className="mb-10">
@@ -197,13 +202,15 @@ export function GigSetlist({
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
           <span>Este repertório é usado em {usageCount} shows — mudanças aqui afetam todos eles.</span>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => run(() => duplicateSetlistForGig(gigId, setlist.id), 'Repertório duplicado só para este show.')}
-              className="rounded-md border border-amber-400/40 px-3 py-1 font-semibold text-amber-100 hover:bg-amber-500/10"
-            >
-              Duplicar para este show
-            </button>
+            {gigId && (
+              <button
+                type="button"
+                onClick={() => run(() => duplicateSetlistForGig(gigId, setlist.id), 'Repertório duplicado só para este show.')}
+                className="rounded-md border border-amber-400/40 px-3 py-1 font-semibold text-amber-100 hover:bg-amber-500/10"
+              >
+                Duplicar para este show
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -350,22 +357,23 @@ export function GigSetlist({
             </form>
 
             <div className="flex flex-wrap items-center gap-3">
-              {bandSetlists.length > 1 && (
+              {gigId && swapOptions.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <select value={picked} onChange={(e) => setPicked(e.target.value)} aria-label="Trocar repertório" className={`${inputCls} appearance-none`}>
-                    {bandSetlists.filter((s) => s.id !== setlist.id).map((s) => (
+                  <select value={swapId} onChange={(e) => setSwapPick(e.target.value)} aria-label="Trocar repertório" className={`${inputCls} appearance-none`}>
+                    {swapOptions.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}{s.is_default ? ' (principal)' : ''}</option>
                     ))}
                   </select>
                   <button
                     type="button"
-                    onClick={() => picked && run(() => attachSetlistToGig(gigId, picked), 'Repertório trocado.')}
+                    onClick={() => swapId && run(() => attachSetlistToGig(gigId, swapId), 'Repertório trocado.')}
                     className="rounded-md border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
                   >
                     Trocar repertório
                   </button>
                 </div>
               )}
+              {gigId && (
               <button
                 type="button"
                 onClick={() => {
@@ -375,11 +383,12 @@ export function GigSetlist({
               >
                 Desanexar repertório
               </button>
+              )}
               {!shared && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (confirm('Remover este repertório (não é usado por nenhum outro show)?')) run(() => deleteSetlist(setlist.id), 'Repertório removido.');
+                    if (confirm(isCurrentDefault ? 'Este é o repertório principal da banda. Remover mesmo assim? Novos shows deixarão de receber um repertório automaticamente.' : 'Remover este repertório (não é usado por nenhum outro show)?')) run(() => deleteSetlist(setlist.id), 'Repertório removido.');
                   }}
                   className="text-xs text-zinc-600 underline underline-offset-4 hover:text-red-400"
                 >

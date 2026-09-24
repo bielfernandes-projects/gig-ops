@@ -33,7 +33,7 @@ const OWNER_STEPS: Step[] = [
 const MUSICIAN_STEPS: Step[] = [
   welcome('Aqui você acompanha os shows em que está escalado, sem precisar caçar mensagem no grupo.'),
   nav('/agenda', 'Seus shows', 'Todos os shows em que você está escalado. Abra um pra ver local, horário, seu cachê e confirmar presença.'),
-  nav('/repertorio', 'Repertório', 'O repertório de cada show, no tom certo. No palco, use o modo de letra grande.'),
+  nav('/repertorio', 'Repertório', 'Os repertórios da banda e o do seu show, no tom certo. No palco, use o modo de letra grande.'),
   nav('/relatorio', 'Seus cachês', 'Quanto você tem a receber, somando todas as bandas em que toca.'),
   nav('/profile', 'Não perca nenhum show', 'Ative as notificações no Perfil pra ser avisado quando for escalado. O tour pode ser revisto por lá também.'),
 ];

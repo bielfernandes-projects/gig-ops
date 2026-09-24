@@ -9,12 +9,13 @@ import { createBandSetlist, setDefaultSetlist } from '@/app/actions/setlist-acti
 import { BandTag } from '@/components/band-tag';
 import type { BandChoice } from '@/components/band-select-field';
 
-/** "Repertórios da banda": reutilizáveis entre shows, um deles pode ser o principal. */
-export function BandSetlists({ lists, bands }: { lists: { id: string; name: string; isDefault: boolean; bandName?: string }[]; bands: BandChoice[] }) {
+/** "Repertórios da banda": reutilizáveis entre shows, um deles pode ser o principal. `bands` = bandas em que o usuário é dono (só elas criam/definem o principal). */
+export function BandSetlists({ lists, bands }: { lists: { id: string; name: string; isDefault: boolean; bandId: string; bandName?: string }[]; bands: BandChoice[] }) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [bandId, setBandId] = useState(bands[0]?.bandId ?? '');
   const [pending, setPending] = useState(false);
+  const ownedIds = new Set(bands.map((b) => b.bandId));
 
   return (
     <section className="mb-10">
@@ -23,6 +24,7 @@ export function BandSetlists({ lists, bands }: { lists: { id: string; name: stri
         <span className="text-xs text-zinc-500">reutilizáveis em qualquer show</span>
       </div>
 
+      {bands.length > 0 && (
       <form
         className="mb-3 flex gap-2"
         onSubmit={async (e) => {
@@ -62,10 +64,11 @@ export function BandSetlists({ lists, bands }: { lists: { id: string; name: stri
           <Plus className="h-4 w-4" /> Criar
         </button>
       </form>
+      )}
 
       {lists.length === 0 ? (
         <p className="rounded-xl border border-dashed border-zinc-800 p-5 text-center text-sm text-zinc-500">
-          Nenhum repertório da banda ainda. Crie um e marque como principal pra ele já vir selecionado em shows novos.
+          {bands.length > 0 ? 'Nenhum repertório da banda ainda. Crie um e marque como principal pra ele já vir selecionado em shows novos.' : 'Nenhum repertório da banda ainda.'}
         </p>
       ) : (
         <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900">
@@ -80,7 +83,7 @@ export function BandSetlists({ lists, bands }: { lists: { id: string; name: stri
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300">
                     <Star className="h-3.5 w-3.5 fill-current" /> Principal
                   </span>
-                ) : (
+                ) : ownedIds.has(l.bandId) && (
                   <button
                     type="button"
                     onClick={async () => {
