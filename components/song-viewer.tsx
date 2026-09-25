@@ -52,7 +52,7 @@ export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMe
                 {song.requested_key && song.original_key && song.requested_key !== song.original_key ? ` (original ${song.original_key})` : ''}
               </span>
             )}
-            {startKey && <span className="rounded bg-amber-300 px-1.5 py-0.5 font-semibold text-black">Começa em {startKey}</span>}
+            {startKey && <span className="rounded bg-amber-300 px-1.5 py-0.5 font-semibold text-black">Tom que começa {startKey}</span>}
             {song.bpm && <span>{song.bpm} BPM</span>}
             {changed && song.chart_text && (
               <button type="button" onClick={() => setShowOriginal((v) => !v)} className="underline underline-offset-4 hover:text-zinc-200">

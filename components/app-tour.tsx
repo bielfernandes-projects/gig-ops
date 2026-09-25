@@ -25,7 +25,7 @@ const OWNER_STEPS: Step[] = [
   welcome('Em menos de 1 minuto te mostro o caminho pra tirar a banda da planilha e do grupo de WhatsApp.'),
   nav('/members', 'Comece pela equipe', 'Cadastre os músicos com instrumento. Quem tiver e-mail cadastrado vê os próprios shows e cachês no app.'),
   nav('/agenda', 'Crie os shows', 'Toque em "Novo Show", escale os músicos e defina o cachê de cada um. O lucro do show é calculado na hora.'),
-  nav('/repertorio', 'Monte o repertório', 'Catálogo com links de cifra e letra, tom, acorde de início ("começa em"), observações e PDF e repertórios reutilizáveis: marque um como principal e ele já entra nos shows novos.'),
+  nav('/repertorio', 'Monte o repertório', 'Catálogo com links de cifra e letra, tom, tom que começa, observações e PDF e repertórios reutilizáveis: marque um como principal e ele já entra nos shows novos.'),
   nav('/relatorio', 'Acompanhe o caixa', 'Faturamento, custos e lucro de cada mês, e o que ainda falta receber ou pagar.'),
   nav('/profile', 'Chame a banda', 'No Perfil fica o código de convite pros músicos entrarem, a assinatura (é lá que você assina e gerencia o cartão) e o botão pra rever este tour.'),
 ];

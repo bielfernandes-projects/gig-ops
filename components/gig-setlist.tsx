@@ -261,8 +261,8 @@ export function GigSetlist({
                           {song?.notes && <p className="truncate text-xs text-zinc-600">{song.notes}</p>}
                         </button>
                         {song?.start_key && (
-                          <span className="shrink-0 rounded bg-amber-300 px-2 py-0.5 text-xs font-bold text-black" title="Tom pedido à harmonia para iniciar">
-                            Começa em {transposeStartKey(song.start_key, song.original_key, item.requested_key)}
+                          <span className="shrink-0 rounded bg-amber-300 px-2 py-0.5 text-xs font-bold text-black" title="Tom pedido à harmonia para iniciar a música">
+                            Tom que começa {transposeStartKey(song.start_key, song.original_key, item.requested_key)}
                           </span>
                         )}
                         {song?.source_url && (
