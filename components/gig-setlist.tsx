@@ -252,7 +252,7 @@ export function GigSetlist({
                         >
                           <p className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
                             <span className="truncate">{song?.title ?? 'Música removida'}</span>
-                            {original && <span className="shrink-0 rounded bg-zinc-800 px-1.5 py-0.5 text-xs font-medium text-zinc-400" title="Tom original">{original}</span>}
+                            {pedido && <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-bold text-zinc-900" title={pedido !== original ? `Tom neste show (original ${original})` : 'Tom da música'}>{pedido}</span>}
                           </p>
                           <p className="truncate text-xs text-zinc-500">
                             {song?.artist}
@@ -260,11 +260,6 @@ export function GigSetlist({
                           </p>
                           {song?.notes && <p className="truncate text-xs text-zinc-600">{song.notes}</p>}
                         </button>
-                        {pedido && (
-                          <span className="shrink-0 rounded bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-900" title="Tom pedido">
-                            {pedido}
-                          </span>
-                        )}
                         {song?.start_key && (
                           <span className="shrink-0 rounded bg-amber-300 px-2 py-0.5 text-xs font-bold text-black" title="Tom pedido à harmonia para iniciar">
                             Começa em {transposeStartKey(song.start_key, song.original_key, item.requested_key)}
@@ -308,8 +303,8 @@ export function GigSetlist({
                             if (!res?.error) setEditingItem(null);
                           }}
                         >
-                          <select name="requested_key" defaultValue={item.requested_key ?? ''} className={`${inputCls} appearance-none`} aria-label="Tom pedido">
-                            <option value="">Tom pedido</option>
+                          <select name="requested_key" defaultValue={item.requested_key ?? ''} className={`${inputCls} appearance-none`} aria-label="Tom da música neste show">
+                            <option value="">Tom original{song?.original_key ? ` (${song.original_key})` : ''}</option>
                             {MUSICAL_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
                           </select>
                           <input name="note" defaultValue={item.note ?? ''} placeholder="Observação (ex: começa do solo)" className={inputCls} />
