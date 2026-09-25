@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { updatePassword, setDisplayName, renameBand } from '@/app/profile/actions';
 import { savePushSubscription, removePushSubscription } from '@/app/actions/push-actions';
 import { signout } from '@/app/login/actions';
-import { BandSections, type BandMemberView } from '@/components/band-sections';
+import { BandSections, type BandMemberView, type BillingView } from '@/components/band-sections';
 import type { BandOption } from '@/components/band-switcher';
 import type { SubscriptionState } from '@/lib/subscription';
 
@@ -25,10 +25,11 @@ type Props = {
   members: BandMemberView[];
   subscription: SubscriptionState | null;
   pricePlan: 'standard' | 'founder' | 'solo';
+  billing: BillingView | null;
   founderWhatsappUrl: string | null;
 };
 
-export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, founderWhatsappUrl }: Props) {
+export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, billing, founderWhatsappUrl }: Props) {
   const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
 
   useEffect(() => {
@@ -234,6 +235,7 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
         members={members}
         subscription={subscription}
         pricePlan={pricePlan}
+        billing={billing}
         founderWhatsappUrl={founderWhatsappUrl}
       />
 

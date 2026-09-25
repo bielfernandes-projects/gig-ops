@@ -15,12 +15,18 @@ import {
   switchBand,
   setProfitShare,
   cancelSubscription,
+  startCheckout,
+  openBillingPortal,
 } from '@/app/profile/actions';
 import { BANDS_CHANGED, type BandOption } from '@/components/band-switcher';
 import type { SubscriptionState } from '@/lib/subscription';
 import { ALL_BANDS } from '@/lib/band-view';
+import { PRICES, type BillingPeriod } from '@/lib/pricing';
 
 export type BandMemberView = { userId: string; email: string; label: string; role: 'owner' | 'member'; isSelf: boolean; share: number | null };
+
+/** Owner-only billing data for the subscription card. */
+export type BillingView = { monthlyPrice: number; hasStripe: boolean; justPaid: boolean };
 
 type Props = {
   role: 'admin' | 'viewer';
@@ -31,6 +37,7 @@ type Props = {
   members: BandMemberView[];
   subscription: SubscriptionState | null;
   pricePlan: 'standard' | 'founder' | 'solo';
+  billing: BillingView | null;
   founderWhatsappUrl: string | null;
 };
 
@@ -39,6 +46,8 @@ const inputCls =
 const primaryBtn = 'bg-zinc-100 hover:bg-white text-zinc-900 font-bold px-4 py-2 rounded-lg text-sm transition-colors';
 
 const PLAN_NAMES: Record<Props['pricePlan'], string> = { standard: 'Banda', founder: 'Banda (Fundador)', solo: 'Solo' };
+
+const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 
@@ -59,8 +68,9 @@ function subscriptionDateLine(s: Props['subscription']) {
   return null;
 }
 
-export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, founderWhatsappUrl }: Props) {
+export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, billing, founderWhatsappUrl }: Props) {
   const router = useRouter();
+  const [paying, setPaying] = useState(false);
   const [editingInvite, setEditingInvite] = useState(false);
   const [inviteInput, setInviteInput] = useState(inviteCode || '');
 
@@ -76,6 +86,17 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
   };
 
   const sub = subscriptionLabel(subscription);
+
+  /** Checkout / portal live on stripe.com: ask the server for the URL and leave. */
+  const goToStripe = async (action: () => Promise<{ error?: string; url?: string }>) => {
+    setPaying(true);
+    const res = await action();
+    if (res.url) window.location.assign(res.url);
+    else {
+      toast.error(res.error ?? 'Não foi possível continuar.');
+      setPaying(false);
+    }
+  };
 
   return (
     <>
@@ -189,7 +210,36 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
               <p className="text-xs font-medium text-zinc-500">Plano {PLAN_NAMES[pricePlan]}</p>
               <p className={`text-sm font-semibold ${sub.tone}`}>{sub.text}</p>
               {subscriptionDateLine(subscription) && <p className="text-xs text-zinc-500">{subscriptionDateLine(subscription)}</p>}
-              {(subscription?.state === 'trial' || subscription?.state === 'active') && (
+              {billing?.justPaid && <p className="text-xs text-emerald-400">Pagamento recebido! Se o plano ainda não mudou, atualize a página em instantes.</p>}
+              {billing && subscription?.state !== 'active' && (
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {(['monthly', 'annual'] as BillingPeriod[]).map((period) => (
+                    <button
+                      key={period}
+                      type="button"
+                      disabled={paying}
+                      onClick={() => goToStripe(() => startCheckout(period))}
+                      className={`${primaryBtn} flex flex-col items-center gap-0.5 disabled:opacity-60`}
+                    >
+                      <span>{period === 'monthly' ? `Assinar por ${brl(billing.monthlyPrice)}/mês` : `Assinar por ${brl(PRICES.annual)}/ano`}</span>
+                      <span className="text-[11px] font-medium text-zinc-600">
+                        {period === 'annual' ? 'cerca de R$ 41,60/mês, cobrado de uma vez' : billing.monthlyPrice === PRICES.founder ? 'preço de Fundador, para sempre' : 'cobrança mensal no cartão'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {billing?.hasStripe && (
+                <button
+                  type="button"
+                  disabled={paying}
+                  onClick={() => goToStripe(openBillingPortal)}
+                  className="mt-1 self-start text-xs font-semibold text-zinc-300 hover:text-white disabled:opacity-60"
+                >
+                  Gerenciar assinatura (cartão, faturas, cancelamento)
+                </button>
+              )}
+              {!billing?.hasStripe && (subscription?.state === 'trial' || subscription?.state === 'active') && (
                 <button
                   type="button"
                   onClick={() => {

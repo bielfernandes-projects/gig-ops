@@ -7,6 +7,9 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { ALL_BANDS, BAND_COOKIE, getUserInfo, requireOwner } from '@/lib/auth';
 import { createBandFor, joinBandByCode, nameOf } from '@/lib/bands';
 import { sendPushToBandOwners } from '@/lib/push';
+import { monthlyPlan, type BillingPeriod } from '@/lib/pricing';
+import { countFounders } from '@/lib/founders';
+import { priceIdFor, stripe } from '@/lib/stripe';
 
 const revalidateAll = () => revalidatePath('/', 'layout');
 
@@ -216,6 +219,73 @@ export async function updatePassword(formData: FormData) {
  * lapsed trial). Writes go through the service role: `subscriptions` revokes direct writes from
  * the session client (see supabase/migrations/20260922000000_fase0_bands.sql).
  */
+/** Owner of the selected band. Unlike requireOwner it also lets an expired band through: that is exactly who needs to pay. */
+async function billingOwner() {
+  const info = await getUserInfo();
+  const band = info.bandId ? info.bands[info.bandId] : null;
+  if (!info.userId || !band || band.role !== 'admin') return null;
+  return { info, band };
+}
+
+type BillingRow = { stripe_customer_id: string | null; status: string };
+
+/** Starts a Stripe Checkout for the selected band. The founder price is decided here, on the server. */
+export async function startCheckout(period: BillingPeriod): Promise<{ error?: string; url?: string }> {
+  if (period !== 'monthly' && period !== 'annual') return { error: 'Plano inválido.' };
+  const owner = await billingOwner();
+  if (!owner) return { error: 'Só o dono da banda pode assinar.' };
+  const { info, band } = owner;
+
+  const admin = createAdminClient();
+  const [{ data: sub }, founders] = await Promise.all([
+    admin.from('subscriptions').select('stripe_customer_id, status').eq('band_id', band.bandId).maybeSingle() as unknown as Promise<{ data: BillingRow | null }>,
+    countFounders(),
+  ]);
+  if (sub?.status === 'active' && sub.stripe_customer_id) return { error: 'Esta banda já tem uma assinatura. Use "Gerenciar assinatura".' };
+
+  const plan = period === 'monthly' ? monthlyPlan(band.pricePlan === 'founder', founders) : 'standard';
+  try {
+    let customer = sub?.stripe_customer_id;
+    if (!customer) {
+      customer = (await stripe().customers.create({ email: info.email, name: band.name, metadata: { band_id: band.bandId } })).id;
+      await admin.from('subscriptions').update({ stripe_customer_id: customer }).eq('band_id', band.bandId);
+    }
+
+    const site = process.env.NEXT_PUBLIC_SITE_URL;
+    const session = await stripe().checkout.sessions.create({
+      mode: 'subscription',
+      customer,
+      line_items: [{ price: priceIdFor(period, plan), quantity: 1 }],
+      subscription_data: { metadata: { band_id: band.bandId, plan } },
+      allow_promotion_codes: true,
+      locale: 'pt-BR',
+      success_url: `${site}/profile?assinatura=ok`,
+      cancel_url: `${site}/profile`,
+    });
+    return session.url ? { url: session.url } : { error: 'Não foi possível abrir o pagamento.' };
+  } catch {
+    return { error: 'Não foi possível abrir o pagamento. Tente de novo em instantes.' };
+  }
+}
+
+/** Opens the Stripe billing portal (card, invoices, cancellation) for the selected band. */
+export async function openBillingPortal(): Promise<{ error?: string; url?: string }> {
+  const owner = await billingOwner();
+  if (!owner) return { error: 'Só o dono da banda pode gerenciar a assinatura.' };
+
+  const { data: sub } = (await createAdminClient().from('subscriptions').select('stripe_customer_id').eq('band_id', owner.band.bandId).maybeSingle()) as unknown as {
+    data: { stripe_customer_id: string | null } | null;
+  };
+  if (!sub?.stripe_customer_id) return { error: 'Esta banda ainda não tem assinatura.' };
+
+  try {
+    const session = await stripe().billingPortal.sessions.create({ customer: sub.stripe_customer_id, return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/profile` });
+    return { url: session.url };
+  } catch {
+    return { error: 'Não foi possível abrir o portal. Tente de novo em instantes.' };
+  }
+}
+
 export async function cancelSubscription() {
   const ctx = await requireOwner();
   if (!ctx.ok) return { error: ctx.error };

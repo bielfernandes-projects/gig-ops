@@ -41,7 +41,8 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/s/') || // public read-only setlist link (token)
     path === '/auth/callback' || // OAuth return; the session does not exist yet
     path.startsWith('/api/calendar/') || // token-protected iCal feed
-    path.startsWith('/api/cron/') // protected by CRON_SECRET
+    path.startsWith('/api/cron/') || // protected by CRON_SECRET
+    path === '/api/stripe/webhook' // protected by the Stripe signature
 
   if (!user && !isAuthRoute && !isPublic) {
     const url = request.nextUrl.clone()

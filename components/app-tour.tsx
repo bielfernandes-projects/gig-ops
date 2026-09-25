@@ -27,7 +27,7 @@ const OWNER_STEPS: Step[] = [
   nav('/agenda', 'Crie os shows', 'Toque em "Novo Show", escale os músicos e defina o cachê de cada um. O lucro do show é calculado na hora.'),
   nav('/repertorio', 'Monte o repertório', 'Catálogo com cifra, tom e PDF e repertórios reutilizáveis: marque um como principal e ele já entra nos shows novos. No palco, use a letra grande.'),
   nav('/relatorio', 'Acompanhe o caixa', 'Faturamento, custos e lucro de cada mês, e o que ainda falta receber ou pagar.'),
-  nav('/profile', 'Chame a banda', 'No Perfil fica o código de convite pros músicos entrarem, a sua assinatura e o botão pra rever este tour.'),
+  nav('/profile', 'Chame a banda', 'No Perfil fica o código de convite pros músicos entrarem, a assinatura (é lá que você assina e gerencia o cartão) e o botão pra rever este tour.'),
 ];
 
 const MUSICIAN_STEPS: Step[] = [

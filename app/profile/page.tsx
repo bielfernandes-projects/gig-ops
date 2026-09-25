@@ -1,27 +1,43 @@
 import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { monthlyPlan, PRICES } from '@/lib/pricing';
+import { countFounders } from '@/lib/founders';
 import ProfileClient from '@/components/profile-client';
-import type { BandMemberView } from '@/components/band-sections';
+import type { BandMemberView, BillingView } from '@/components/band-sections';
 
 export const revalidate = 0;
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ assinatura?: string }> }) {
   const info = await getUserInfo();
   const supabase = await createClient();
   const { data: me } = info.userId ? await supabase.from('go_profiles').select('display_name').eq('id', info.userId).maybeSingle() : { data: null };
 
   let inviteCode: string | null = null;
   let members: BandMemberView[] = [];
+  let billing: BillingView | null = null;
 
   if (info.bandId) {
-    const [bandResult, membersResult] = await Promise.all([
+    const isOwner = info.role === 'admin';
+    const [bandResult, membersResult, stripeRow, founders] = await Promise.all([
       supabase.from('bands').select('invite_code').eq('id', info.bandId).maybeSingle(),
-      info.role === 'admin'
+      isOwner
         ? supabase.from('band_members').select('user_id, role, profit_share').eq('band_id', info.bandId)
         : Promise.resolve({ data: null }),
+      isOwner
+        ? (createAdminClient().from('subscriptions').select('stripe_customer_id').eq('band_id', info.bandId).maybeSingle() as unknown as Promise<{ data: { stripe_customer_id: string | null } | null }>)
+        : Promise.resolve({ data: null }),
+      isOwner ? countFounders() : Promise.resolve(0),
     ]);
 
     inviteCode = bandResult.data?.invite_code ?? null;
+    if (isOwner) {
+      billing = {
+        monthlyPrice: PRICES[monthlyPlan(info.isFounder, founders)],
+        hasStripe: Boolean(stripeRow.data?.stripe_customer_id),
+        justPaid: (await searchParams).assinatura === 'ok',
+      };
+    }
 
     const rows = (membersResult.data ?? []) as { user_id: string; role: 'owner' | 'member'; profit_share: number | null }[];
     if (rows.length > 0) {
@@ -57,6 +73,7 @@ export default async function ProfilePage() {
       members={members}
       subscription={info.subscription}
       pricePlan={info.pricePlan}
+      billing={billing}
       founderWhatsappUrl={info.isFounder ? process.env.FOUNDER_WHATSAPP_URL || null : null}
     />
   );

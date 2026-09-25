@@ -3,11 +3,10 @@ import type { Metadata } from 'next';
 import { Logo } from '@/components/logo';
 import { Setlist } from '@/components/landing-setlist';
 import { ClickableShot, FeatureCarousel, type Shot } from '@/components/screenshot-lightbox';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { FOUNDER_LIMIT } from '@/lib/pricing';
+import { countFounders } from '@/lib/founders';
 
 export const revalidate = 3600;
-
-const FOUNDER_LIMIT = 50;
 
 const title = 'Gigueiros: agenda, escala e cachês da sua banda';
 const description = 'Chega de planilha e grupo de WhatsApp. Organize shows, escala de músicos, cachês, repertório e financeiro em um app feito para bandas.';
@@ -86,11 +85,7 @@ const musicianSees = ['Só os shows em que está escalado', 'Só o próprio cach
 const priceItems = ['7 dias grátis, sem cartão', 'Músicos ilimitados na banda', 'Assinatura no cartão de crédito', 'Cancele quando quiser'];
 
 export default async function Landing() {
-  let founders = 0;
-  try {
-    const { count } = await createAdminClient().from('subscriptions').select('band_id', { count: 'exact', head: true }).eq('price_plan', 'founder');
-    founders = count ?? 0;
-  } catch {}
+  const founders = await countFounders();
   const left = Math.max(0, FOUNDER_LIMIT - founders);
 
   return (
@@ -233,7 +228,7 @@ export default async function Landing() {
                   <p className="mt-2 text-xs text-[var(--l-mute)]">{founders} de {FOUNDER_LIMIT} vagas preenchidas</p>
                 </div>
               )}
-              <p className="mt-4 text-sm text-[var(--l-mute)]">Músico solo: R$ 19,90 por mês.</p>
+              <p className="mt-4 text-sm text-[var(--l-mute)]">Prefere pagar de uma vez? Plano anual: R$ 499,00 (cerca de R$ 41,60 por mês).</p>
             </div>
             <ul className="space-y-3 text-base sm:text-lg">
               {priceItems.map((item) => (

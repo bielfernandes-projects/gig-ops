@@ -196,6 +196,9 @@ Sem o passo 2, o `memberId` do viewer seria `null` e ele não veria nenhum show 
 | `VAPID_PRIVATE_KEY` | Chave privada VAPID (Web Push) |
 | `VAPID_ADMIN_EMAIL` | E-mail do admin VAPID |
 | `CRON_SECRET` | Secret para autenticar o endpoint de lembretes |
+| `STRIPE_SECRET_KEY` | Chave secreta do Stripe (`sk_live_…`), só no servidor |
+| `STRIPE_WEBHOOK_SECRET` | Segredo de assinatura do webhook (`whsec_…`) |
+| `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_FOUNDER` / `STRIPE_PRICE_ANNUAL` | IDs dos preços do Stripe: R$ 49,90/mês, R$ 24,90/mês (Fundador) e R$ 499,00/ano |
 
 ---
 
@@ -407,7 +410,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
 ## 29. Gestão da assinatura no Perfil
 - Card "Gestão da banda" no Perfil (dono) agora mostra: nome do plano (`price_plan`: Banda / Banda (Fundador) / Solo), status (teste grátis com dias restantes, ativa ou expirada) e a data relevante — fim do teste (`trial_ends_at`) ou renovação (`paid_until`; sem data quando o acesso foi liberado manualmente via `grant-free-access.ts`, seção 27).
-- Botão "Cancelar assinatura" (só aparece em trial/ativa): `cancelSubscription()` em `app/profile/actions.ts` marca `status = 'expired'` na hora — não existe cobrança recorrente automática pra "desligar" (hoje é tudo manual/Pix), então cancelar significa abrir mão do acesso de escrita imediatamente; os dados continuam salvos, e reativar depois é manual (SQL, `grant-free-access.ts` ou o Stripe quando existir). Escreve via `createAdminClient()` porque `subscriptions` não aceita update do cliente de sessão (revogado em `supabase/migrations/20260922000000_fase0_bands.sql`).
+- Botão "Cancelar assinatura" (só aparece em trial/ativa): `cancelSubscription()` em `app/profile/actions.ts` marca `status = 'expired'` na hora — não existe cobrança recorrente automática pra "desligar" (hoje é tudo manual/Pix), então cancelar significa abrir mão do acesso de escrita imediatamente; os dados continuam salvos, e reativar depois é manual (SQL ou `grant-free-access.ts`) ou pagando pelo Stripe (§37). Quando a banda já tem assinatura no Stripe, esse botão some: cancelar passa a ser pelo portal do cliente (§37). Escreve via `createAdminClient()` porque `subscriptions` não aceita update do cliente de sessão (revogado em `supabase/migrations/20260922000000_fase0_bands.sql`).
 - `lib/subscription.ts` (`SubscriptionState`) e `lib/auth.ts` (`UserInfo.pricePlan`) passaram a expor as datas cruas e o plano, além do estado computado, pra alimentar esse card.
 
 ## 30. Tour guiado de primeiro uso
@@ -449,3 +452,11 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
 ## 36. Item "Indicações" na navegação (placeholder)
 * `components/navigation.tsx` e `components/mobile-nav.tsx` têm um item "Indicações" (ícone Gift) antes de "Perfil", desabilitado: não clicável, com tooltip "Em breve". É só um marcador da futura página de indicações (o crédito por indicação já existe no backend, ver §18). Não tem `data-tour-nav`, então o tour guiado nunca o mira.
+
+## 37. Cobrança pelo Stripe (cartão, mensal e anual)
+* **Planos:** um produto "GigOps Banda" no Stripe com três preços: R$ 49,90/mês, R$ 24,90/mês (Fundador, só para as primeiras `FOUNDER_LIMIT` = 50 bandas, para sempre) e R$ 499,00/ano (cerca de R$ 41,60/mês, cobrado de uma vez). O plano Solo foi descartado: o preço é o mesmo para todos (a coluna `price_plan = 'solo'` continua no banco, sem uso). IDs dos preços em `STRIPE_PRICE_*` (§8). Pix no Stripe Brasil é "somente por convite", então por ora só cartão.
+* **Checkout:** o Perfil (dono) mostra "Assinar por R$ …/mês" e "Assinar por R$ 499,00/ano" quando a banda não está ativa. `startCheckout(period)` em `app/profile/actions.ts` decide **no servidor** o preço mensal (`monthlyPlan` em `lib/pricing.ts`: Fundador enquanto houver vaga ou se a banda já é Fundadora), cria/reaproveita o cliente Stripe (`subscriptions.stripe_customer_id`) e abre um Checkout hospedado. O `band_id` e o plano vão em `subscription_data.metadata`. Não usa `requireOwner` de propósito: banda expirada precisa poder pagar.
+* **Webhook:** `POST /api/stripe/webhook` (`app/api/stripe/webhook/route.ts`, público no `proxy`, protegido pela assinatura do Stripe). Eventos: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` (o destino também recebe `invoice.payment_failed`, ignorado: o acesso acaba sozinho quando `paid_until` vence). O payload só diz *qual* assinatura mudou; `syncSubscription` (`lib/stripe.ts`) lê o estado atual no Stripe e grava `status` (ativa/expirada), `paid_until` (fim do período), `billing_period`, os ids Stripe e, se o plano era Fundador, `price_plan = 'founder'`. Reentrega ou eventos fora de ordem convergem para o mesmo estado.
+* **Gerenciar:** `openBillingPortal()` abre o portal do cliente do Stripe (trocar cartão, ver faturas, cancelar no fim do período). "Alternar planos" está **desligado** no portal de propósito: uma banda de R$ 49,90 poderia trocar sozinha para o preço Fundador.
+* **Banco:** `supabase/migrations/20260924000000_stripe.sql` (colunas `stripe_customer_id` e `stripe_subscription_id`, únicas). Aplicar antes de subir.
+* **Go-live:** aplicar a migração; definir as 5 variáveis na Vercel; no Stripe, o destino de webhook `gigueiros-assinaturas` já aponta para `https://www.gigueiros.com.br/api/stripe/webhook`. A conta Stripe está em modo live (sem sandbox): para testar sem cobrar de verdade, use um cupom de 100% (o checkout aceita códigos promocionais) ou reembolse depois.
