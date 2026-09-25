@@ -24,6 +24,7 @@ function readSong(formData: FormData) {
   const bpmRaw = String(formData.get('bpm') ?? '').trim();
   const bpm = bpmRaw ? parseInt(bpmRaw, 10) : null;
   const sourceUrl = String(formData.get('source_url') ?? '').trim() || null;
+  const lyricsUrl = String(formData.get('lyrics_url') ?? '').trim() || null;
 
   return {
     title,
@@ -33,7 +34,7 @@ function readSong(formData: FormData) {
     notes: String(formData.get('notes') ?? '').trim().slice(0, 1000) || null,
     bpm: bpm !== null && Number.isFinite(bpm) ? bpm : null,
     source_url: sourceUrl,
-    chart_text: String(formData.get('chart_text') ?? '').replace(/\r\n/g, '\n') || null,
+    lyrics_url: lyricsUrl,
   };
 }
 
@@ -41,7 +42,7 @@ function invalid(song: ReturnType<typeof readSong>): string | null {
   if (!song.title) return 'Informe o nome da música.';
   if (song.bpm !== null && (song.bpm < 1 || song.bpm > 400)) return 'BPM deve estar entre 1 e 400.';
   if (song.source_url && !/^https?:\/\//i.test(song.source_url)) return 'O link deve começar com http:// ou https://.';
-  if (song.chart_text && song.chart_text.length > 60_000) return 'A cifra é grande demais.';
+  if (song.lyrics_url && !/^https?:\/\//i.test(song.lyrics_url)) return 'O link da letra deve começar com http:// ou https://.';
   return null;
 }
 

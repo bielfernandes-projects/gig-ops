@@ -14,6 +14,7 @@ export type PublicSong = {
   notes: string | null;
   bpm: number | null;
   source_url: string | null;
+  lyrics_url: string | null;
   chart_text: string | null;
   pdf_path: string | null;
 };

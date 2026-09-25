@@ -54,7 +54,7 @@ const features = [
   },
   {
     title: 'Repertório e cifras',
-    text: 'Catálogo de músicas da banda com cifra, tom, acorde de início, observações e PDF anexado. Monte repertórios reutilizáveis, marque um como principal e compartilhe por link ou WhatsApp. No show, abra o repertório com blocos, tons pedidos e observações.',
+    text: 'Catálogo de músicas da banda com links de cifra e letra, tom, acorde de início, observações e PDF anexado. Monte repertórios reutilizáveis, marque um como principal e compartilhe por link ou WhatsApp. No show, abra o repertório com blocos, tons pedidos e observações.',
   },
   {
     title: 'Financeiro e rateio',

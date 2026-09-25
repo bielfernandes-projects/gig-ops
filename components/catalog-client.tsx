@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Search, Pencil, Trash2, FileText, Paperclip } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, FileText, AlignLeft, Paperclip } from 'lucide-react';
 import { addSong, updateSong, deleteSong, getSongPdfUrl } from '@/app/actions/song-actions';
 import { MUSICAL_KEYS } from '@/lib/keys';
 import { SongViewer } from '@/components/song-viewer';
@@ -17,6 +17,7 @@ export type CatalogSong = {
   notes: string | null;
   bpm: number | null;
   source_url: string | null;
+  lyrics_url: string | null;
   chart_text: string | null;
   pdf_path: string | null;
   created_by: string | null;
@@ -31,6 +32,10 @@ async function openSongPdf(songId: string) {
 
 const inputCls =
   'w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-600 placeholder-zinc-600';
+
+function letrasSearch(title: string, artist: string) {
+  return `https://www.letras.mus.br/?q=${encodeURIComponent(`${title} ${artist}`.trim())}`;
+}
 
 function cifraClubSearch(title: string, artist: string) {
   return `https://www.cifraclub.com.br/?q=${encodeURIComponent(`${title} ${artist}`.trim())}`;
@@ -121,14 +126,18 @@ function SongForm({ song, bandId, onDone }: { song: CatalogSong | null; bandId: 
       </label>
 
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
-        Cifra ou letra (cole o texto)
-        <textarea
-          name="chart_text"
-          rows={10}
-          defaultValue={song?.chart_text ?? ''}
-          placeholder={'Cole aqui a cifra ou a letra. Ela abre em fonte grande ao tocar na música.\n\n[Intro] C G Am F'}
-          className={`${inputCls} font-mono`}
-        />
+        <span className="flex items-center justify-between gap-3">
+          Link da letra (opcional)
+          <a
+            href={letrasSearch(title, artist)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-normal text-zinc-500 underline underline-offset-4 hover:text-zinc-300"
+          >
+            Procurar no Letras.mus.br
+          </a>
+        </span>
+        <input name="lyrics_url" type="url" defaultValue={song?.lyrics_url ?? ''} placeholder="https://..." className={inputCls} />
       </label>
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
         PDF da cifra (opcional, até 10MB)
@@ -209,18 +218,25 @@ export function CatalogClient({ songs, userId, isOwner, bandId }: { songs: Catal
           const canEdit = s.scope === 'personal' ? s.created_by === userId : isOwner || s.created_by === userId;
           return (
             <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3">
-              <button type="button" onClick={() => setViewing(s)} className="min-w-0 flex-1 text-left" title="Abrir cifra">
+              <button type="button" onClick={() => setViewing(s)} className="min-w-0 flex-1 text-left" title="Ver detalhes">
                 <p className="truncate text-sm font-semibold text-zinc-100">{s.title}</p>
                 <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-zinc-500">
                   <span className="truncate">{[s.scope === 'personal' && 'Pessoal', s.artist, s.original_key && `Tom ${s.original_key}`].filter(Boolean).join(' · ')}</span>
                   {s.start_key && <span className="rounded bg-amber-300 px-1.5 py-0.5 font-bold text-black">Começa em {s.start_key}</span>}
-                  <span>{[s.bpm && `${s.bpm} BPM`, !s.chart_text && 'sem cifra'].filter(Boolean).join(' · ')}</span>
+                  <span>{[s.bpm && `${s.bpm} BPM`, !s.source_url && !s.pdf_path && !s.chart_text && 'sem cifra'].filter(Boolean).join(' · ')}</span>
                 </p>
               </button>
               <div className="flex shrink-0 items-center">
-                <button type="button" onClick={() => setViewing(s)} title="Ver cifra" className="p-2 text-zinc-500 hover:text-zinc-200">
-                  <FileText className="h-4 w-4" />
-                </button>
+                {s.source_url && (
+                  <a href={s.source_url} target="_blank" rel="noopener noreferrer" title="Abrir cifra" className="p-2 text-zinc-500 hover:text-zinc-200">
+                    <FileText className="h-4 w-4" />
+                  </a>
+                )}
+                {s.lyrics_url && (
+                  <a href={s.lyrics_url} target="_blank" rel="noopener noreferrer" title="Abrir letra" className="p-2 text-zinc-500 hover:text-zinc-200">
+                    <AlignLeft className="h-4 w-4" />
+                  </a>
+                )}
                 {s.pdf_path && (
                   <button type="button" onClick={() => openSongPdf(s.id)} title="Abrir PDF" className="p-2 text-zinc-500 hover:text-zinc-200">
                     <Paperclip className="h-4 w-4" />

@@ -16,6 +16,7 @@ export type SongView = {
   notes?: string | null;
   bpm: number | null;
   source_url: string | null;
+  lyrics_url?: string | null;
   chart_text: string | null;
   pdf_path?: string | null;
   note?: string | null;
@@ -28,7 +29,7 @@ type PdfUrlFetcher = (songId: string) => Promise<{ url?: string; error?: string 
  * defaults to the band-membership-gated action; the public (no-login) setlist view passes a
  * token-scoped one instead, since the caller there has no authenticated session.
  */
-export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMessage = 'Esta música ainda não tem cifra ou letra. Edite a música no catálogo e cole o texto.' }: { song: SongView; onClose: () => void; fetchPdfUrl?: PdfUrlFetcher; emptyMessage?: string }) {
+export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMessage = 'Esta música não tem texto salvo. Use os links de cifra e letra ou o PDF.' }: { song: SongView; onClose: () => void; fetchPdfUrl?: PdfUrlFetcher; emptyMessage?: string }) {
   const key = song.requested_key || song.original_key;
   const changed = !!(song.requested_key && song.original_key && song.requested_key !== song.original_key);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -60,7 +61,12 @@ export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMe
             )}
             {song.source_url && (
               <a href={song.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-zinc-200">
-                Abrir fonte <ExternalLink className="h-3.5 w-3.5" />
+                Abrir cifra <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+            {song.lyrics_url && (
+              <a href={song.lyrics_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-zinc-200">
+                Abrir letra <ExternalLink className="h-3.5 w-3.5" />
               </a>
             )}
             {song.pdf_path && song.id && (
