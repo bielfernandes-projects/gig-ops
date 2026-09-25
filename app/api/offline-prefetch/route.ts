@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 
-/** URLs of the current user's next shows (gig + palco pages), for the client to warm the offline cache with. */
+/** URLs of the current user's next shows (gig + repertoire pages), for the client to warm the offline cache with. */
 export async function GET() {
   const info = await getUserInfo();
   if (info.bandIds.length === 0) return NextResponse.json({ urls: [] });
@@ -28,7 +28,7 @@ export async function GET() {
   const relevant = list.filter((g) => info.bands[g.band_id]?.role === 'admin' || mine.has(g.id));
   const setlistIds = [...new Set(relevant.map((g) => g.setlist_id).filter((id): id is string => !!id))];
 
-  const urls = [...relevant.map((g) => `/gigs/${g.id}`), ...setlistIds.map((id) => `/palco/${id}`)];
+  const urls = [...relevant.map((g) => `/gigs/${g.id}`), ...setlistIds.map((id) => `/repertorio/lista/${id}`)];
 
   return NextResponse.json({ urls });
 }

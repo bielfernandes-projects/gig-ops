@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { GigWithProject, LineupWithMember, GoMember, GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
-import { ArrowLeft, Clock, MapPin, Volume2, StickyNote, Calendar } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Volume2, StickyNote, Calendar, ListMusic } from 'lucide-react';
 import { AddLineupMember } from '@/components/add-lineup-member';
 import { LineupMemberCard } from '@/components/lineup-member-card';
 import { EditGigModal } from '@/components/edit-gig-modal';
@@ -289,6 +289,16 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               <div className="flex items-center gap-3">
                 <StickyNote className="w-5 h-5 stroke-[1.5] text-zinc-500" />
                 <span className="text-zinc-300">{gigData.event_type}</span>
+              </div>
+            )}
+
+            {info.modules.repertorio && setlist && (
+              <div className="flex items-center gap-3">
+                <ListMusic className="w-5 h-5 stroke-[1.5] text-zinc-500" />
+                <span className="min-w-0 truncate text-zinc-300">{setlist.name}</span>
+                <Link href={`/repertorio/lista/${setlist.id}`} className="shrink-0 rounded-md bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-900 hover:bg-white">
+                  Abrir repertório
+                </Link>
               </div>
             )}
 

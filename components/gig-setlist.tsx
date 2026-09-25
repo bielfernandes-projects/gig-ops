@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowUp, ArrowDown, Trash2, Pencil, FileText, Plus, Link2, PlayCircle, X, Copy, MessageCircle } from 'lucide-react';
+import { ArrowUp, ArrowDown, Trash2, Pencil, FileText, Plus, Link2, X, Copy, MessageCircle } from 'lucide-react';
 import {
   deleteSetlist,
   addBlock,
@@ -185,11 +185,6 @@ export function GigSetlist({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {total > 0 && (
-            <Link href={`/palco/${setlist.id}`} className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-bold text-zinc-900 hover:bg-white">
-              <PlayCircle className="h-4 w-4" /> Modo palco
-            </Link>
-          )}
           {isOwner && (
             <ShareButtons
               shareToken={shareToken}
@@ -256,7 +251,6 @@ export function GigSetlist({
                           <p className="truncate text-sm font-semibold text-zinc-100">{song?.title ?? 'Música removida'}</p>
                           <p className="truncate text-xs text-zinc-500">
                             {song?.artist}
-                            {song?.start_key ? ` · Começa em ${transposeStartKey(song.start_key, song.original_key, item.requested_key)}` : ''}
                             {item.note ? ` · ${item.note}` : ''}
                           </p>
                           {song?.notes && <p className="truncate text-xs text-zinc-600">{song.notes}</p>}
@@ -265,6 +259,11 @@ export function GigSetlist({
                           <span className="shrink-0 rounded bg-zinc-800 px-2 py-0.5 text-xs font-bold text-zinc-100" title={changed ? `Original ${item.reference_key}` : undefined}>
                             {item.requested_key || item.reference_key}
                             {changed ? <span className="ml-1 font-normal text-zinc-500">({item.reference_key})</span> : null}
+                          </span>
+                        )}
+                        {song?.start_key && (
+                          <span className="shrink-0 rounded bg-amber-300 px-2 py-0.5 text-xs font-bold text-black" title="Tom pedido à harmonia para iniciar">
+                            Começa em {transposeStartKey(song.start_key, song.original_key, item.requested_key)}
                           </span>
                         )}
                         {song?.chart_text && (

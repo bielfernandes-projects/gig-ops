@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/dashboard', '/agenda', '/members', '/projects', '/repertorio', '/relatorio', '/profile', '/gigs', '/onboarding', '/palco', '/auth', '/api'],
+        disallow: ['/dashboard', '/agenda', '/members', '/projects', '/repertorio', '/relatorio', '/profile', '/gigs', '/onboarding', '/auth', '/api'],
       },
     ],
     sitemap: 'https://gigueiros.com.br/sitemap.xml',

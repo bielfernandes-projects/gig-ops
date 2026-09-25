@@ -8,7 +8,7 @@ self.addEventListener('activate', (event) => {
 
 // Offline read: network first; the last successful copy of these pages is the fallback with no signal.
 const CACHE = 'gg-pages-v1';
-const OFFLINE_PATHS = /^\/(dashboard|agenda|gigs\/[^/]+|repertorio(\/.*)?|palco\/[^/]+)$/;
+const OFFLINE_PATHS = /^\/(dashboard|agenda|gigs\/[^/]+|repertorio(\/.*)?)$/;
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
