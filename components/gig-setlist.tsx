@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowUp, ArrowDown, Trash2, Pencil, FileText, Plus, Link2, X, Copy, MessageCircle } from 'lucide-react';
+import { ArrowUp, ArrowDown, Trash2, Pencil, FileText, AlignLeft, Plus, Link2, X, Copy, MessageCircle } from 'lucide-react';
 import {
   deleteSetlist,
   addBlock,
@@ -239,7 +239,8 @@ export function GigSetlist({
               <ol className="divide-y divide-zinc-800">
                 {items.map((item, ii) => {
                   const song = item.songs;
-                  const changed = item.requested_key && item.reference_key && item.requested_key !== item.reference_key;
+                  const original = song?.original_key || item.reference_key;
+                  const pedido = item.requested_key || original;
                   return (
                     <li key={item.id} className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -249,17 +250,19 @@ export function GigSetlist({
                           className="min-w-0 flex-1 text-left"
                           onClick={() => song && setViewing({ ...song, requested_key: item.requested_key, note: item.note })}
                         >
-                          <p className="truncate text-sm font-semibold text-zinc-100">{song?.title ?? 'Música removida'}</p>
+                          <p className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+                            <span className="truncate">{song?.title ?? 'Música removida'}</span>
+                            {original && <span className="shrink-0 rounded bg-zinc-800 px-1.5 py-0.5 text-xs font-medium text-zinc-400" title="Tom original">{original}</span>}
+                          </p>
                           <p className="truncate text-xs text-zinc-500">
                             {song?.artist}
                             {item.note ? ` · ${item.note}` : ''}
                           </p>
                           {song?.notes && <p className="truncate text-xs text-zinc-600">{song.notes}</p>}
                         </button>
-                        {(item.requested_key || item.reference_key) && (
-                          <span className="shrink-0 rounded bg-zinc-800 px-2 py-0.5 text-xs font-bold text-zinc-100" title={changed ? `Original ${item.reference_key}` : undefined}>
-                            {item.requested_key || item.reference_key}
-                            {changed ? <span className="ml-1 font-normal text-zinc-500">({item.reference_key})</span> : null}
+                        {pedido && (
+                          <span className="shrink-0 rounded bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-900" title="Tom pedido">
+                            {pedido}
                           </span>
                         )}
                         {song?.start_key && (
@@ -267,10 +270,15 @@ export function GigSetlist({
                             Começa em {transposeStartKey(song.start_key, song.original_key, item.requested_key)}
                           </span>
                         )}
-                        {song?.chart_text && (
-                          <button type="button" title="Ver cifra" className={iconBtn} onClick={() => setViewing({ ...song, requested_key: item.requested_key, note: item.note })}>
+                        {song?.source_url && (
+                          <a href={song.source_url} target="_blank" rel="noopener noreferrer" title="Abrir cifra" className={iconBtn}>
                             <FileText className="h-4 w-4" />
-                          </button>
+                          </a>
+                        )}
+                        {song?.lyrics_url && (
+                          <a href={song.lyrics_url} target="_blank" rel="noopener noreferrer" title="Abrir letra" className={iconBtn}>
+                            <AlignLeft className="h-4 w-4" />
+                          </a>
                         )}
                         {isOwner && (
                           <div className="flex shrink-0 items-center">
