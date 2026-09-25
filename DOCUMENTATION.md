@@ -463,3 +463,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * **Teste grátis preservado:** quem assina durante os 7 dias de teste mantém os dias restantes: `startCheckout` passa `trial_end` (o fim do teste) ao Checkout e o Stripe só cobra quando ele acaba. O Checkout exige `trial_end` a pelo menos 48h; com menos que isso o restante do teste é descartado. Enquanto a assinatura está em `trialing` no Stripe, o app a trata como ativa, com `paid_until` no fim do teste.
 * **Termos de uso** (`app/termos/page.tsx`): descrevem cobrança mensal e anual, renovação automática, cancelamento pelo portal e reembolso integral em até 7 dias da primeira cobrança (o arrependimento do CDC, art. 49). É uma política de negócio: ajuste o texto se mudar o prazo.
 * **URL base:** `NEXT_PUBLIC_SITE_URL` (Vercel) é `https://gigueiros.com.br`, o domínio sem `www` (o `www` redireciona). Ela vale para o retorno do Checkout e do portal.
+
+## 28. Prévia de link (WhatsApp) e CTA da landing
+* `app/opengraph-image.tsx` gera a thumb de compartilhamento. O `proxy.ts` (auth) redirecionava `/opengraph-image` para `/login`, então os crawlers (WhatsApp etc.) recebiam HTML e não mostravam imagem; a rota agora está excluída do `matcher`. Depois do deploy, o WhatsApp pode manter o cache antigo do link por um tempo (testar com um link novo, ex.: `?v=2`).
+* Landing: a seção de preço ganhou um segundo botão "Testar 7 dias grátis" e, no card de Fundadores, o texto sobre o grupo de suporte direto com o criador.

@@ -226,9 +226,18 @@ export default async function Landing() {
                     />
                   </div>
                   <p className="mt-2 text-xs text-[var(--l-mute)]">{founders} de {FOUNDER_LIMIT} vagas preenchidas</p>
+                  <p className="mt-3 border-t border-[var(--l-line)] pt-3 text-sm sm:text-base">
+                    Fundadores entram no <strong>grupo de suporte direto comigo</strong> e participam ativamente da construção e da melhoria do app.
+                  </p>
                 </div>
               )}
               <p className="mt-4 text-sm text-[var(--l-mute)]">Prefere pagar de uma vez? Plano anual: R$ 499,00 (cerca de R$ 41,60 por mês).</p>
+              <Link
+                href="/login"
+                className="mt-8 inline-flex items-center rounded-md bg-[var(--l-fg)] px-6 py-3.5 text-base font-bold text-[var(--l-bg)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
+              >
+                Testar 7 dias grátis
+              </Link>
             </div>
             <ul className="space-y-3 text-base sm:text-lg">
               {priceItems.map((item) => (
