@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { transposeStartKey } from '@/lib/transpose';
 import { StageView, type StageItem } from '@/components/stage-view';
 import type { SetlistTree } from '@/components/gig-setlist';
 
@@ -42,7 +43,7 @@ export default async function StagePage({ params }: { params: Promise<{ id: stri
           artist: bs.songs?.artist ?? null,
           key: bs.requested_key || bs.reference_key || bs.songs?.original_key || null,
           originalKey: bs.songs?.original_key ?? null,
-          startKey: bs.songs?.start_key ?? null,
+          startKey: transposeStartKey(bs.songs?.start_key, bs.songs?.original_key, bs.requested_key),
           songNotes: bs.songs?.notes ?? null,
           bpm: bs.songs?.bpm ?? null,
           note: bs.note,

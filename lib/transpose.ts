@@ -51,6 +51,14 @@ export function transposeChord(chord: string, shift: number, flats: boolean): st
   return shiftNote(root, shift, flats) + rest + (bass ? `/${shiftNote(bass, shift, flats)}` : '');
 }
 
+/** Moves the "starts on" chord along with the song: same semitone shift as original -> requested key. */
+export function transposeStartKey(startKey: string | null | undefined, fromKey: string | null | undefined, toKey: string | null | undefined): string | null {
+  if (!startKey) return null;
+  const shift = semitoneShift(fromKey, toKey);
+  if (shift === null || shift === 0 || !toKey) return startKey;
+  return transposeChord(startKey, shift, preferFlats(toKey));
+}
+
 /** A line is a chord line when most of its words are chords (ignores section labels like "[Intro]"). */
 function isChordLine(line: string): boolean {
   const tokens = line.replace(/[[\]|]/g, ' ').split(/\s+/).filter(Boolean);

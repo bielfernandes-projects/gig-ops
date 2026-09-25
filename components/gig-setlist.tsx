@@ -22,6 +22,7 @@ import {
   revokeShareLink,
 } from '@/app/actions/setlist-actions';
 import { MUSICAL_KEYS } from '@/lib/keys';
+import { transposeStartKey } from '@/lib/transpose';
 import { SongViewer, type SongView } from '@/components/song-viewer';
 
 export type SetlistSong = {
@@ -255,7 +256,7 @@ export function GigSetlist({
                           <p className="truncate text-sm font-semibold text-zinc-100">{song?.title ?? 'Música removida'}</p>
                           <p className="truncate text-xs text-zinc-500">
                             {song?.artist}
-                            {song?.start_key ? ` · Começa em ${song.start_key}` : ''}
+                            {song?.start_key ? ` · Começa em ${transposeStartKey(song.start_key, song.original_key, item.requested_key)}` : ''}
                             {item.note ? ` · ${item.note}` : ''}
                           </p>
                           {song?.notes && <p className="truncate text-xs text-zinc-600">{song.notes}</p>}

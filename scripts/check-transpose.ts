@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { transposeChart, semitoneShift, transposeChord, isChord } from '../lib/transpose.ts';
+import { transposeChart, semitoneShift, transposeChord, isChord, transposeStartKey } from '../lib/transpose.ts';
 
 // key math
 assert.equal(semitoneShift('C', 'D'), 2);
@@ -47,5 +47,11 @@ assert.equal(transposeChart(chart, 'C', 'H'), chart);
 // flat keys prefer flats
 assert.equal(transposeChart('C G', 'C', 'F'), 'F C');
 assert.equal(transposeChart('C G', 'C', 'Bb'), 'Bb F');
+
+// start chord follows the song
+assert.equal(transposeStartKey('Am', 'C', 'D'), 'Bm');
+assert.equal(transposeStartKey('Am', 'C', 'C'), 'Am');
+assert.equal(transposeStartKey('Am', null, 'D'), 'Am');
+assert.equal(transposeStartKey(null, 'C', 'D'), null);
 
 console.log('transpose: all assertions passed');

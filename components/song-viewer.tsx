@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { X, ExternalLink, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
-import { transposeChart } from '@/lib/transpose';
+import { transposeChart, transposeStartKey } from '@/lib/transpose';
 import { getSongPdfUrl } from '@/app/actions/song-actions';
 
 export type SongView = {
@@ -32,6 +32,7 @@ export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMe
   const key = song.requested_key || song.original_key;
   const changed = !!(song.requested_key && song.original_key && song.requested_key !== song.original_key);
   const [showOriginal, setShowOriginal] = useState(false);
+  const startKey = showOriginal ? song.start_key : transposeStartKey(song.start_key, song.original_key, song.requested_key);
   const text = useMemo(
     () => (song.chart_text && !showOriginal ? transposeChart(song.chart_text, song.original_key, song.requested_key) : song.chart_text),
     [song.chart_text, song.original_key, song.requested_key, showOriginal]
@@ -50,7 +51,7 @@ export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMe
                 {song.requested_key && song.original_key && song.requested_key !== song.original_key ? ` (original ${song.original_key})` : ''}
               </span>
             )}
-            {song.start_key && <span className="rounded bg-amber-300 px-1.5 py-0.5 font-semibold text-black">Começa em {song.start_key}</span>}
+            {startKey && <span className="rounded bg-amber-300 px-1.5 py-0.5 font-semibold text-black">Começa em {startKey}</span>}
             {song.bpm && <span>{song.bpm} BPM</span>}
             {changed && song.chart_text && (
               <button type="button" onClick={() => setShowOriginal((v) => !v)} className="underline underline-offset-4 hover:text-zinc-200">
