@@ -227,7 +227,7 @@ async function billingOwner() {
   return { info, band };
 }
 
-type BillingRow = { stripe_customer_id: string | null; status: string };
+type BillingRow = { stripe_customer_id: string | null; status: string; trial_ends_at: string | null };
 
 /** Starts a Stripe Checkout for the selected band. The founder price is decided here, on the server. */
 export async function startCheckout(period: BillingPeriod): Promise<{ error?: string; url?: string }> {
@@ -238,10 +238,15 @@ export async function startCheckout(period: BillingPeriod): Promise<{ error?: st
 
   const admin = createAdminClient();
   const [{ data: sub }, founders] = await Promise.all([
-    admin.from('subscriptions').select('stripe_customer_id, status').eq('band_id', band.bandId).maybeSingle() as unknown as Promise<{ data: BillingRow | null }>,
+    admin.from('subscriptions').select('stripe_customer_id, status, trial_ends_at').eq('band_id', band.bandId).maybeSingle() as unknown as Promise<{ data: BillingRow | null }>,
     countFounders(),
   ]);
   if (sub?.status === 'active' && sub.stripe_customer_id) return { error: 'Esta banda já tem uma assinatura. Use "Gerenciar assinatura".' };
+
+  // Someone who subscribes mid-trial keeps the remaining days: Stripe only charges when the trial ends.
+  // Checkout needs trial_end at least 48h ahead, so a shorter remainder is simply dropped.
+  const trialEnd = sub?.status === 'trial' && sub.trial_ends_at ? Math.floor(new Date(sub.trial_ends_at).getTime() / 1000) : 0;
+  const keepTrial = trialEnd > Date.now() / 1000 + 2 * 86400 + 3600;
 
   const plan = period === 'monthly' ? monthlyPlan(band.pricePlan === 'founder', founders) : 'standard';
   try {
@@ -256,7 +261,7 @@ export async function startCheckout(period: BillingPeriod): Promise<{ error?: st
       mode: 'subscription',
       customer,
       line_items: [{ price: priceIdFor(period, plan), quantity: 1 }],
-      subscription_data: { metadata: { band_id: band.bandId, plan } },
+      subscription_data: { metadata: { band_id: band.bandId, plan }, ...(keepTrial ? { trial_end: trialEnd } : {}) },
       allow_promotion_codes: true,
       locale: 'pt-BR',
       success_url: `${site}/profile?assinatura=ok`,
