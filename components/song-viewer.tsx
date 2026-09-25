@@ -12,6 +12,8 @@ export type SongView = {
   artist: string | null;
   original_key: string | null;
   requested_key?: string | null;
+  start_key?: string | null;
+  notes?: string | null;
   bpm: number | null;
   source_url: string | null;
   chart_text: string | null;
@@ -48,6 +50,7 @@ export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMe
                 {song.requested_key && song.original_key && song.requested_key !== song.original_key ? ` (original ${song.original_key})` : ''}
               </span>
             )}
+            {song.start_key && <span className="rounded bg-amber-300 px-1.5 py-0.5 font-semibold text-black">Começa em {song.start_key}</span>}
             {song.bpm && <span>{song.bpm} BPM</span>}
             {changed && song.chart_text && (
               <button type="button" onClick={() => setShowOriginal((v) => !v)} className="underline underline-offset-4 hover:text-zinc-200">
@@ -74,6 +77,7 @@ export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMe
             )}
           </p>
           {song.note && <p className="mt-1 text-sm font-medium text-amber-300">{song.note}</p>}
+          {song.notes && <p className="mt-1 whitespace-pre-line text-sm text-zinc-400">{song.notes}</p>}
         </div>
         <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100">
           <X className="h-6 w-6" />

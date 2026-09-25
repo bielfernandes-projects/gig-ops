@@ -29,6 +29,8 @@ function readSong(formData: FormData) {
     title,
     artist: String(formData.get('artist') ?? '').trim() || null,
     original_key: String(formData.get('original_key') ?? '').trim() || null,
+    start_key: String(formData.get('start_key') ?? '').trim().slice(0, 12) || null,
+    notes: String(formData.get('notes') ?? '').trim().slice(0, 1000) || null,
     bpm: bpm !== null && Number.isFinite(bpm) ? bpm : null,
     source_url: sourceUrl,
     chart_text: String(formData.get('chart_text') ?? '').replace(/\r\n/g, '\n') || null,

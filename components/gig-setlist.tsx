@@ -29,6 +29,8 @@ export type SetlistSong = {
   title: string;
   artist: string | null;
   original_key: string | null;
+  start_key: string | null;
+  notes: string | null;
   bpm: number | null;
   source_url: string | null;
   chart_text: string | null;
@@ -253,8 +255,10 @@ export function GigSetlist({
                           <p className="truncate text-sm font-semibold text-zinc-100">{song?.title ?? 'Música removida'}</p>
                           <p className="truncate text-xs text-zinc-500">
                             {song?.artist}
+                            {song?.start_key ? ` · Começa em ${song.start_key}` : ''}
                             {item.note ? ` · ${item.note}` : ''}
                           </p>
+                          {song?.notes && <p className="truncate text-xs text-zinc-600">{song.notes}</p>}
                         </button>
                         {(item.requested_key || item.reference_key) && (
                           <span className="shrink-0 rounded bg-zinc-800 px-2 py-0.5 text-xs font-bold text-zinc-100" title={changed ? `Original ${item.reference_key}` : undefined}>

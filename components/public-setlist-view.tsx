@@ -10,6 +10,8 @@ export type PublicSong = {
   title: string;
   artist: string | null;
   original_key: string | null;
+  start_key: string | null;
+  notes: string | null;
   bpm: number | null;
   source_url: string | null;
   chart_text: string | null;

@@ -13,6 +13,8 @@ export type CatalogSong = {
   title: string;
   artist: string | null;
   original_key: string | null;
+  start_key: string | null;
+  notes: string | null;
   bpm: number | null;
   source_url: string | null;
   chart_text: string | null;
@@ -77,10 +79,31 @@ function SongForm({ song, bandId, onDone }: { song: CatalogSong | null; bandId: 
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
+          Começa em (tom pedido à harmonia)
+          <select name="start_key" defaultValue={song?.start_key ?? ''} className={`${inputCls} appearance-none`}>
+            <option value="">Igual ao tom original</option>
+            {MUSICAL_KEYS.map((k) => (
+              <option key={k} value={k}>{k}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
           BPM
           <input name="bpm" type="number" min={1} max={400} defaultValue={song?.bpm ?? ''} placeholder="Opcional" className={inputCls} />
         </label>
       </div>
+
+      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
+        Observações
+        <textarea
+          name="notes"
+          rows={2}
+          maxLength={1000}
+          defaultValue={song?.notes ?? ''}
+          placeholder="Ex: começa com &quot;Eu sei que vou te amar&quot;, tem solo de sax, termina seco"
+          className={inputCls}
+        />
+      </label>
 
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
         <span className="flex items-center justify-between gap-3">
@@ -189,7 +212,7 @@ export function CatalogClient({ songs, userId, isOwner, bandId }: { songs: Catal
               <button type="button" onClick={() => setViewing(s)} className="min-w-0 flex-1 text-left" title="Abrir cifra">
                 <p className="truncate text-sm font-semibold text-zinc-100">{s.title}</p>
                 <p className="truncate text-xs text-zinc-500">
-                  {[s.scope === 'personal' && 'Pessoal', s.artist, s.original_key && `Tom ${s.original_key}`, s.bpm && `${s.bpm} BPM`].filter(Boolean).join(' · ') || 'Sem detalhes'}
+                  {[s.scope === 'personal' && 'Pessoal', s.artist, s.original_key && `Tom ${s.original_key}`, s.start_key && `Começa em ${s.start_key}`, s.bpm && `${s.bpm} BPM`].filter(Boolean).join(' · ') || 'Sem detalhes'}
                   {s.chart_text ? '' : ' · sem cifra'}
                 </p>
               </button>

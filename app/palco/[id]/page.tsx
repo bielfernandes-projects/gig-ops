@@ -16,7 +16,7 @@ export default async function StagePage({ params }: { params: Promise<{ id: stri
   // RLS: qualquer membro da banda le repertorios 'band'; os pessoais so o dono
   const { data } = (await supabase
     .from('setlists')
-    .select('id, name, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, bpm, source_url, chart_text, pdf_path)))')
+    .select('id, name, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, start_key, notes, bpm, source_url, chart_text, pdf_path)))')
     .eq('id', id)
     .maybeSingle()) as unknown as { data: SetlistTree | null };
 
@@ -42,6 +42,8 @@ export default async function StagePage({ params }: { params: Promise<{ id: stri
           artist: bs.songs?.artist ?? null,
           key: bs.requested_key || bs.reference_key || bs.songs?.original_key || null,
           originalKey: bs.songs?.original_key ?? null,
+          startKey: bs.songs?.start_key ?? null,
+          songNotes: bs.songs?.notes ?? null,
           bpm: bs.songs?.bpm ?? null,
           note: bs.note,
           transitionNote: bs.transition_note,

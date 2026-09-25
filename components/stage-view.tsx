@@ -16,6 +16,8 @@ export type StageItem = {
   artist: string | null;
   key: string | null;
   originalKey: string | null;
+  startKey: string | null;
+  songNotes: string | null;
   bpm: number | null;
   note: string | null;
   transitionNote: string | null;
@@ -126,6 +128,7 @@ export function StageView({ name, items, backHref }: { name: string; items: Stag
               {changed ? <span className="ml-1 text-xs font-semibold">(orig. {item.originalKey})</span> : null}
             </span>
           )}
+          {item.startKey && <span className="rounded bg-amber-300 px-2 py-0.5 text-base font-black text-black">Começa em {item.startKey}</span>}
           {item.bpm && <span>{item.bpm} BPM</span>}
           {item.pdfPath && item.songId && (
             <button
@@ -142,6 +145,7 @@ export function StageView({ name, items, backHref }: { name: string; items: Stag
           )}
         </p>
         {item.note && <p className="mt-1 text-base font-semibold text-amber-300">{item.note}</p>}
+        {item.songNotes && <p className="mt-1 whitespace-pre-line text-sm text-zinc-400">{item.songNotes}</p>}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
