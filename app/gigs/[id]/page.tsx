@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { GigWithProject, LineupWithMember, GoMember, GoProject } from '@/lib/types';
 import { PostgrestError } from '@supabase/supabase-js';
-import { ArrowLeft, Clock, MapPin, Volume2, StickyNote, Calendar, ListMusic } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Volume2, StickyNote, Calendar } from 'lucide-react';
 import { AddLineupMember } from '@/components/add-lineup-member';
 import { LineupMemberCard } from '@/components/lineup-member-card';
 import { EditGigModal } from '@/components/edit-gig-modal';
@@ -13,8 +13,8 @@ import { getUserInfo } from '@/lib/auth';
 import { GigFinance, type ExpenseRow, type PaymentRow } from '@/components/gig-finance';
 import { brl } from '@/lib/finance';
 import { PresenceControl } from '@/components/presence-control';
-import { GigSetlist, type SetlistTree, type CatalogOption, type BandSetlistOption } from '@/components/gig-setlist';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { GigSetlistPicker } from '@/components/gig-setlist-picker';
+import type { BandSetlistOption } from '@/components/gig-setlist';
 
 export const revalidate = 0;
 
@@ -98,7 +98,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     .order('name', { ascending: true });
 
   // Parallel data fetching — lineup, members, projects, and sound person all at once
-  const [lineupResult, membersResult, projectsResult, soundPersonResult, expensesResult, paymentsResult, setlistResult, catalogResult, bandSetlistsResult, usageCountResult] = await Promise.all([
+  const [lineupResult, membersResult, projectsResult, soundPersonResult, expensesResult, paymentsResult, bandSetlistsResult] = await Promise.all([
     supabase
       .from('go_lineup')
       .select(`*, go_members ( name, instrument )`)
@@ -118,32 +118,10 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     role === 'admin'
       ? supabase.from('gig_payments').select('id, amount, paid_at, note').eq('gig_id', id).order('paid_at') as unknown as Promise<{ data: PaymentRow[] | null }>
       : Promise.resolve({ data: null as PaymentRow[] | null }),
-    gigData.setlist_id
-      ? supabase
-          .from('setlists')
-          .select('id, name, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, start_key, notes, bpm, source_url, chart_text, pdf_path)))')
-          .eq('id', gigData.setlist_id)
-          .maybeSingle() as unknown as Promise<{ data: SetlistTree | null }>
-      : Promise.resolve({ data: null as SetlistTree | null }),
-    role === 'admin'
-      ? supabase.from('songs').select('id, title, artist, original_key').eq('band_id', effectiveTenantId).order('title') as unknown as Promise<{ data: CatalogOption[] | null }>
-      : Promise.resolve({ data: null as CatalogOption[] | null }),
-    role === 'admin'
-      ? supabase.from('setlists').select('id, name, is_default').eq('band_id', effectiveTenantId).eq('scope', 'band').order('name') as unknown as Promise<{ data: BandSetlistOption[] | null }>
-      : Promise.resolve({ data: null as BandSetlistOption[] | null }),
-    gigData.setlist_id
-      ? supabase.from('go_gigs').select('id', { count: 'exact', head: true }).eq('setlist_id', gigData.setlist_id)
-      : Promise.resolve({ count: 0 }),
+    supabase.from('setlists').select('id, name, is_default').eq('band_id', effectiveTenantId).eq('scope', 'band').order('name') as unknown as Promise<{ data: BandSetlistOption[] | null }>,
   ]);
 
-  const setlist = setlistResult.data;
   const bandSetlists = (bandSetlistsResult.data ?? []) as BandSetlistOption[];
-  const usageCount = (usageCountResult as { count: number | null }).count ?? 0;
-  let shareToken: string | null = null;
-  if (role === 'admin' && setlist) {
-    const { data: link } = await createAdminClient().from('setlist_share_links').select('token').eq('setlist_id', setlist.id).is('revoked_at', null).limit(1).maybeSingle();
-    shareToken = link?.token ?? null;
-  }
 
   const lineup = lineupResult.data || [];
   const expenses = (expensesResult.data || []).map((e) => ({ ...e, amount: Number(e.amount) }));
@@ -292,16 +270,6 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               </div>
             )}
 
-            {info.modules.repertorio && setlist && (
-              <div className="flex items-center gap-3">
-                <ListMusic className="w-5 h-5 stroke-[1.5] text-zinc-500" />
-                <span className="min-w-0 truncate text-zinc-300">{setlist.name}</span>
-                <Link href={`/repertorio/lista/${setlist.id}`} className="shrink-0 rounded-md bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-900 hover:bg-white">
-                  Abrir repertório
-                </Link>
-              </div>
-            )}
-
             {role === 'admin' && gigData.client_name && (
               <div className="flex items-center gap-3">
                 <StickyNote className="w-5 h-5 stroke-[1.5] text-zinc-500" />
@@ -436,7 +404,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       )}
 
       {info.modules.repertorio && (
-        <GigSetlist gigId={id} setlist={setlist} catalog={catalogResult.data ?? []} isOwner={role === 'admin'} shareToken={shareToken} bandSetlists={bandSetlists} usageCount={usageCount} />
+        <GigSetlistPicker gigId={id} currentId={gigData.setlist_id ?? null} options={bandSetlists} isOwner={role === 'admin'} />
       )}
 
       {/* Notes Section */}
