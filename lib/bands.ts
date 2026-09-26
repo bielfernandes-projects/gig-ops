@@ -4,6 +4,21 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 const clean = (name: string) => name.trim().slice(0, 60);
 
+/**
+ * Invite codes (which double as referral codes) are up to 5 alphanumeric characters, written
+ * uppercase — new bands get `upper(substr(md5(random()), 1, 5))`, owners can pick their own in
+ * Perfil (`saveInviteCode`). Uniqueness is enforced on `upper(invite_code)`, so the stored case
+ * is NOT guaranteed (rows migrated from `go_settings` kept whatever case they had) and lookups
+ * have to be case-insensitive too — hence `ilike` instead of `eq`.
+ */
+export const normalizeCode = (raw: string) => raw.trim().toUpperCase();
+
+/** Same, escaped for `ilike`: the column is free text, so `%`/`_` must not act as wildcards. */
+export const codeFilter = (raw: string) => normalizeCode(raw).replace(/[\\%_]/g, (c) => `\\${c}`);
+
+/** What to tell someone whose code didn't match anything. */
+export const CODE_FORMAT_HINT = 'O código tem até 5 letras ou números, sem espaços nem acentos.';
+
 const DAY_MS = 86_400_000;
 
 /** Referral credit: +30 days on the referrer's trial or paid period. Best effort, never blocks sign-up. */
@@ -21,10 +36,14 @@ export async function createBandFor(userId: string, name: string, referralCode?:
   const admin = createAdminClient();
 
   let referrerId: string | null = null;
-  const code = referralCode?.trim().toUpperCase();
+  const code = referralCode ? normalizeCode(referralCode) : '';
   if (code) {
-    const { data: ref } = await admin.from('bands').select('id').eq('invite_code', code).maybeSingle();
-    if (!ref) return { error: 'Código de indicação inválido.' };
+    const { data: ref } = await admin.from('bands').select('id').ilike('invite_code', codeFilter(code)).maybeSingle();
+    if (!ref) {
+      return {
+        error: `Não existe banda com o código de indicação "${code}". Ele é o código de convite da banda de quem te indicou (aparece no Perfil dessa pessoa). ${CODE_FORMAT_HINT} Se ninguém te indicou, deixe o campo vazio.`,
+      };
+    }
     referrerId = ref.id;
   }
 
@@ -52,12 +71,12 @@ export async function joinBandByCode(
   userId: string,
   rawCode: string
 ): Promise<{ bandId: string; bandName: string } | { error: string }> {
-  const code = rawCode.trim().toUpperCase();
+  const code = normalizeCode(rawCode);
   if (!code) return { error: 'Informe o código de convite.' };
 
   const admin = createAdminClient();
-  const { data: band } = await admin.from('bands').select('id, name').eq('invite_code', code).maybeSingle();
-  if (!band) return { error: 'Código de convite inválido.' };
+  const { data: band } = await admin.from('bands').select('id, name').ilike('invite_code', codeFilter(code)).maybeSingle();
+  if (!band) return { error: `Nenhuma banda usa o código "${code}". Confirme com o responsável da banda. ${CODE_FORMAT_HINT}` };
 
   const { error } = await admin
     .from('band_members')

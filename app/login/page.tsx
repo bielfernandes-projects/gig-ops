@@ -249,9 +249,14 @@ function LoginPageInner() {
                       <input
                         type="text"
                         name="inviteCode"
-                        className="w-full bg-zinc-900 border border-zinc-700/50 rounded-lg px-3 py-2 mt-1 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
-                        placeholder="Ex: BANDA2026"
+                        required
+                        maxLength={12}
+                        className="w-full bg-zinc-900 border border-zinc-700/50 rounded-lg px-3 py-2 mt-1 text-sm text-zinc-100 uppercase focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
+                        placeholder="Ex: A1B2C"
                       />
+                      <p className="text-[11px] leading-snug text-zinc-500">
+                        Até 5 letras ou números. Quem responde pela banda vê esse código no Perfil.
+                      </p>
                     </div>
                   )}
 

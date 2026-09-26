@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createBandFor, joinBandByCode } from '@/lib/bands';
+import { createBandFor, joinBandByCode, normalizeCode, codeFilter, CODE_FORMAT_HINT } from '@/lib/bands';
 import { sendPushToBandOwners } from '@/lib/push';
 
 export async function login(formData: FormData) {
@@ -30,14 +30,16 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
-  const inviteCode = ((formData.get('inviteCode') as string) || '').trim().toUpperCase();
+  const inviteCode = normalizeCode((formData.get('inviteCode') as string) || '');
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
+  if (!inviteCode) return { error: 'Informe o código de convite da banda.' };
+
   // Validate the invite code before creating the account
-  const { data: band } = await createAdminClient().from('bands').select('id').eq('invite_code', inviteCode).maybeSingle();
+  const { data: band } = await createAdminClient().from('bands').select('id').ilike('invite_code', codeFilter(inviteCode)).maybeSingle();
   if (!band) {
-    return { error: 'Código de convite inválido.' };
+    return { error: `Nenhuma banda usa o código "${inviteCode}". Confirme com o responsável da banda. ${CODE_FORMAT_HINT}` };
   }
 
   const origin = (formData.get('origin') as string) || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';

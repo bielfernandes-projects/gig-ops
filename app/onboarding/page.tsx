@@ -51,7 +51,12 @@ export default function OnboardingPage() {
           <p className="text-xs text-zinc-400">Crie sua banda e gerencie shows, escala e cachês.</p>
           <form onSubmit={handleCreate} className="mt-2 flex flex-col gap-2">
             <input name="bandName" required maxLength={60} autoComplete="off" placeholder="Nome da banda" className={inputCls} />
-            <input name="referral" autoComplete="off" maxLength={5} placeholder="Código de indicação (opcional)" className={`${inputCls} uppercase`} />
+            {/* maxLength is deliberately above the 5-char rule: bands migrated from go_settings can
+                still carry a longer legacy code, and the server decides what is valid. */}
+            <input name="referral" autoComplete="off" maxLength={12} placeholder="Código de indicação (opcional)" className={`${inputCls} uppercase`} />
+            <p className="text-[11px] leading-snug text-zinc-500">
+              Indicação é o <strong className="text-zinc-400">código de convite de outra banda</strong> — de quem te trouxe pro app (ela ganha 30 dias grátis). Não é um código que você inventa: se ninguém te indicou, deixe vazio.
+            </p>
             <button
               type="submit"
               disabled={loading !== null}
@@ -66,7 +71,10 @@ export default function OnboardingPage() {
           <h2 className="font-bold">Fui convidado por uma banda</h2>
           <p className="text-xs text-zinc-400">Digite o código de convite que o responsável te enviou.</p>
           <form onSubmit={handleJoin} className="mt-2 flex flex-col gap-2">
-            <input name="inviteCode" required autoComplete="off" placeholder="Ex: BANDA" className={`${inputCls} uppercase`} />
+            <input name="inviteCode" required autoComplete="off" maxLength={12} placeholder="Ex: A1B2C" className={`${inputCls} uppercase`} />
+            <p className="text-[11px] leading-snug text-zinc-500">
+              Até 5 letras ou números, sem espaços nem acentos. O responsável vê o código no Perfil da banda.
+            </p>
             <button
               type="submit"
               disabled={loading !== null}

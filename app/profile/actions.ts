@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ALL_BANDS, BAND_COOKIE, getUserInfo, requireOwner } from '@/lib/auth';
-import { createBandFor, joinBandByCode, nameOf } from '@/lib/bands';
+import { createBandFor, joinBandByCode, nameOf, normalizeCode, codeFilter } from '@/lib/bands';
 import { sendPushToBandOwners } from '@/lib/push';
 import { monthlyPlan, type BillingPeriod } from '@/lib/pricing';
 import { countFounders } from '@/lib/founders';
@@ -91,21 +91,22 @@ export async function saveInviteCode(formData: FormData) {
   const ctx = await requireOwner();
   if (!ctx.ok) return { error: ctx.error };
 
-  const code = String(formData.get('inviteCode') ?? '');
+  const code = normalizeCode(String(formData.get('inviteCode') ?? ''));
 
   // Validate: max 5 chars, only letters and numbers
-  if (!code || code.length > 5 || !/^[A-Za-z0-9]+$/.test(code)) {
+  if (!code || code.length > 5 || !/^[A-Z0-9]+$/.test(code)) {
     return { error: 'Código deve ter no máximo 5 caracteres alfanuméricos.' };
   }
 
-  // Uniqueness across all bands needs the service role (RLS hides other bands)
+  // Uniqueness across all bands needs the service role (RLS hides other bands), and it is
+  // case-insensitive in the database (unique index on upper(invite_code)).
   const admin = createAdminClient();
-  const { data: existing } = await admin.from('bands').select('id').eq('invite_code', code.toUpperCase()).maybeSingle();
+  const { data: existing } = await admin.from('bands').select('id').ilike('invite_code', codeFilter(code)).maybeSingle();
   if (existing && existing.id !== ctx.bandId) {
     return { error: 'Este código já está em uso por outra banda.' };
   }
 
-  const { error } = await ctx.supabase.from('bands').update({ invite_code: code.toUpperCase() }).eq('id', ctx.bandId);
+  const { error } = await ctx.supabase.from('bands').update({ invite_code: code }).eq('id', ctx.bandId);
   if (error) {
     console.error('Error saving invite code:', error);
     return { error: 'Erro ao salvar código de convite.' };

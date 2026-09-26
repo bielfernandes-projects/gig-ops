@@ -485,3 +485,17 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * `components/profile-client.tsx`: `Notification.permission` também virou `useSyncExternalStore` (snapshot de servidor `'idle'`), com um `override` local pros estados que os botões da própria tela definem (`loading`/`active`/`idle`/`denied`).
 * Tipos que eram `any`: `components/dashboard-client.tsx` ganhou o tipo `MonthRow` pro mapa mensal do gráfico de linhas (chaves de projeto achatadas na linha, como o Recharts exige) e o `formatter` do Tooltip recebe `unknown`; `app/actions/gig-actions.ts` lê o título do show embutido com o mesmo padrão de `bandOfLineup` (objeto ou array de um item).
 * `npm run lint` agora passa sem erros **e sem warnings**.
+
+## 40. Formato do código de convite / indicação
+* **Um código só, dois usos.** Cada banda tem um `bands.invite_code`. Ele serve pra (a) um músico entrar na banda e (b) ser usado como *código de indicação* por outra banda na hora de criar a conta — nesse caso a banda dona do código ganha 30 dias grátis (`grantReferralCredit` em `lib/bands.ts`).
+* **Formato:** até **5 caracteres alfanuméricos** (`[A-Z0-9]`), sem espaços, acentos, pontuação ou hífen. Guardado em maiúsculas.
+  * Gerado automaticamente pra banda nova: `upper(substr(md5(random()::text), 1, 5))` — ou seja, 5 dígitos hexadecimais maiúsculos (`0-9`, `A-F`), tipo `A1B2C`.
+  * O dono pode trocar por um código próprio no Perfil (`saveInviteCode`): 1 a 5 caracteres, letras e/ou números, obrigatório nem ser só letras nem só números. Números são permitidos, não obrigatórios.
+  * Unicidade é global e **sem distinção de maiúsculas/minúsculas** (índice único em `upper(invite_code)`).
+* **Onde encontrar:** Perfil da banda, campo "Código de convite da banda". É esse valor que se digita no campo de indicação de outra conta.
+* **O campo de indicação não cria código.** Ele só aceita o código de uma banda **que já existe**. Digitar um código inventado devolve "Não existe banda com o código X..." e o cadastro da banda não acontece — o campo é opcional, então o caminho é deixar vazio.
+* **Correções feitas junto (busca de código):**
+  * As buscas por código usavam `.eq('invite_code', code)`, que é *case-sensitive*, enquanto a unicidade no banco é `upper(invite_code)` — um código gravado em minúsculas (possível nas linhas migradas de `go_settings`, copiadas sem `upper()`) era impossível de achar. Agora todas usam `.ilike()` com `%`/`_` escapados (`normalizeCode`/`codeFilter` em `lib/bands.ts`), em `createBandFor`, `joinBandByCode`, `signup` e `saveInviteCode`.
+  * `maxLength` dos campos de código subiu de 5 pra 12 (onboarding, login e Perfil): bandas migradas de `go_settings` podem ter um código legado mais longo que 5 (o default antigo era o texto fixo `SEIS4-MVP`), e com o limite em 5 o campo truncava a digitação e o código *válido* voltava como inválido. A validação de verdade é do servidor.
+  * `saveInviteCode` passou a dar `trim()` antes de validar (um espaço colado junto dava "máximo 5 caracteres alfanuméricos", que não explicava nada).
+  * Mensagens de erro agora dizem o que o código é, onde achar e o formato; o placeholder do login era `Ex: BANDA2026`, que mentia sobre o tamanho, e virou `Ex: A1B2C`. O campo de convite no login também virou `required` (antes, vazio, ele ia pro servidor e voltava com erro genérico).

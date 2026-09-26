@@ -167,7 +167,7 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
           >
             <label className="text-xs font-medium text-zinc-500">Entrar em outra banda com código</label>
             <div className="flex gap-2">
-              <input name="inviteCode" required maxLength={5} placeholder="CÓDIGO" className={`${inputCls} w-full min-w-0 uppercase tracking-widest`} />
+              <input name="inviteCode" required maxLength={12} placeholder="CÓDIGO" className={`${inputCls} w-full min-w-0 uppercase tracking-widest`} />
               <button type="submit" className={primaryBtn}>Entrar</button>
             </div>
           </form>
