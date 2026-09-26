@@ -36,6 +36,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       role={info.role}
+      userId={info.userId ?? ''}
       bandRoles={toBandRoles(info.bands)}
       allBands={info.allBands}
       gigs={allGigs}

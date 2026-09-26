@@ -4,7 +4,15 @@ import { useState } from 'react';
 import { useJoyride, STATUS, type Status, type Step } from 'react-joyride';
 import { NAV_EVENT } from '@/components/mobile-nav';
 
-const STORAGE_KEY = (role: string) => `gg-tour-v1:${role}`;
+/**
+ * Keyed by account, not just by role: the previous key was per device, so a second account on a
+ * browser that had already seen the tour (a new band owner on a shared or test machine, say) never
+ * got it — the only way in was the "Ver tour" button in Perfil, which forces `?tour=1`.
+ */
+const STORAGE_KEY = (userId: string, role: string) => `gg-tour-v1:${userId}:${role}`;
+
+/** The per-device key. It can't be attributed to an account, so it is dropped on sight. */
+const LEGACY_KEY = (role: string) => `gg-tour-v1:${role}`;
 
 /** Both navs (desktop sidebar and mobile bottom bar) are in the DOM; point at whichever is visible. */
 const navItem = (href: string) => () =>
@@ -42,10 +50,13 @@ const MUSICIAN_STEPS: Step[] = [
  * First-run guided tour. Mounted client-only (next/dynamic, ssr: false) so reading localStorage
  * and the URL during the initial state is safe. `?tour=1` forces a replay (link in the Profile).
  */
-export default function AppTour({ role }: { role: 'admin' | 'viewer' }) {
+export default function AppTour({ role, userId }: { role: 'admin' | 'viewer'; userId: string }) {
   const [run, setRun] = useState(() => {
     try {
-      return new URLSearchParams(window.location.search).has('tour') || !localStorage.getItem(STORAGE_KEY(role));
+      // Whoever had already seen the tour on this device sees it one more time; from here on it is
+      // remembered per account, which is the only scope that answers "is this person new?".
+      localStorage.removeItem(LEGACY_KEY(role));
+      return new URLSearchParams(window.location.search).has('tour') || !localStorage.getItem(STORAGE_KEY(userId, role));
     } catch {
       return false;
     }
@@ -77,7 +88,7 @@ export default function AppTour({ role }: { role: 'admin' | 'viewer' }) {
     onEvent: (data) => {
       if (([STATUS.FINISHED, STATUS.SKIPPED] as Status[]).includes(data.status)) {
         try {
-          localStorage.setItem(STORAGE_KEY(role), '1');
+          localStorage.setItem(STORAGE_KEY(userId, role), '1');
         } catch {}
         setRun(false);
         window.dispatchEvent(new CustomEvent(NAV_EVENT, { detail: false }));

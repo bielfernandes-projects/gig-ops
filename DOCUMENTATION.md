@@ -416,7 +416,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 ## 30. Tour guiado de primeiro uso
 - `components/app-tour.tsx` (react-joyride v3, montado no Dashboard via `next/dynamic` com `ssr: false`): abre sozinho no primeiro acesso ao Dashboard, com roteiro diferente pra dono (equipe → shows → repertório → relatório → perfil/convite) e pra músico (seus shows → repertório → seus cachês → notificações). Curto e pulável a qualquer momento, seguindo o princípio de mostrar o que fazer primeiro, não tudo que existe.
 - Os passos apontam pros itens da navegação (`data-tour-nav` em `components/navigation.tsx`); como a barra lateral (desktop) e a inferior (mobile) ficam as duas no DOM, o alvo é a que estiver visível.
-- "Já visto" fica no `localStorage` (`gg-tour-v1:<admin|viewer>`), por aparelho. O Perfil tem "Ver tour", que abre `/dashboard?tour=1` e força o replay.
+- "Já visto" fica no `localStorage`, **por conta**: `gg-tour-v1:<userId>:<admin|viewer>` (ver §42 — a chave antiga, `gg-tour-v1:<role>`, era por aparelho e impedia o tour de abrir pra uma conta nova num navegador que já tinha visto). O Perfil tem "Ver tour", que abre `/dashboard?tour=1` e força o replay.
 
 ## 31. Filtro "Todas as bandas" (visão consolidada)
 - O filtro de banda (`components/band-switcher.tsx`, no cabeçalho de Dashboard, Agenda, Repertório, Relatório, Músicos e Projetos) ganhou **"Todas as bandas"**, que é o padrão pra quem está em 2+ bandas. O cookie `gg_band` guarda `all` (`ALL_BANDS` em `lib/band-view.ts`) ou o id de uma banda; cookie ausente ou inválido = "Todas".
@@ -510,3 +510,10 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * **Nome gravado antes do trabalho de banda** (`saveName` em `app/onboarding/actions.ts`, reusando `setDisplayName` de `app/profile/actions.ts`): ninguém fica com banda criada e nome perdido, e o push "entrou na banda" já sai com o nome em vez do e-mail (`nameOf`). Nome vazio é ignorado.
 * **`createBandFor` agora recebe opções:** `createBandFor(userId, name, { inviteCode?, referralCode? })` em vez do terceiro parâmetro posicional `referralCode`. `inviteCode` preenchido passa por `validateInviteCode`; vazio, a coluna nem é enviada no insert.
 * **A indicação saiu do onboarding.** Decisão de produto: ela volta quando a feature de indicação existir de verdade (o item "Indicações" na navegação ainda é placeholder, §36). O backend continua inteiro e sem chamador — `grantReferralCredit`, `bands.referred_by` e a opção `referralCode` de `createBandFor`. O texto no Perfil que prometia os 30 dias virou "Em breve", porque sem o campo não havia como cumprir a promessa.
+
+## 42. Tour não abria sozinho pra conta nova no mesmo navegador
+* **Sintoma:** depois de criar a conta e cair no Dashboard, o tour não começava — nem recarregando a página. Só abria pelo botão "Ver tour" do Perfil.
+* **Causa:** a flag de "já viu" era `gg-tour-v1:<admin|viewer>`, **por aparelho**. Num navegador onde alguém já havia visto (ou pulado) o tour, qualquer conta nova criada dali em diante era tratada como veterana. O botão do Perfil funcionava porque manda `?tour=1`, que ignora a checagem — foi por isso que o sintoma parecia "só funciona pelo Perfil".
+* **Correção:** a chave virou `gg-tour-v1:<userId>:<admin|viewer>` (`components/app-tour.tsx`), com o `userId` descendo de `getUserInfo()` em `app/dashboard/page.tsx` → `DashboardClient` → `AppTour`. É a única granularidade que responde "essa *pessoa* é nova?".
+* **Efeito único na virada:** a chave antiga não pode ser atribuída a nenhuma conta, então ela é apagada quando o componente monta, e quem já tinha visto o tour vê uma vez mais. Optou-se por isso em vez de respeitar a chave antiga, que manteria o bug exatamente pra quem ele apareceu.
+* **Continua por aparelho:** a mesma conta em outro navegador/celular vê o tour de novo — pra acabar com isso seria preciso guardar no banco (ex.: `go_profiles.tour_seen_at`), o que não foi feito.
