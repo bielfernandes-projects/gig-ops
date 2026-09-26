@@ -13,14 +13,22 @@ export default async function DashboardPage() {
   const supabase = await createClient();
 
   // Tenant isolation: only the bands in the current view (one band, or all of the person's bands).
-  const { data: gigsData } = await supabase
-    .from('go_gigs')
-    .select(`
-      id, project_id, title, start_time, end_time, gross_value, bring_sound, sound_cost, is_sound_paid, band_id,
-      go_projects ( name, color_hex )
-    `)
-    .in('band_id', info.bandIds)
-    .order('start_time', { ascending: true }) as unknown as { data: GigWithProject[] | null };
+  // The tour flag is independent of the gigs, so both go out together.
+  const [{ data: gigsData }, { data: profile }] = await Promise.all([
+    supabase
+      .from('go_gigs')
+      .select(`
+        id, project_id, title, start_time, end_time, gross_value, bring_sound, sound_cost, is_sound_paid, band_id,
+        go_projects ( name, color_hex )
+      `)
+      .in('band_id', info.bandIds)
+      .order('start_time', { ascending: true }) as unknown as Promise<{ data: GigWithProject[] | null }>,
+    supabase
+      .from('go_profiles')
+      .select('tour_seen_at')
+      .eq('id', info.userId ?? '')
+      .maybeSingle() as unknown as Promise<{ data: { tour_seen_at: string | null } | null }>,
+  ]);
   const allGigs = gigsData || [];
 
   // Fetch lineups only for the gigs we already have (tenant-scoped).
@@ -37,6 +45,7 @@ export default async function DashboardPage() {
     <DashboardClient
       role={info.role}
       userId={info.userId ?? ''}
+      tourSeen={Boolean(profile?.tour_seen_at)}
       bandRoles={toBandRoles(info.bands)}
       allBands={info.allBands}
       gigs={allGigs}

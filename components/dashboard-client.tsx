@@ -17,6 +17,8 @@ type Props = {
   role: string | null;
   /** Whose "already seen the tour" flag to look at — it is stored per account. */
   userId: string;
+  /** `go_profiles.tour_seen_at` is set: the tour is done for this account, on any device. */
+  tourSeen: boolean;
   bandRoles: BandRoles;
   allBands: boolean;
   gigs: GigWithProject[];
@@ -24,7 +26,7 @@ type Props = {
   subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
 };
 
-export default function DashboardClient({ role, userId, bandRoles, allBands, gigs, lineups, subscription }: Props) {
+export default function DashboardClient({ role, userId, tourSeen, bandRoles, allBands, gigs, lineups, subscription }: Props) {
   const [pieFilter, setPieFilter] = useState<'month' | 'all' | 'custom'>('all'); 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -157,7 +159,7 @@ export default function DashboardClient({ role, userId, bandRoles, allBands, gig
 
   return (
     <div className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
-      <AppTour role={role === 'admin' ? 'admin' : 'viewer'} userId={userId} />
+      <AppTour role={role === 'admin' ? 'admin' : 'viewer'} userId={userId} tourSeen={tourSeen} />
       <div className="relative">
         <PageHeader title="Dashboard" description="Visão geral da agenda e das finanças." className="mb-0" />
         {/* Desktop only: on phones the theme toggle lives in the menu */}

@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import { useJoyride, STATUS, type Status, type Step } from 'react-joyride';
 import { NAV_EVENT } from '@/components/mobile-nav';
+import { markTourSeen } from '@/app/actions/tour-actions';
 
 /**
- * Keyed by account, not just by role: the previous key was per device, so a second account on a
- * browser that had already seen the tour (a new band owner on a shared or test machine, say) never
- * got it — the only way in was the "Ver tour" button in Perfil, which forces `?tour=1`.
+ * Local copy of "this account finished the tour", next to the authoritative one in
+ * `go_profiles.tour_seen_at`. Keyed by account, not just by role: the original key was per device,
+ * so a second account on a browser that had already seen the tour (a new band owner on a shared or
+ * test machine, say) never got it — the only way in was "Ver tour" in Perfil, which forces
+ * `?tour=1`. It stays around so a failed write to the database can't make the tour reopen forever.
  */
 const STORAGE_KEY = (userId: string, role: string) => `gg-tour-v1:${userId}:${role}`;
 
@@ -50,15 +53,17 @@ const MUSICIAN_STEPS: Step[] = [
  * First-run guided tour. Mounted client-only (next/dynamic, ssr: false) so reading localStorage
  * and the URL during the initial state is safe. `?tour=1` forces a replay (link in the Profile).
  */
-export default function AppTour({ role, userId }: { role: 'admin' | 'viewer'; userId: string }) {
+export default function AppTour({ role, userId, tourSeen }: { role: 'admin' | 'viewer'; userId: string; tourSeen: boolean }) {
   const [run, setRun] = useState(() => {
     try {
       // Whoever had already seen the tour on this device sees it one more time; from here on it is
       // remembered per account, which is the only scope that answers "is this person new?".
       localStorage.removeItem(LEGACY_KEY(role));
-      return new URLSearchParams(window.location.search).has('tour') || !localStorage.getItem(STORAGE_KEY(userId, role));
+      if (new URLSearchParams(window.location.search).has('tour')) return true;
+      return !tourSeen && !localStorage.getItem(STORAGE_KEY(userId, role));
     } catch {
-      return false;
+      // No storage (private mode, blocked site data): the database answer alone decides.
+      return !tourSeen;
     }
   });
 
@@ -90,6 +95,9 @@ export default function AppTour({ role, userId }: { role: 'admin' | 'viewer'; us
         try {
           localStorage.setItem(STORAGE_KEY(userId, role), '1');
         } catch {}
+        // Travels with the account, so the next device doesn't start the tour over. Fire and
+        // forget: the tour is over either way, and the line above already covers this device.
+        void markTourSeen();
         setRun(false);
         window.dispatchEvent(new CustomEvent(NAV_EVENT, { detail: false }));
         if (window.location.search.includes('tour')) window.history.replaceState(null, '', window.location.pathname);
