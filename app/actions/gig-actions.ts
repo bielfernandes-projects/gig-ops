@@ -390,7 +390,10 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
 
   // Push Notification on Payment!
   if (targetIsPaid && lineupData?.member_id) {
-    const gigTitle = (lineupData.go_gigs as any)?.title || 'um show';
+    // The embedded row comes back as an object or a single-item array, depending on how
+    // supabase-js infers the relationship.
+    const gig = lineupData.go_gigs as { title: string } | { title: string }[] | null;
+    const gigTitle = (Array.isArray(gig) ? gig[0]?.title : gig?.title) || 'um show';
     
     try {
       await sendPushToMember(lineupData.member_id, {

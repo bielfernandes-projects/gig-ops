@@ -214,7 +214,7 @@ Sem o passo 2, o `memberId` do viewer seria `null` e ele não veria nenhum show 
 
 * **Domínio de produção:** `https://www.gigueiros.com.br` (o apex `gigueiros.com.br` redireciona 308 para o `www`; ambos ligados ao projeto `gig-ops` na Vercel). `minhabanda.bf.dev.br` continua ativo como alias antigo.
 * **Site URL:** `https://www.gigueiros.com.br`
-* **URI Allow List:** `http://localhost:3000/*`, `https://minhabanda.bf.dev.br/*`, `https://www.gigueiros.com.br/*`, `https://gigueiros.com.br/*`
+* **URI Allow List (Redirect URLs):** `http://localhost:3000/**`, `https://minhabanda.bf.dev.br/**`, `https://www.gigueiros.com.br/**`, `https://gigueiros.com.br/**` — tem que ser `/**` (globstar), não `/*`: no matcher do Supabase o `*` não atravessa `/`, então `/*` não casa com `/auth/callback` (ver §38).
 * **Google OAuth (cliente "Gigueiros Web"):** origens JavaScript `minhabanda.bf.dev.br`, `www.gigueiros.com.br`, `gigueiros.com.br`; redirect URI é o callback do Supabase.
 * **Vercel:** `NEXT_PUBLIC_SITE_URL=https://www.gigueiros.com.br` (production e preview).
 * **Email autoconfirm:** Ativado (não precisa confirmar email)
@@ -467,3 +467,21 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 ## 28. Prévia de link (WhatsApp) e CTA da landing
 * `app/opengraph-image.tsx` gera a thumb de compartilhamento. O `proxy.ts` (auth) redirecionava `/opengraph-image` para `/login`, então os crawlers (WhatsApp etc.) recebiam HTML e não mostravam imagem; a rota agora está excluída do `matcher`. Depois do deploy, o WhatsApp pode manter o cache antigo do link por um tempo (testar com um link novo, ex.: `?v=2`).
 * Landing: a seção de preço ganhou um segundo botão "Testar 7 dias grátis" e, no card de Fundadores, o texto sobre o grupo de suporte direto com o criador.
+
+## 38. Cadastro pelo Google voltava pra landing page sem erro
+* **Sintoma:** "Continuar com Google" abria o consentimento normalmente, mas depois a pessoa caía na landing page (`/`) sem sessão, sem conta finalizada e sem nenhuma mensagem de erro.
+* **Causa:** a Redirect URL allow list do Supabase Auth estava com `https://www.gigueiros.com.br/*`. No matcher de globs do Supabase, `*` **não** atravessa `/` — quem faz isso é `**`. Logo `/*` casa com `/login`, mas **não** com `/auth/callback` (dois segmentos). Como o `redirect_to` não passava na allow list, o GoTrue descartava ele e caía no fallback: a **Site URL**, que é a landing page. O `?code=` chegava em `/` e ninguém trocava ele por sessão — daí o silêncio. O usuário até era criado em `auth.users`, mas o cadastro no app nunca era concluído (nenhuma banda, nenhum `band_members`).
+* **Correção no Supabase (obrigatória):** trocar todas as entradas da allow list de `/*` para `/**` (§10).
+* **Correção no código (defesa em profundidade, pra nunca mais falhar calado):**
+  * `lib/supabase/middleware.ts`: requisição em `/` com `?code=` ou `?error=` é redirecionada pra `/auth/callback` preservando a query. Mesmo que o Supabase volte pro fallback da Site URL, o login termina (o cookie do code verifier do PKCE é do mesmo domínio, então a troca funciona).
+  * `app/auth/callback/route.ts`: passa a logar (`console.error`) tanto a falha de `exchangeCodeForSession` quanto o erro devolvido pelo provedor, e o `motivo` mandado pra `/login` agora vem de `error_code` (legível por máquina, é o que a página compara) em vez de `error_description`.
+* **Limitação conhecida:** se o GoTrue devolver o erro no *fragmento* (`/#error=...`, fluxo implícito), o servidor não consegue ler — hoje o app usa PKCE, onde o erro vem na query string.
+
+## 39. Tema como external store e limpeza do lint
+* `lib/theme.ts` centraliza a escolha claro/escuro (`localStorage.theme` + classe `dark` no `<html>`) como um external store: `getTheme`/`getServerTheme`/`subscribeTheme`/`setTheme`. `components/theme-toggle.tsx` e `components/theme-toaster.tsx` leem por `useSyncExternalStore` em vez de copiar o valor pro state dentro de um `useEffect` (que renderizava duas vezes e quebrava a regra `react-hooks/set-state-in-effect` do Next 16).
+  * `getServerTheme()` devolve `null`: no servidor e no primeiro render do cliente ninguém sabe o que está no `localStorage`, então o toggle não desenha nada até hidratar — é o que substitui o antigo flag `mounted`.
+  * `setTheme()` grava, aplica a classe e avisa os listeners na hora. O evento `storage` só dispara nas *outras* abas, e é por isso que o `theme-toaster` pôde perder o `MutationObserver` que existia só pra perceber o toggle mexendo na classe na mesma aba.
+  * A semântica continua a mesma do script anti-FOUC em `app/layout.tsx`: qualquer valor diferente de `'light'` é escuro.
+* `components/profile-client.tsx`: `Notification.permission` também virou `useSyncExternalStore` (snapshot de servidor `'idle'`), com um `override` local pros estados que os botões da própria tela definem (`loading`/`active`/`idle`/`denied`).
+* Tipos que eram `any`: `components/dashboard-client.tsx` ganhou o tipo `MonthRow` pro mapa mensal do gráfico de linhas (chaves de projeto achatadas na linha, como o Recharts exige) e o `formatter` do Tooltip recebe `unknown`; `app/actions/gig-actions.ts` lê o título do show embutido com o mesmo padrão de `bandOfLineup` (objeto ou array de um item).
+* `npm run lint` agora passa sem erros **e sem warnings**.

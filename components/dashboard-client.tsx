@@ -108,7 +108,10 @@ export default function DashboardClient({ role, bandRoles, allBands, gigs, lineu
 
   // 5. Line Chart Data (Quantidade de Shows - Todos os status/períodos)
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  const monthlyDataMap: Record<string, any> = {};
+  // One row per month: the label/timestamp plus a gig count per project name (Recharts needs the
+  // project keys flat on the row, since each <Line> reads one dataKey).
+  type MonthRow = { label: string; timestamp: number; [project: string]: string | number };
+  const monthlyDataMap: Record<string, MonthRow> = {};
   const projectsSet = new Map<string, string>(); // Guarda o nome e a cor de cada projeto
 
   // Identifica todos os projetos com shows visíveis
@@ -136,7 +139,7 @@ export default function DashboardClient({ role, bandRoles, allBands, gigs, lineu
       });
     }
 
-    monthlyDataMap[monthKey][projName] += 1;
+    monthlyDataMap[monthKey][projName] = Number(monthlyDataMap[monthKey][projName] ?? 0) + 1;
   });
 
   const lineChartData = Object.values(monthlyDataMap).sort((a, b) => a.timestamp - b.timestamp);
@@ -286,7 +289,7 @@ export default function DashboardClient({ role, bandRoles, allBands, gigs, lineu
                         ))}
                       </Pie>
                       <Tooltip 
-                        formatter={(value: any) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : `R$ 0.00`} 
+                        formatter={(value: unknown) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : `R$ 0.00`}
                         contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '0.5rem', fontSize: '0.875rem' }}
                         itemStyle={{ fontWeight: 'bold' }}
                       />

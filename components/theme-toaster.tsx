@@ -1,58 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import { Toaster } from 'sonner';
+import { getServerTheme, getTheme, subscribeTheme } from '@/lib/theme';
 
 const FORCED_DARK_ROUTES = ['/', '/login', '/onboarding', '/termos', '/privacidade'];
 
 export function ThemeToaster() {
   const pathname = usePathname();
   const forcedDark = FORCED_DARK_ROUTES.includes(pathname) || pathname.startsWith('/auth');
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  // null until hydration; the toggle notifies this store, so no MutationObserver is needed to
+  // notice a theme change made elsewhere in the tree.
+  const stored = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
+  const isDark = forcedDark || stored !== 'light';
 
   // Client-side navigations don't re-run the <head> FOUC script, so keep the
   // <html> class in sync with forcedDark across route changes too.
   useEffect(() => {
-    const saved = localStorage.getItem('theme');
-    const shouldBeDark = forcedDark || saved !== 'light';
-    document.documentElement.classList.toggle('dark', shouldBeDark);
-  }, [forcedDark, pathname]);
-
-  useEffect(() => {
-    if (forcedDark) return;
-
-    const saved = localStorage.getItem('theme');
-    if (saved === 'light') setTheme('light');
-    else if (saved === 'dark') setTheme('dark');
-    else setTheme('dark');
-
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'theme') {
-        setTheme(e.newValue === 'light' ? 'light' : 'dark');
-      }
-    };
-    window.addEventListener('storage', onStorage);
-
-    // Also listen for class changes on <html> as a fallback
-    const observer = new MutationObserver(() => {
-      const isDark = document.documentElement.classList.contains('dark');
-      setTheme(isDark ? 'dark' : 'light');
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      observer.disconnect();
-    };
-  }, [forcedDark]);
-
-  const effectiveTheme = forcedDark ? 'dark' : theme;
-  const isDark = effectiveTheme === 'dark';
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
 
   return (
     <Toaster
-      theme={effectiveTheme}
+      theme={isDark ? 'dark' : 'light'}
       position="bottom-center"
       closeButton
       toastOptions={{

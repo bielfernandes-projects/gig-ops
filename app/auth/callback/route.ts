@@ -10,6 +10,7 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) console.error('OAuth callback: code exchange failed:', error.code, error.message);
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser();
       const { count } = user
@@ -20,7 +21,12 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?erro=google&motivo=${encodeURIComponent(error.code ?? '')}`);
   }
 
-  // Google/Supabase can also reject before ever issuing a code (e.g. denied consent).
-  const providerError = searchParams.get('error_description') ?? searchParams.get('error');
+  // Google/Supabase can also reject before ever issuing a code (denied consent, a failing
+  // `handle_new_user` trigger, ...). `error_code` is the machine-readable one the login page
+  // matches on; the description is only useful in the logs.
+  const providerError = searchParams.get('error_code') ?? searchParams.get('error');
+  if (providerError) {
+    console.error('OAuth callback: provider error:', providerError, searchParams.get('error_description'));
+  }
   return NextResponse.redirect(`${origin}/login?erro=google${providerError ? `&motivo=${encodeURIComponent(providerError)}` : ''}`);
 }

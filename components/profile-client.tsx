@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { EditableLine } from '@/components/editable-line';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { ShieldAlert, ShieldCheck, LogOut, KeyRound, Bell, BellOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { updatePassword, setDisplayName, renameBand } from '@/app/profile/actions';
@@ -13,6 +13,20 @@ import { signout } from '@/app/login/actions';
 import { BandSections, type BandMemberView, type BillingView } from '@/components/band-sections';
 import type { BandOption } from '@/components/band-switcher';
 import type { SubscriptionState } from '@/lib/subscription';
+
+type PushStatus = 'idle' | 'loading' | 'active' | 'denied';
+
+/** Notification.permission only changes through browser UI: there is no event to subscribe to. */
+const subscribePermission = () => () => {};
+
+const readPermission = (): PushStatus => {
+  if (!('Notification' in window)) return 'idle';
+  if (Notification.permission === 'granted') return 'active';
+  return Notification.permission === 'denied' ? 'denied' : 'idle';
+};
+
+/** Server render and hydration: assume nothing is granted yet, so both sides draw the same. */
+const serverPermission = (): PushStatus => 'idle';
 
 type Props = {
   role: 'admin' | 'viewer';
@@ -30,14 +44,11 @@ type Props = {
 };
 
 export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, billing, founderWhatsappUrl }: Props) {
-  const [pushStatus, setPushStatus] = useState<'idle' | 'loading' | 'active' | 'denied'>('idle');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'granted') setPushStatus('active');
-      else if (Notification.permission === 'denied') setPushStatus('denied');
-    }
-  }, []);
+  // The browser's permission is the starting point; `override` is what this screen's own
+  // buttons set while subscribing/unsubscribing.
+  const permission = useSyncExternalStore(subscribePermission, readPermission, serverPermission);
+  const [override, setOverride] = useState<PushStatus | null>(null);
+  const pushStatus = override ?? permission;
 
   return (
     <div className="flex-1 w-full max-w-2xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
@@ -135,7 +146,7 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
                   toast.error('Este navegador não suporta Push Notifications.');
                   return;
                 }
-                setPushStatus('loading');
+                setOverride('loading');
                 try {
                   const reg = await navigator.serviceWorker.ready;
                   const sub = await reg.pushManager.getSubscription();
@@ -150,12 +161,12 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
                       if (res?.error) console.warn('removePushSubscription error:', res.error);
                     }
                   }
-                  setPushStatus('idle');
+                  setOverride('idle');
                   toast.success('Notificações desativadas.');
                 } catch (err) {
                   console.error(err);
                   toast.error('Falha ao desativar notificações.');
-                  setPushStatus('active');
+                  setOverride('active');
                 }
               }}
               className="flex items-center justify-center gap-2 font-bold px-4 py-2.5 rounded-lg text-sm transition-colors w-full md:w-auto bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
@@ -177,17 +188,17 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
                   toast.error('No iOS, as notificações Push só funcionam pelo App adicionado à Tela de Início. Use o Safari, toque em Compartilhar > Adicionar à Tela de Início.');
                   return;
                 }
-                setPushStatus('loading');
+                setOverride('loading');
                 try {
                   if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
                     toast.error('Erro de configuração: Chave VAPID não encontrada.');
-                    setPushStatus('idle');
+                    setOverride('idle');
                     return;
                   }
                   await navigator.serviceWorker.register('/sw.js');
                   const permission = await Notification.requestPermission();
                   if (permission !== 'granted') {
-                    setPushStatus('denied');
+                    setOverride('denied');
                     toast.error('Permissão negada pelo dispositivo. Verifique as configurações de notificação nas Ajustes do iOS.');
                     return;
                   }
@@ -202,15 +213,15 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
                   const res = await savePushSubscription(userId || '', subJson);
                   if (res?.error) {
                     toast.error('Erro ao salvar assinatura: ' + res.error);
-                    setPushStatus('idle');
+                    setOverride('idle');
                   } else {
-                    setPushStatus('active');
+                    setOverride('active');
                     toast.success('Notificações ativadas com sucesso!');
                   }
                 } catch (err) {
                   console.error(err);
                   toast.error('Falha ao ativar notificações.');
-                  setPushStatus('idle');
+                  setOverride('idle');
                 }
               }}
               className={`flex items-center justify-center gap-2 font-bold px-4 py-2.5 rounded-lg text-sm transition-colors w-full md:w-auto ${

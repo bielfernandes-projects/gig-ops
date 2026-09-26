@@ -2,6 +2,21 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  // OAuth return that landed on the wrong page: Supabase only honours `redirect_to` when it
+  // matches the project's Redirect URL allow list (and there `*` does NOT cross `/`, so
+  // `https://host/*` never matches `/auth/callback`). When it doesn't match, GoTrue silently
+  // falls back to the Site URL and drops the person on the landing page carrying `?code=`
+  // (or `?error=`) that nothing reads: no session, no error, no sign-up finished.
+  // Forward those to the real callback so the flow still completes.
+  if (
+    request.nextUrl.pathname === '/' &&
+    (request.nextUrl.searchParams.has('code') || request.nextUrl.searchParams.has('error'))
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -15,7 +30,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
