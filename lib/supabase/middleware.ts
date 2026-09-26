@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isSuperAdmin } from '@/lib/admin'
 
 export async function updateSession(request: NextRequest) {
   // OAuth return that landed on the wrong page: Supabase only honours `redirect_to` when it
@@ -63,6 +64,13 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
+  }
+
+  // Painel de produto: barra cedo quem não é dono do produto. O e-mail já está nas claims, então
+  // não custa query nenhuma. A defesa que importa está no layout e em cada action de /admin —
+  // esta é só pra a rota nem responder pra quem não tem nada a ver com ela.
+  if (path.startsWith('/admin') && !isSuperAdmin(user?.email as string | undefined)) {
+    return new NextResponse(null, { status: 404 })
   }
 
   if (user && (isAuthRoute || path === '/')) {

@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { logAction } from '@/lib/telemetry';
 import { bandOf, requireBand, requireOwner, requireOwnerFor } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -77,6 +78,8 @@ export async function createBandSetlist(name: string, bandId?: string | null) {
   if (error || !setlist) return { error: 'Não foi possível criar o repertório.' };
 
   await ctx.supabase.from('blocks').insert({ setlist_id: setlist.id, name: 'Bloco 1', position: 0 });
+
+  await logAction('repertorio_criado', ctx.userId, ctx.bandId);
 
   revalidatePath('/repertorio');
   return { success: true, id: setlist.id };

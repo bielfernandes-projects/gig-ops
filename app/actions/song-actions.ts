@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { logAction } from '@/lib/telemetry';
 import { requireBand, requireBandFor, type BandContext } from '@/lib/auth';
 
 const PDF_BUCKET = 'song-pdfs';
@@ -76,6 +77,8 @@ export async function addSong(formData: FormData) {
     if (pdfError) return { error: pdfError };
     await ctx.supabase.from('songs').update({ pdf_path: `${data.id}.pdf` }).eq('id', data.id);
   }
+
+  await logAction('musica_criada', ctx.userId, ctx.bandId);
 
   revalidatePath('/repertorio');
   return { success: true };

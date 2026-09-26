@@ -2,6 +2,7 @@
 
 import { requireOwner, requireOwnerFor } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { logAction } from '@/lib/telemetry';
 
 export async function addMember(formData: FormData) {
   const ctx = await requireOwner(undefined, formData.get('band_id') as string | null);
@@ -36,6 +37,8 @@ export async function addMember(formData: FormData) {
     console.error('Error inserting member:', error);
     return { error: error.message };
   }
+
+  await logAction('musico_cadastrado', ctx.userId, bandId);
 
   revalidatePath('/members');
   // Revalidate the gig detail pages where the lineup dropdown exists

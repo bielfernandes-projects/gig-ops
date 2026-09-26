@@ -157,6 +157,11 @@ export async function GET(req: Request) {
     await supabase.from('go_reminders').update({ sent: true }).eq('id', reminder.id);
   }
 
+  // Retenção da telemetria: 90 dias bastam pro painel, e evita a tabela crescer sem fim.
+  const cutoff = new Date(Date.now() - 90 * 86_400_000).toISOString();
+  const { error: purgeError } = await supabase.from('app_events').delete().lt('created_at', cutoff);
+  if (purgeError) console.warn('Falha ao limpar app_events antigos:', purgeError.message);
+
   return NextResponse.json({
     message: 'Reminders processed',
     total: dueReminders.length,

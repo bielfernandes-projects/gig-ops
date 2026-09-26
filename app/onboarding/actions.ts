@@ -7,6 +7,7 @@ import { BAND_COOKIE } from '@/lib/auth';
 import { createBandFor, joinBandByCode, nameOf } from '@/lib/bands';
 import { setDisplayName } from '@/app/profile/actions';
 import { sendPushToBandOwners } from '@/lib/push';
+import { logAction } from '@/lib/telemetry';
 
 async function currentUser() {
   const supabase = await createClient();
@@ -42,6 +43,8 @@ export async function createBand(formData: FormData) {
   });
   if ('error' in created) return { error: created.error };
 
+  await logAction('banda_criada', user.id, created.bandId);
+
   await rememberBand(created.bandId);
   redirect('/dashboard');
 }
@@ -61,6 +64,8 @@ export async function joinBand(formData: FormData) {
     title: 'Novo músico na banda',
     body: `${await nameOf(user.id, user.email)} entrou usando o código de convite.`,
   });
+
+  await logAction('entrou_na_banda', user.id, joined.bandId);
 
   await rememberBand(joined.bandId);
   redirect('/dashboard');

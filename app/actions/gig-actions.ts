@@ -3,6 +3,7 @@
 import { bandOfLineup, requireOwner, requireOwnerFor } from '@/lib/auth';
 import { findConflicts } from '@/lib/conflicts';
 import { revalidatePath } from 'next/cache';
+import { logAction } from '@/lib/telemetry';
 import { redirect } from 'next/navigation';
 import { sendPushToMember } from '@/lib/push';
 
@@ -185,6 +186,8 @@ export async function addQuickGig(formData: FormData) {
     });
     await supabase.from('go_reminders').insert(remindersToInsert);
   }
+
+  await logAction('gig_criado', ctx.userId, bandId);
 
   revalidatePath('/agenda');
   revalidatePath('/dashboard');
@@ -405,6 +408,8 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
       console.warn('Push notification failed silently on payment:', e);
     }
   }
+
+  if (targetIsPaid) await logAction('cache_pago', ctx.userId, bandId);
 
   // Next.js App Router layout path dynamic revalidation rule
   revalidatePath('/gigs/[id]', 'page');

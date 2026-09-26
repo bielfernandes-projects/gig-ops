@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { logAction } from '@/lib/telemetry';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getUserInfo } from '@/lib/auth';
@@ -33,6 +34,10 @@ export async function setPresence(lineupId: string, status: 'confirmed' | 'decli
         url: `/gigs/${row.gig_id}`,
       });
     }
+  }
+
+  if (status !== 'pending') {
+    await logAction(status === 'confirmed' ? 'presenca_confirmada' : 'presenca_recusada', info.userId, info.bandId);
   }
 
   revalidatePath(`/gigs/${row.gig_id}`);
