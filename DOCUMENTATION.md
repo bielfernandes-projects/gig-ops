@@ -584,3 +584,14 @@ Série única em todos (magnitude), então **hue único e sem legenda** — o t�
 * `components/admin-daily-bars.tsx` — barras, não linha: são contagens discretas e a maioria dos dias é zero; uma linha ligando zeros inventa tendência. `fillDays()` completa os 30 dias com zero pra o eixo do tempo não ter buraco, e o rótulo monta a data como **local** (`new Date('2026-09-12')` é meia-noite UTC e no Brasil voltaria um dia). Tooltip por marca em CSS puro, sem JavaScript.
 * `components/admin-bar-list.tsx` — ranking horizontal com o valor sempre visível ao lado, então ler o dado não depende de cor.
 * Texto sempre em tokens de tinta (zinc), nunca na cor da série.
+
+### 47.6. Liberar premium pela aba Usuários
+`components/admin-band-access.tsx` mostra, junto de cada banda da pessoa, o estado da assinatura e o controle de acesso de cortesia: **liberar premium** (sem prazo, 30 ou 90 dias) e **revogar**. É o que o `supabase/scripts/grant-free-access.ts` (§27) fazia pela linha de comando; o script continua existindo pra rodar vários e-mails de uma vez sem precisar logar.
+
+Quatro decisões que valem estar escritas:
+* **É por banda, não por conta.** A assinatura mora em `subscriptions.band_id`, e uma pessoa pode ser dona de várias bandas — "liberar o usuário" não quer dizer nada. O controle só aparece nas bandas das quais ela é **dona**: um músico não responde pela assinatura.
+* **`price_plan` não se mexe**, fica `standard`. De propósito (§27): acesso de cortesia não pode ocupar vaga no contador de Fundadores da landing.
+* **Banda com assinatura no Stripe é recusada**, nos dois caminhos (painel e script). Mudar o status na mão seria desfeito no próximo evento do webhook (`syncSubscription`), e nesse meio-tempo o painel mostraria um estado que o Stripe não conhece. Cancelar ali é pelo portal do cliente (§37). O script ganhou a mesma guarda pra os dois não divergirem.
+* **Revogar volta pra `trial`, não pra `expired`.** Assim `subscriptionState()` recalcula o estado verdadeiro a partir de `trial_ends_at`: se o teste já acabou fica expirada de qualquer forma, e se ainda tinha dias a banda não perde o que era dela. (A §27 sugeria forçar `expired` por SQL — isto é mais honesto.)
+
+Com prazo, `paid_until` faz o acesso expirar sozinho, sem ninguém precisar lembrar de revogar. Sem prazo, `paid_until` fica `null` — que é também como o painel distingue "liberada na mão" de "pagando", e por isso essas bandas ficam fora do MRR (§47.2).

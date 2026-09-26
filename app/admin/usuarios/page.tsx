@@ -1,14 +1,12 @@
 import { requireElevatedAdmin } from '@/lib/admin-session';
 import { listUsers } from '@/lib/admin-stats';
 import { AdminUserActions } from '@/components/admin-user-actions';
+import { AdminBandAccess } from '@/components/admin-band-access';
 
 export const revalidate = 0;
 
 const date = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
-
-const STATE_LABEL = { trial: 'teste', active: 'ativa', expired: 'expirada' } as const;
-const STATE_TONE = { trial: 'text-amber-300', active: 'text-emerald-400', expired: 'text-red-400' } as const;
 
 export default async function AdminUsersPage() {
   const { userId: meId } = await requireElevatedAdmin();
@@ -26,7 +24,7 @@ export default async function AdminUsersPage() {
           <thead>
             <tr className="border-b border-zinc-800 bg-zinc-900 text-left text-[11px] uppercase tracking-wide text-zinc-500">
               <th className="px-4 py-2.5 font-semibold">Conta</th>
-              <th className="px-4 py-2.5 font-semibold">Bandas</th>
+              <th className="px-4 py-2.5 font-semibold">Bandas e acesso</th>
               <th className="px-4 py-2.5 font-semibold">Criada</th>
               <th className="px-4 py-2.5 font-semibold">Último login</th>
               <th className="px-4 py-2.5 text-right font-semibold">Ações</th>
@@ -44,12 +42,10 @@ export default async function AdminUsersPage() {
                   {user.bands.length === 0 ? (
                     <span className="text-xs text-zinc-600">nenhuma</span>
                   ) : (
-                    <ul className="flex flex-col gap-0.5">
+                    <ul className="flex flex-col gap-1.5">
                       {user.bands.map((band) => (
-                        <li key={band.name} className="text-xs text-zinc-300">
-                          {band.name}
-                          <span className="text-zinc-600"> · {band.role === 'owner' ? 'dono' : 'músico'} · </span>
-                          <span className={STATE_TONE[band.state]}>{STATE_LABEL[band.state]}</span>
+                        <li key={band.id}>
+                          <AdminBandAccess band={band} canManage={band.role === 'owner'} />
                         </li>
                       ))}
                     </ul>

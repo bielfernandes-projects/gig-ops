@@ -99,13 +99,24 @@ export async function productOverview(): Promise<ProductOverview> {
   };
 }
 
+export type AdminUserBand = {
+  id: string;
+  name: string;
+  role: 'owner' | 'member';
+  state: 'trial' | 'active' | 'expired';
+  /** Assinatura de cartão no Stripe: acesso não se mexe na mão aqui (o webhook sobrescreveria). */
+  hasStripe: boolean;
+  /** null com `state` ativo = liberada na mão, sem prazo. */
+  paidUntil: string | null;
+};
+
 export type AdminUser = {
   id: string;
   email: string;
   displayName: string | null;
   createdAt: string;
   lastSignInAt: string | null;
-  bands: { name: string; role: 'owner' | 'member'; state: 'trial' | 'active' | 'expired' }[];
+  bands: AdminUserBand[];
 };
 
 /**
@@ -128,19 +139,29 @@ export async function listUsers(): Promise<AdminUser[]> {
     admin.from('band_members').select('user_id, band_id, role, bands(name)') as unknown as Promise<{
       data: { user_id: string; band_id: string; role: 'owner' | 'member'; bands: { name: string } | { name: string }[] | null }[] | null;
     }>,
-    admin.from('subscriptions').select('band_id, status, trial_ends_at, paid_until') as unknown as Promise<{
-      data: { band_id: string; status: 'trial' | 'active' | 'expired'; trial_ends_at: string; paid_until: string | null }[] | null;
+    admin.from('subscriptions').select('band_id, status, trial_ends_at, paid_until, stripe_subscription_id') as unknown as Promise<{
+      data: { band_id: string; status: 'trial' | 'active' | 'expired'; trial_ends_at: string; paid_until: string | null; stripe_subscription_id: string | null }[] | null;
     }>,
   ]);
 
   const nameById = new Map((profilesResult.data ?? []).map((p) => [p.id, p.display_name]));
-  const stateByBand = new Map((subsResult.data ?? []).map((s) => [s.band_id, subscriptionState(s).state]));
+  const subByBand = new Map(
+    (subsResult.data ?? []).map((s) => [s.band_id, { state: subscriptionState(s).state, hasStripe: Boolean(s.stripe_subscription_id), paidUntil: s.paid_until }])
+  );
 
   const bandsByUser = new Map<string, AdminUser['bands']>();
   for (const row of membershipResult.data ?? []) {
     const name = (Array.isArray(row.bands) ? row.bands[0]?.name : row.bands?.name) ?? 'Banda';
     const list = bandsByUser.get(row.user_id) ?? [];
-    list.push({ name, role: row.role, state: stateByBand.get(row.band_id) ?? 'trial' });
+    const sub = subByBand.get(row.band_id);
+    list.push({
+      id: row.band_id,
+      name,
+      role: row.role,
+      state: sub?.state ?? 'trial',
+      hasStripe: sub?.hasStripe ?? false,
+      paidUntil: sub?.paidUntil ?? null,
+    });
     bandsByUser.set(row.user_id, list);
   }
 

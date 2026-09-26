@@ -122,3 +122,67 @@ export async function deleteUser(userId: string) {
   revalidatePath('/admin');
   return { success: true };
 }
+
+/**
+ * Libera acesso completo a uma banda sem cobrança — o que o `supabase/scripts/grant-free-access.ts`
+ * fazia pela linha de comando (§27). Três decisões que valem estar escritas:
+ *
+ * - **É por banda, não por conta.** A assinatura mora em `subscriptions.band_id`, e uma pessoa pode
+ *   ser dona de várias bandas: liberar "o usuário" não quer dizer nada.
+ * - **`price_plan` não se mexe**, fica `standard`. De propósito: acesso de cortesia não pode ocupar
+ *   vaga no contador de Fundadores da landing.
+ * - **Banda com assinatura no Stripe é recusada.** Mexer no status na mão aqui seria desfeito no
+ *   próximo evento do webhook (`syncSubscription`), e nesse meio-tempo o painel mostraria uma
+ *   verdade que o Stripe não conhece. Cancelar ali se faz pelo portal do cliente.
+ *
+ * `days: null` = sem prazo. Com prazo, `paid_until` faz o acesso expirar sozinho (`subscriptionState`).
+ */
+export async function grantPremium(bandId: string, days: number | null) {
+  const gate = await requireSuperAdmin();
+  if (!gate.ok) return { error: gate.error };
+
+  const admin = createAdminClient();
+  const { data: sub } = await admin.from('subscriptions').select('stripe_subscription_id').eq('band_id', bandId).maybeSingle();
+  if (!sub) return { error: 'Essa banda não tem linha de assinatura.' };
+  if (sub.stripe_subscription_id) {
+    return { error: 'Essa banda tem assinatura no Stripe. Cancele por lá antes — o webhook desfaria a mudança feita aqui.' };
+  }
+
+  const paidUntil = days === null ? null : new Date(Date.now() + days * 86_400_000).toISOString();
+  const { error } = await admin.from('subscriptions').update({ status: 'active', paid_until: paidUntil }).eq('band_id', bandId);
+  if (error) {
+    console.error('admin: falha ao liberar acesso da banda', bandId, error.message);
+    return { error: 'Não foi possível liberar o acesso.' };
+  }
+
+  revalidatePath('/admin/usuarios');
+  revalidatePath('/admin');
+  return { success: true };
+}
+
+/**
+ * Tira o acesso de cortesia. Volta pra `trial` em vez de forçar `expired`: assim
+ * `subscriptionState()` recalcula o estado verdadeiro a partir de `trial_ends_at` — se o teste já
+ * acabou fica expirada de qualquer forma, e se ainda tinha dias a banda não perde o que era dela.
+ */
+export async function revokePremium(bandId: string) {
+  const gate = await requireSuperAdmin();
+  if (!gate.ok) return { error: gate.error };
+
+  const admin = createAdminClient();
+  const { data: sub } = await admin.from('subscriptions').select('stripe_subscription_id').eq('band_id', bandId).maybeSingle();
+  if (!sub) return { error: 'Essa banda não tem linha de assinatura.' };
+  if (sub.stripe_subscription_id) {
+    return { error: 'Essa banda paga pelo Stripe. Cancele pelo portal do cliente, não por aqui.' };
+  }
+
+  const { error } = await admin.from('subscriptions').update({ status: 'trial', paid_until: null }).eq('band_id', bandId);
+  if (error) {
+    console.error('admin: falha ao revogar acesso da banda', bandId, error.message);
+    return { error: 'Não foi possível revogar o acesso.' };
+  }
+
+  revalidatePath('/admin/usuarios');
+  revalidatePath('/admin');
+  return { success: true };
+}
