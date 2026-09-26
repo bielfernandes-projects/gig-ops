@@ -26,6 +26,18 @@ export async function login(formData: FormData) {
   redirect('/dashboard');
 }
 
+/**
+ * Whether sign-up has to wait for an e-mail is decided by Supabase, not by us: with "Confirm email"
+ * on, `signUp` returns no session and the person has to click the link; with it off (autoconfirm),
+ * it returns a session and there is nothing to wait for. So the actions below look at
+ * `data.session` instead of assuming one of the two — the screen can't get out of sync with the
+ * project setting, in either direction.
+ */
+function enterDirectly(): never {
+  revalidatePath('/', 'layout');
+  redirect('/dashboard');
+}
+
 /** Sign-up of a musician invited by a band (invite code). */
 export async function signup(formData: FormData) {
   const supabase = await createClient();
@@ -74,6 +86,7 @@ export async function signup(formData: FormData) {
     }
   }
 
+  if (data.session) return enterDirectly();
   return { success: true };
 }
 
@@ -103,6 +116,7 @@ export async function adminSignup(formData: FormData) {
     return { error: 'Conta criada, mas houve um erro ao criar a banda. Entre e crie a banda pelo Perfil.' };
   }
 
+  if (data.session) return enterDirectly();
   return { success: true };
 }
 

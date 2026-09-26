@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Logo } from '@/components/logo';
 import { CheckCircle2, Eye, EyeOff } from 'lucide-react';
@@ -48,18 +49,9 @@ function LoginPageInner() {
     if (searchParams.get('erro') === 'google') window.history.replaceState(null, '', '/login');
   }, [searchParams]);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (successMsg) {
-      timer = setTimeout(() => {
-        setSuccessMsg(false);
-        setIsLogin(true);
-      }, 10000);
-    }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [successMsg]);
+  // The "check your inbox" screen used to flip itself back to the login form after 10s. It now
+  // stays put: the person needs time to read it, and the way out is theirs to pick (the link back
+  // to the site, or "Já tenho conta"). The confirmation e-mail lands them on /login anyway.
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -132,12 +124,32 @@ function LoginPageInner() {
         )}
 
         {successMsg ? (
-          <div className="flex flex-col items-center justify-center p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-6 text-center w-full">
-            <CheckCircle2 className="w-12 h-12 text-emerald-500 mb-4" />
-            <h2 className="text-lg font-bold text-emerald-400 mb-2">Quase lá!</h2>
-            <p className="text-sm text-zinc-300">
-              Enviamos um link de confirmação para o seu e-mail. Clique nele para ativar sua conta e acessar a banda.
-            </p>
+          <div className="flex w-full flex-col items-center justify-center gap-4 mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-6 text-center">
+            <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+            <div>
+              <h2 className="text-lg font-bold text-emerald-400 mb-2">Quase lá!</h2>
+              <p className="text-sm text-zinc-300">
+                Enviamos um link de confirmação para o seu e-mail. Clique nele para ativar sua conta e acessar a banda.
+              </p>
+            </div>
+            <div className="flex w-full flex-col gap-2">
+              <Link
+                href="/"
+                className="w-full rounded-lg bg-zinc-100 py-2.5 text-sm font-bold text-zinc-900 transition-transform hover:bg-white active:scale-[0.98]"
+              >
+                Voltar para o site
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setSuccessMsg(false);
+                  setIsLogin(true);
+                }}
+                className="text-xs font-semibold text-zinc-400 hover:text-zinc-200"
+              >
+                Já confirmei — quero entrar
+              </button>
+            </div>
           </div>
         ) : (
           <>
