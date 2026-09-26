@@ -1,3 +1,5 @@
+-- Aplicada no Supabase em 2026-09-26 (a primeira tentativa falhou na politica reminders_admin,
+-- criada pelo painel e fora das migrations; ver o passo 1).
 -- A limpeza que a fase 0 deixou pra depois (ver o cabeçalho de 20260922000000_fase0_bands.sql):
 -- as políticas antigas, por "tenant do admin", conviviam com as novas, por banda. Políticas
 -- permissivas se somam com OR, então as antigas só alargavam o acesso — nenhum dono de banda

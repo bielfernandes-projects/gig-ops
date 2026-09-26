@@ -1,3 +1,4 @@
+-- Aplicada no Supabase em 2026-09-26.
 -- Fim da limpeza da fase 0: saem go_profiles.role e go_profiles.invited_by, as duas últimas peças
 -- do modelo antigo (admin = dono do tenant, viewer = convidado). O papel de verdade é
 -- band_members.role ('owner' | 'member'), e nenhum código do app lê essas duas colunas.
