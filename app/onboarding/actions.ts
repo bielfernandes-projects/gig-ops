@@ -5,12 +5,24 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { BAND_COOKIE } from '@/lib/auth';
 import { createBandFor, joinBandByCode, nameOf } from '@/lib/bands';
+import { setDisplayName } from '@/app/profile/actions';
 import { sendPushToBandOwners } from '@/lib/push';
 
 async function currentUser() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   return user;
+}
+
+/**
+ * "Seu nome" is optional and shared by both paths. Saved before the band work so the person is
+ * never left with a band and no name — and so the "entrou na banda" push already uses the name.
+ */
+async function saveName(formData: FormData): Promise<{ error: string } | null> {
+  const name = String(formData.get('displayName') ?? '').trim();
+  if (!name) return null;
+  const res = await setDisplayName(name);
+  return res?.error ? { error: res.error } : null;
 }
 
 async function rememberBand(bandId: string) {
@@ -22,7 +34,12 @@ export async function createBand(formData: FormData) {
   const user = await currentUser();
   if (!user) redirect('/login');
 
-  const created = await createBandFor(user.id, String(formData.get('bandName') ?? ''), String(formData.get('referral') ?? ''));
+  const named = await saveName(formData);
+  if (named) return named;
+
+  const created = await createBandFor(user.id, String(formData.get('bandName') ?? ''), {
+    inviteCode: String(formData.get('inviteCode') ?? ''),
+  });
   if ('error' in created) return { error: created.error };
 
   await rememberBand(created.bandId);
@@ -33,6 +50,9 @@ export async function createBand(formData: FormData) {
 export async function joinBand(formData: FormData) {
   const user = await currentUser();
   if (!user) redirect('/login');
+
+  const named = await saveName(formData);
+  if (named) return named;
 
   const joined = await joinBandByCode(user.id, String(formData.get('inviteCode') ?? ''));
   if ('error' in joined) return { error: joined.error };

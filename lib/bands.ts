@@ -19,6 +19,22 @@ export const codeFilter = (raw: string) => normalizeCode(raw).replace(/[\\%_]/g,
 /** What to tell someone whose code didn't match anything. */
 export const CODE_FORMAT_HINT = 'O código tem até 5 letras ou números, sem espaços nem acentos.';
 
+/**
+ * Checks a code someone typed for their own band (at creation, or when changing it in Perfil):
+ * it has to fit the format and no *other* band can already use it. Uniqueness is case-insensitive
+ * in the database, so the check has to be too. `exceptBandId` lets a band keep its current code.
+ */
+export async function validateInviteCode(raw: string, exceptBandId?: string): Promise<{ code: string } | { error: string }> {
+  const code = normalizeCode(raw);
+  if (!/^[A-Z0-9]{1,5}$/.test(code)) return { error: `Código de convite inválido. ${CODE_FORMAT_HINT}` };
+
+  // Needs the service role: RLS hides the other bands, so the browser can't see a collision.
+  const { data: taken } = await createAdminClient().from('bands').select('id').ilike('invite_code', codeFilter(code)).maybeSingle();
+  if (taken && taken.id !== exceptBandId) return { error: `O código "${code}" já está em uso por outra banda. Escolha outro.` };
+
+  return { code };
+}
+
 const DAY_MS = 86_400_000;
 
 /** Referral credit: +30 days on the referrer's trial or paid period. Best effort, never blocks sign-up. */
@@ -32,24 +48,39 @@ async function grantReferralCredit(referrerId: string) {
   await admin.from('subscriptions').update(patch).eq('band_id', referrerId);
 }
 
-export async function createBandFor(userId: string, name: string, referralCode?: string): Promise<{ bandId: string } | { error: string }> {
+type CreateBandOptions = {
+  /** Code the owner picked for their own band. Left out, the column default generates one. */
+  inviteCode?: string;
+  /** Invite code of the band that referred them — see `grantReferralCredit`. */
+  referralCode?: string;
+};
+
+export async function createBandFor(userId: string, name: string, opts: CreateBandOptions = {}): Promise<{ bandId: string } | { error: string }> {
   const admin = createAdminClient();
 
   let referrerId: string | null = null;
-  const code = referralCode ? normalizeCode(referralCode) : '';
-  if (code) {
-    const { data: ref } = await admin.from('bands').select('id').ilike('invite_code', codeFilter(code)).maybeSingle();
+  const referral = opts.referralCode ? normalizeCode(opts.referralCode) : '';
+  if (referral) {
+    const { data: ref } = await admin.from('bands').select('id').ilike('invite_code', codeFilter(referral)).maybeSingle();
     if (!ref) {
       return {
-        error: `Não existe banda com o código de indicação "${code}". Ele é o código de convite da banda de quem te indicou (aparece no Perfil dessa pessoa). ${CODE_FORMAT_HINT} Se ninguém te indicou, deixe o campo vazio.`,
+        error: `Não existe banda com o código de indicação "${referral}". Ele é o código de convite da banda de quem te indicou (aparece no Perfil dessa pessoa). ${CODE_FORMAT_HINT} Se ninguém te indicou, deixe o campo vazio.`,
       };
     }
     referrerId = ref.id;
   }
 
+  // Empty invite code: leave the column out entirely so the database default generates one.
+  let ownCode: string | undefined;
+  if (opts.inviteCode?.trim()) {
+    const checked = await validateInviteCode(opts.inviteCode);
+    if ('error' in checked) return checked;
+    ownCode = checked.code;
+  }
+
   const { data: band, error } = await admin
     .from('bands')
-    .insert({ name: clean(name) || 'Minha banda', referred_by: referrerId })
+    .insert({ name: clean(name) || 'Minha banda', referred_by: referrerId, ...(ownCode ? { invite_code: ownCode } : {}) })
     .select('id')
     .single();
   if (error || !band) return { error: 'Não foi possível criar a banda. Tente novamente.' };

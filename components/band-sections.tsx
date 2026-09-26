@@ -335,8 +335,10 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
             )}
           </div>
 
+          {/* Indicação: o crédito de 30 dias existe no servidor (grantReferralCredit), mas ainda não
+              há onde digitar o código de quem indicou — volta quando a tela de Indicações existir. */}
           <p className="text-xs text-zinc-500">
-            Indique outra banda: quando ela criar a conta usando o código <strong className="text-zinc-300">{inviteCode || 'N/A'}</strong> no campo de indicação, você ganha 30 dias grátis.
+            Em breve: indique outra banda com o código <strong className="text-zinc-300">{inviteCode || 'N/A'}</strong> e ganhe 30 dias grátis.
           </p>
 
           <div className="border-t border-zinc-800/80 pt-6">

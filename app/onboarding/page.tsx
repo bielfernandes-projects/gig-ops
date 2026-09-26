@@ -6,12 +6,21 @@ import { createBand, joinBand } from './actions';
 export default function OnboardingPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState<'create' | 'join' | null>(null);
+  // "Seu nome" sits above both sections, so it belongs to neither <form>: it is carried over by
+  // hand into whichever FormData gets submitted.
+  const [displayName, setDisplayName] = useState('');
+
+  const formDataWithName = (form: HTMLFormElement) => {
+    const fd = new FormData(form);
+    fd.set('displayName', displayName);
+    return fd;
+  };
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setLoading('create');
-    const res = await createBand(new FormData(e.currentTarget));
+    const res = await createBand(formDataWithName(e.currentTarget));
     if (res?.error) {
       setError(res.error);
       setLoading(null);
@@ -22,7 +31,7 @@ export default function OnboardingPage() {
     e.preventDefault();
     setError('');
     setLoading('join');
-    const res = await joinBand(new FormData(e.currentTarget));
+    const res = await joinBand(formDataWithName(e.currentTarget));
     if (res?.error) {
       setError(res.error);
       setLoading(null);
@@ -46,16 +55,32 @@ export default function OnboardingPage() {
           </div>
         )}
 
+        <div className="flex flex-col gap-1">
+          <label htmlFor="displayName" className="text-xs font-medium text-zinc-400">Seu nome</label>
+          <input
+            id="displayName"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            maxLength={40}
+            autoComplete="name"
+            placeholder="Como te chamam (opcional)"
+            className={inputCls}
+          />
+          <p className="text-[11px] leading-snug text-zinc-500">
+            É como você aparece pros outros na banda. Deixando vazio, aparece seu e-mail — dá pra preencher depois no Perfil.
+          </p>
+        </div>
+
         <section className="flex flex-col gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
           <h2 className="font-bold">Sou o responsável pela banda</h2>
           <p className="text-xs text-zinc-400">Crie sua banda e gerencie shows, escala e cachês.</p>
           <form onSubmit={handleCreate} className="mt-2 flex flex-col gap-2">
             <input name="bandName" required maxLength={60} autoComplete="off" placeholder="Nome da banda" className={inputCls} />
-            {/* maxLength is deliberately above the 5-char rule: bands migrated from go_settings can
-                still carry a longer legacy code, and the server decides what is valid. */}
-            <input name="referral" autoComplete="off" maxLength={12} placeholder="Código de indicação (opcional)" className={`${inputCls} uppercase`} />
+            {/* A code the owner invents, so the real 5-char limit applies here (the field in the
+                other section receives an existing band's code, which may be a longer legacy one). */}
+            <input name="inviteCode" autoComplete="off" maxLength={5} placeholder="Código de convite (opcional)" className={`${inputCls} uppercase`} />
             <p className="text-[11px] leading-snug text-zinc-500">
-              Indicação é o <strong className="text-zinc-400">código de convite de outra banda</strong> — de quem te trouxe pro app (ela ganha 30 dias grátis). Não é um código que você inventa: se ninguém te indicou, deixe vazio.
+              É o código que <strong className="text-zinc-400">você passa pros seus músicos</strong> pra eles entrarem na banda: até 5 letras ou números, sem espaços nem acentos. Deixando vazio, o app gera um — e dá pra trocar depois no Perfil.
             </p>
             <button
               type="submit"
@@ -71,9 +96,11 @@ export default function OnboardingPage() {
           <h2 className="font-bold">Fui convidado por uma banda</h2>
           <p className="text-xs text-zinc-400">Digite o código de convite que o responsável te enviou.</p>
           <form onSubmit={handleJoin} className="mt-2 flex flex-col gap-2">
+            {/* Receives a code that already exists: maxLength is above 5 because bands migrated from
+                go_settings can still carry a longer legacy code. The server decides what is valid. */}
             <input name="inviteCode" required autoComplete="off" maxLength={12} placeholder="Ex: A1B2C" className={`${inputCls} uppercase`} />
             <p className="text-[11px] leading-snug text-zinc-500">
-              Até 5 letras ou números, sem espaços nem acentos. O responsável vê o código no Perfil da banda.
+              Peça pro responsável da banda: ele vê esse código no Perfil.
             </p>
             <button
               type="submit"
