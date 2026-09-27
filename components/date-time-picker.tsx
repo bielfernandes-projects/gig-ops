@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { fmtDate, fmtWeekday, toIso, wallClock, ymd } from '@/lib/time';
 
 interface DateTimePickerProps {
   /** Field name for the hidden input (form submission) */
@@ -22,15 +23,23 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
-function parseInitial(value?: string): { date: Date | null; hour: string; minute: string } {
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/**
+ * The calendar grid works in plain year/month/day numbers, read off the Brazilian clock — never off
+ * the browser's. A musician picking "20:00" from another timezone must store the same instant a
+ * colleague at home would.
+ */
+function parseInitial(value?: string): { date: { year: number; month: number; day: number } | null; hour: string; minute: string } {
   if (!value) return { date: null, hour: '20', minute: '00' };
   // Handle both ISO (with Z/offset) and datetime-local formats
   const d = new Date(value.includes('T') ? value : value + 'T00:00:00');
   if (isNaN(d.getTime())) return { date: null, hour: '20', minute: '00' };
+  const w = wallClock(d);
   return {
-    date: d,
-    hour: String(d.getHours()).padStart(2, '0'),
-    minute: String(d.getMinutes()).padStart(2, '0'),
+    date: { year: w.year, month: w.month, day: w.day },
+    hour: pad2(w.hour),
+    minute: pad2(w.minute),
   };
 }
 
@@ -44,18 +53,20 @@ function getFirstDayOfWeek(year: number, month: number): number {
 
 export function DateTimePicker({ name, label, defaultValue, required, onChange }: DateTimePickerProps) {
   const initial = parseInitial(defaultValue);
-  const today = new Date();
+  const [todayYear, todayMonth, todayDay] = ymd();
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(initial.date);
-  const [viewYear, setViewYear] = useState(initial.date?.getFullYear() ?? today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(initial.date?.getMonth() ?? today.getMonth());
+  /** The picked day, as a plain Brazilian calendar date (month is 1-12). */
+  const [selectedDate, setSelectedDate] = useState(initial.date);
+  const [viewYear, setViewYear] = useState(initial.date?.year ?? todayYear);
+  const [viewMonth, setViewMonth] = useState((initial.date?.month ?? todayMonth) - 1);
   const [hour, setHour] = useState(initial.hour);
   const [minute, setMinute] = useState(initial.minute);
 
-  const emitChange = (date: Date | null, h: string, m: string) => {
-    if (!onChange) return;
-    if (!date) { onChange(''); return; }
-    onChange(new Date(date.getFullYear(), date.getMonth(), date.getDate(), Number(h), Number(m)).toISOString());
+  const isoFor = (date: typeof selectedDate, h: string, m: string) =>
+    date ? toIso(date.year, date.month, date.day, Number(h), Number(m)) : '';
+
+  const emitChange = (date: typeof selectedDate, h: string, m: string) => {
+    onChange?.(isoFor(date, h, m));
   };
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
@@ -72,30 +83,21 @@ export function DateTimePicker({ name, label, defaultValue, required, onChange }
   };
 
   const selectDay = (day: number) => {
-    const d = new Date(viewYear, viewMonth, day);
+    const d = { year: viewYear, month: viewMonth + 1, day };
     setSelectedDate(d);
     emitChange(d, hour, minute);
   };
 
   const isSelected = (day: number) =>
-    selectedDate?.getDate() === day &&
-    selectedDate?.getMonth() === viewMonth &&
-    selectedDate?.getFullYear() === viewYear;
+    selectedDate?.day === day && selectedDate?.month === viewMonth + 1 && selectedDate?.year === viewYear;
 
-  const isToday = (day: number) =>
-    today.getDate() === day &&
-    today.getMonth() === viewMonth &&
-    today.getFullYear() === viewYear;
+  const isToday = (day: number) => todayDay === day && todayMonth === viewMonth + 1 && todayYear === viewYear;
 
   // Build the hidden value: ISO String (Standard for DB)
-  const hiddenValue = selectedDate
-    ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), Number(hour), Number(minute)).toISOString()
-    : '';
+  const hiddenValue = isoFor(selectedDate, hour, minute);
 
-  // Selected weekday display
-  const selectedWeekday = selectedDate
-    ? selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
-    : null;
+  // Selected weekday display — read off the same instant the form will submit.
+  const selectedWeekday = hiddenValue ? fmtWeekday(hiddenValue) : null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -170,9 +172,7 @@ export function DateTimePicker({ name, label, defaultValue, required, onChange }
           <div className="mt-3 pt-3 border-t border-zinc-800/80 text-center">
             <span className="text-xs font-bold text-emerald-400 capitalize">{selectedWeekday}</span>
             <span className="text-xs text-zinc-500 mx-1">•</span>
-            <span className="text-xs text-zinc-400">
-              {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
-            </span>
+            <span className="text-xs text-zinc-400">{fmtDate(hiddenValue)}</span>
           </div>
         )}
       </div>

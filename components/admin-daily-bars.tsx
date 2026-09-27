@@ -1,3 +1,5 @@
+import { fmtDayMonth, startOfDayKey } from '@/lib/time';
+
 /**
  * Contagem por dia numa janela fechada de N dias. Barras (não linha) porque são contagens discretas
  * e a maioria dos dias é zero — uma linha ligando zeros inventa tendência que não existe.
@@ -45,12 +47,7 @@ export function AdminDailyBars({
   );
 }
 
-/**
- * 'YYYY-MM-DD' montado como data local. `new Date('2026-09-12')` é meia-noite UTC e, no fuso do
- * Brasil, voltaria um dia — o rótulo mostraria 11/09 pra um cadastro do dia 12.
- */
+/** 'YYYY-MM-DD' lido como um dia no Brasil — `new Date('2026-09-12')` é meia-noite UTC, ou seja, dia 11 aqui. */
 function formatDay(iso: string | undefined): string {
-  if (!iso) return '';
-  const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  return iso ? fmtDayMonth(startOfDayKey(iso)) : '';
 }

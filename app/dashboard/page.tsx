@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation';
-import { getUserInfo } from '@/lib/auth';
+import { requireMembership } from '@/lib/auth';
 import { toBandRoles } from '@/lib/band-view';
 import { createClient } from '@/lib/supabase/server';
 import { GigWithProject, GoLineup } from '@/lib/types';
@@ -8,11 +7,10 @@ import DashboardClient from '@/components/dashboard-client';
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  const info = await getUserInfo();
-  if (info.memberships.length === 0) redirect('/onboarding');
+  const { info } = await requireMembership();
   const supabase = await createClient();
 
-  // Tenant isolation: only the bands in the current view (one band, or all of the person's bands).
+  // Scoped to the Bandas in the current view (one Banda, or all of the person's).
   // The tour flag is independent of the gigs, so both go out together.
   const [{ data: gigsData }, { data: profile }] = await Promise.all([
     supabase
@@ -31,7 +29,7 @@ export default async function DashboardPage() {
   ]);
   const allGigs = gigsData || [];
 
-  // Fetch lineups only for the gigs we already have (tenant-scoped).
+  // Fetch lineups only for the Shows we already have.
   const gigIds = allGigs.map(g => g.id);
   const { data: lineupsData } = gigIds.length > 0
     ? await supabase

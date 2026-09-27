@@ -5,10 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import { brl } from '@/lib/finance';
 import { reaisPorExtenso } from '@/lib/extenso';
 import { PrintButton } from '@/components/print-button';
+import { fmtLongDate, startOfDayKey } from '@/lib/time';
 
 export const revalidate = 0;
-
-const TZ = 'America/Sao_Paulo';
 
 /** Printable receipt for a gig (owners only). "?p=<payment id>" issues it for one specific payment. */
 export default async function ReceiptPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ p?: string }> }) {
@@ -35,9 +34,10 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   const amount = single ? single.amount : received;
   const partial = !!single && single.amount < Number(gig.gross_value);
 
-  const showDate = new Date(gig.start_time).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: TZ });
-  const paidOn = single ? new Date(`${single.paid_at}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : null;
-  const issuedOn = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: TZ });
+  const showDate = fmtLongDate(gig.start_time);
+  // `paid_at` is a date column ('YYYY-MM-DD'), so it is read as a Brazilian day, not as an instant.
+  const paidOn = single ? fmtLongDate(startOfDayKey(single.paid_at)) : null;
+  const issuedOn = fmtLongDate(new Date());
   const extenso = reaisPorExtenso(amount);
 
   return (

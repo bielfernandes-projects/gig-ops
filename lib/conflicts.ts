@@ -1,9 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { showEnd } from '@/lib/time';
+import { identityKey, sameHuman } from '@/lib/identity';
 
-const DEFAULT_GIG_MS = 3 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-const endOf = (start: string, end: string | null) => (end ? new Date(end) : new Date(new Date(start).getTime() + DEFAULT_GIG_MS));
 
 /**
  * People can play in several bands, so a musician can be double-booked. Returns, per musician,
@@ -19,7 +18,7 @@ export async function findConflicts(gigId: string, memberIds: string[]): Promise
   if (!gig) return result;
 
   const gigStart = new Date(gig.start_time);
-  const gigEnd = endOf(gig.start_time, gig.end_time);
+  const gigEnd = showEnd(gig.start_time, gig.end_time);
 
   const { data: targets } = await admin.from('go_members').select('id, name, user_id, email').in('id', memberIds);
   if (!targets || targets.length === 0) return result;
@@ -32,8 +31,6 @@ export async function findConflicts(gigId: string, memberIds: string[]): Promise
   const sameByEmail = emails.length ? await admin.from('go_members').select('id, user_id, email').in('email', emails) : { data: [] };
   const roster = new Map<string, { id: string; user_id: string | null; email: string | null }>();
   for (const r of [...(sameByUser.data ?? []), ...(sameByEmail.data ?? [])]) roster.set(r.id, r);
-
-  const identity = (r: { user_id: string | null; email: string | null }) => r.user_id ?? (r.email ? r.email.toLowerCase() : null);
 
   const windowStart = new Date(gigStart.getTime() - DAY_MS).toISOString();
   const windowEnd = new Date(gigEnd.getTime() + DAY_MS).toISOString();
@@ -49,17 +46,17 @@ export async function findConflicts(gigId: string, memberIds: string[]): Promise
   type Booking = { member_id: string; go_gigs: { id: string; title: string; start_time: string; end_time: string | null; band_id: string } | { id: string; title: string; start_time: string; end_time: string | null; band_id: string }[] };
 
   for (const target of targets) {
-    const key = identity(target);
-    if (!key) continue;
+    // An "avulso" (no account, no e-mail) cannot be double-booked: there is nobody to match.
+    if (!identityKey(target)) continue;
 
     const warnings: string[] = [];
     for (const b of (bookings ?? []) as unknown as Booking[]) {
       const owner = roster.get(b.member_id);
-      if (!owner || identity(owner) !== key) continue;
+      if (!owner || !sameHuman(owner, target)) continue;
 
       const other = Array.isArray(b.go_gigs) ? b.go_gigs[0] : b.go_gigs;
       if (!other) continue;
-      const overlaps = new Date(other.start_time) < gigEnd && endOf(other.start_time, other.end_time) > gigStart;
+      const overlaps = new Date(other.start_time) < gigEnd && showEnd(other.start_time, other.end_time) > gigStart;
       if (!overlaps) continue;
 
       warnings.push(

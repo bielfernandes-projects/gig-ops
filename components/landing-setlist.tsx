@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { brlRound as brl } from '@/lib/finance';
 
 const ROWS = [
   { role: 'Voz', fee: 350 },
@@ -10,7 +11,6 @@ const ROWS = [
   { role: 'Som', fee: 300 },
 ];
 
-const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const total = ROWS.reduce((sum, r) => sum + r.fee, 0);
 
 /**

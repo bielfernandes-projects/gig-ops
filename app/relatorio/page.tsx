@@ -1,26 +1,25 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { getUserInfo, ownedBands } from '@/lib/auth';
+import { ownedBands, requireMembership } from '@/lib/auth';
 import { PageHeader } from '@/components/page-header';
 import { BandTag } from '@/components/band-tag';
 import { createClient } from '@/lib/supabase/server';
 import { brl, gigFinance, splitProfit } from '@/lib/finance';
+import { fmtDayMonth, fmtShortDate, monthKey, toInstant, ymd } from '@/lib/time';
+import { PAID } from '@/lib/gig-view';
 
 type GigRow = { id: string; title: string; start_time: string; gross_value: number; bring_sound: boolean | null; sound_cost: number | null; event_type: string | null; track_receipts: boolean | null; band_id: string };
 type OverdueRow = { id: string; title: string; start_time: string; gross_value: number; band_id: string; gig_payments: { amount: number }[] | null };
 
 export const revalidate = 0;
 
-const TZ = 'America/Sao_Paulo';
 const MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
-const monthKey = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit' }).format(d).slice(0, 7);
-// 00:00 of a month in Brasília (UTC-3, no DST since 2019)
-const monthStart = (y: number, m: number) => new Date(Date.UTC(y, m - 1, 1, 3, 0, 0, 0));
+/** 00:00 of the 1st of a month, in Brasília. */
+const monthStart = (y: number, m: number) => toInstant(y, m, 1, 0, 0);
 
 function parseMonth(raw: string | undefined): { y: number; m: number } {
   if (raw && /^\d{4}-(0[1-9]|1[0-2])$/.test(raw)) return { y: Number(raw.slice(0, 4)), m: Number(raw.slice(5)) };
-  const [y, m] = monthKey(new Date()).split('-').map(Number);
+  const [y, m] = ymd();
   return { y, m };
 }
 
@@ -29,7 +28,7 @@ const shift = (y: number, m: number, delta: number) => {
   return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1 };
 };
 const asParam = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`;
-const dayLabel = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: TZ });
+const dayLabel = fmtDayMonth;
 
 function Kpi({ label, value, tone = '' }: { label: string; value: string; tone?: string }) {
   return (
@@ -65,9 +64,7 @@ function Bars({ rows }: { rows: { label: string; value: number; extra?: string }
 
 export default async function ReportPage({ searchParams }: { searchParams: Promise<{ m?: string; view?: string }> }) {
   const { m: rawMonth, view } = await searchParams;
-  const info = await getUserInfo();
-  if (!info.userId) redirect('/login');
-  if (info.memberships.length === 0) redirect('/onboarding');
+  const { info } = await requireMembership();
 
   // Band report = the bands the person owns within the current view (all of them in "Todas as bandas").
   const ownedIds = ownedBands(info).map((b) => b.bandId);
@@ -118,9 +115,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
 
   // ───────────────────────── Meus cachês (todas as bandas) ─────────────────────────
   if (mode === 'meus') {
-    const memberFilter = info.email ? `user_id.eq.${info.userId},email.eq."${info.email}"` : `user_id.eq.${info.userId}`;
-    const { data: myMembers } = await supabase.from('go_members').select('id').in('band_id', info.bandIds).or(memberFilter);
-    const myIds = (myMembers ?? []).map((r) => r.id as string);
+    // getUserInfo already resolved every go_members row that is this person, in every Banda in view.
+    const myIds = info.bandIds.flatMap((id) => info.bands[id]?.memberIds ?? []);
 
     const { data: myLineup } = myIds.length
       ? await supabase.from('go_lineup').select('id, gig_id, fee_amount, status').in('member_id', myIds)
@@ -138,14 +134,14 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       .filter((l) => l.gig);
 
     const inMonth = items.filter((l) => new Date(l.gig!.start_time) >= start && new Date(l.gig!.start_time) < end);
-    const received = inMonth.filter((l) => l.status === 'pago').reduce((s, l) => s + l.fee, 0);
-    const pending = inMonth.filter((l) => l.status !== 'pago').reduce((s, l) => s + l.fee, 0);
+    const received = inMonth.filter((l) => l.status === PAID).reduce((s, l) => s + l.fee, 0);
+    const pending = inMonth.filter((l) => l.status !== PAID).reduce((s, l) => s + l.fee, 0);
 
     const byBand = new Map<string, number>();
     for (const l of inMonth) byBand.set(bandName.get(l.gig!.band_id) ?? 'Banda', (byBand.get(bandName.get(l.gig!.band_id) ?? 'Banda') ?? 0) + l.fee);
 
     const now = new Date();
-    const owed = items.filter((l) => l.status !== 'pago' && new Date(l.gig!.start_time) < now).sort((a, b) => a.gig!.start_time.localeCompare(b.gig!.start_time));
+    const owed = items.filter((l) => l.status !== PAID && new Date(l.gig!.start_time) < now).sort((a, b) => a.gig!.start_time.localeCompare(b.gig!.start_time));
     const owedTotal = owed.reduce((s, l) => s + l.fee, 0);
 
     return (
@@ -301,7 +297,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                   <span className="min-w-0 truncate text-zinc-300">
                     {g.title}
                     {tagOf(g.band_id)}
-                    <span className="ml-2 text-xs text-zinc-500">{new Date(g.start_time).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'America/Sao_Paulo' })}</span>
+                    <span className="ml-2 text-xs text-zinc-500">{fmtShortDate(g.start_time)}</span>
                   </span>
                   <span className="shrink-0 font-semibold tabular-nums text-amber-300">{brl(owed)}</span>
                 </Link>

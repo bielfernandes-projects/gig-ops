@@ -1,14 +1,27 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { subscriptionState, type SubscriptionRow, type SubscriptionState } from '@/lib/subscription';
+import { memberRowsFilter } from '@/lib/identity';
 export { ALL_BANDS } from '@/lib/band-view';
 
 export const BAND_COOKIE = 'gg_band';
 
-/** Role inside a band: owner -> 'admin', member -> 'viewer'. */
+/**
+ * Stand-in band id for a person who belongs to no Banda. Passing it to `.in('band_id', …)` matches
+ * nothing, which is what we want: the query returns empty instead of being built without a filter.
+ */
+export const NO_BAND = '00000000-0000-0000-0000-000000000000';
+
+/**
+ * The app's single vocabulary for a role inside a Banda. The database says 'owner' / 'member'; the
+ * mapping to these two words happens exactly once, where the membership row is read, so no reader
+ * of an action has to hold both spellings in their head.
+ */
 export type UserRole = 'admin' | 'viewer';
 
+/** A row of `band_members`, in the database's own spelling. */
 export type Membership = { bandId: string; name: string; role: 'owner' | 'member' };
 
 export type PricePlan = 'standard' | 'founder' | 'solo';
@@ -18,8 +31,14 @@ export type BandScope = {
   bandId: string;
   name: string;
   role: UserRole;
-  /** go_members.id of this person in that band. */
+  /** go_members.id of this person in that band (the first, when there is more than one). */
   memberId: string | null;
+  /**
+   * Every go_members.id that is this person in that band. Normally one, but a Banda can end up with
+   * two rows for the same human — one added by e-mail, one linked to their account — and summing
+   * their Cachês must not miss either. See lib/identity.
+   */
+  memberIds: string[];
   subscription: SubscriptionState;
   modules: { gestao: boolean; repertorio: boolean };
   pricePlan: PricePlan;
@@ -100,7 +119,7 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
 
   const ids = memberships.map((m) => m.bandId);
   const memberQuery = email
-    ? supabase.from('go_members').select('id, band_id').in('band_id', ids).or(`user_id.eq.${userId},email.eq."${email}"`)
+    ? supabase.from('go_members').select('id, band_id').in('band_id', ids).or(memberRowsFilter({ userId, email }))
     : supabase.from('go_members').select('id, band_id').in('band_id', ids).eq('user_id', userId);
 
   const [{ data: members }, { data: subs }] = await Promise.all([
@@ -114,11 +133,13 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
   const bands: Record<string, BandScope> = {};
   for (const m of memberships) {
     const sub = subs?.find((s) => s.band_id === m.bandId) ?? null;
+    const myRows = (members ?? []).filter((r) => r.band_id === m.bandId).map((r) => r.id);
     bands[m.bandId] = {
       bandId: m.bandId,
       name: m.name,
       role: m.role === 'owner' ? 'admin' : 'viewer',
-      memberId: members?.find((r) => r.band_id === m.bandId)?.id ?? null,
+      memberId: myRows[0] ?? null,
+      memberIds: myRows,
       subscription: subscriptionState(sub),
       modules: { gestao: sub?.module_gestao ?? true, repertorio: sub?.module_repertorio ?? true },
       pricePlan: sub?.price_plan ?? 'standard',
@@ -162,6 +183,27 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
   };
 });
 
+/**
+ * The precondition every signed-in page shares: there must be a session, and the person must belong
+ * to at least one Banda. Pages used to spell this out three incompatible ways — some redirected
+ * without checking the session, some checked both, some checked neither and leaned on `NO_BAND`.
+ *
+ * `bandIds` is the current view's scope (one Banda, or all of them) and `allBandIds` every Banda the
+ * person belongs to, whatever the filter says — what a detail page needs, since it follows the
+ * record's own Banda. Both are safe to hand straight to `.in('band_id', …)`.
+ */
+export async function requireMembership(): Promise<{ info: UserInfo; bandIds: string[]; allBandIds: string[] }> {
+  const info = await getUserInfo();
+  if (!info.userId) redirect('/login');
+  if (info.memberships.length === 0) redirect('/onboarding');
+  const all = info.memberships.map((m) => m.bandId);
+  return {
+    info,
+    bandIds: info.bandIds.length > 0 ? info.bandIds : [NO_BAND],
+    allBandIds: all.length > 0 ? all : [NO_BAND],
+  };
+}
+
 /** Bands (in the current view) where the person is an owner — the ones they can create records in. */
 export function ownedBands(info: UserInfo): { bandId: string; name: string }[] {
   return info.bandIds.filter((id) => info.bands[id]?.role === 'admin').map((id) => ({ bandId: id, name: info.bands[id].name }));
@@ -170,7 +212,7 @@ export function ownedBands(info: UserInfo): { bandId: string; name: string }[] {
 export type BandModule = 'gestao' | 'repertorio';
 
 export type BandContext =
-  | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; bandId: string; userId: string; role: 'owner' | 'member' }
+  | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; bandId: string; userId: string; role: UserRole }
   | { ok: false; error: string };
 
 /**
@@ -192,7 +234,7 @@ export async function requireBand(module?: BandModule, bandId?: string | null): 
     return { ok: false, error: 'A assinatura desta banda expirou. Os dados estão preservados; renove para voltar a editar.' };
   }
   if (module && !band.modules[module]) return { ok: false, error: 'Este módulo não está incluído no plano da banda.' };
-  return { ok: true, supabase: await createClient(), bandId: target, userId: info.userId, role: band.role === 'admin' ? 'owner' : 'member' };
+  return { ok: true, supabase: await createClient(), bandId: target, userId: info.userId, role: band.role };
 }
 
 export type OwnerContext =
@@ -203,7 +245,7 @@ export type OwnerContext =
 export async function requireOwner(module?: BandModule, bandId?: string | null): Promise<OwnerContext> {
   const ctx = await requireBand(module, bandId);
   if (!ctx.ok) return ctx;
-  if (ctx.role !== 'owner') return { ok: false, error: 'Sem permissão.' };
+  if (ctx.role !== 'admin') return { ok: false, error: 'Sem permissão.' };
   return { ok: true, supabase: ctx.supabase, bandId: ctx.bandId, userId: ctx.userId };
 }
 

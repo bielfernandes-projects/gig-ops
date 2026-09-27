@@ -4,18 +4,13 @@ import { PostgrestError } from '@supabase/supabase-js';
 import { AddProjectModal } from '@/components/add-project-modal';
 import { ProjectCard } from '@/components/project-card';
 import { PageHeader } from '@/components/page-header';
-import { getUserInfo, ownedBands } from '@/lib/auth';
+import { ownedBands, requireMembership } from '@/lib/auth';
 
 export const revalidate = 0;
 
 export default async function ProjectsPage() {
-  const info = await getUserInfo();
+  const { info, bandIds: scope } = await requireMembership();
   const supabase = await createClient();
-
-  // Multi-tenant isolation: scope reads to the bands in the current view. With no band, use a
-  // sentinel UUID so the filter matches nothing.
-  const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
-  const scope = info.bandIds.length > 0 ? info.bandIds : [SENTINEL_NO_TENANT];
   const owned = ownedBands(info);
 
   const projectsResult = await supabase

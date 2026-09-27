@@ -9,9 +9,11 @@ import { EditGigModal } from '@/components/edit-gig-modal';
 import { ToggleSoundPaymentButton } from './toggle-sound-payment-button';
 import { BackButton } from '@/components/back-button';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
-import { getUserInfo } from '@/lib/auth';
+import { requireMembership } from '@/lib/auth';
 import { GigFinance, type ExpenseRow, type PaymentRow } from '@/components/gig-finance';
-import { brl } from '@/lib/finance';
+import { brl, gigFinance } from '@/lib/finance';
+import { fmtDuration, fmtFullDate, fmtTime } from '@/lib/time';
+import { isOnLineup, lineupRowOf } from '@/lib/gig-view';
 import { PresenceControl } from '@/components/presence-control';
 import { GigSetlistPicker } from '@/components/gig-setlist-picker';
 import type { BandSetlistOption } from '@/components/gig-setlist';
@@ -22,19 +24,12 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
-  // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const info = await getUserInfo();
+  // A detail page follows the Show's own Banda, whatever the band filter says.
+  const { info, allBandIds: myBandIds } = await requireMembership();
   const supabase = await createClient();
 
-  // Multi-tenant isolation: the gig must belong to one of the person's bands (whatever the band
-  // filter says — a detail page follows the gig's own band). With no band we use a sentinel UUID
-  // so the filter matches nothing and the gig becomes "não encontrado".
-  const SENTINEL_NO_TENANT = '00000000-0000-0000-0000-000000000000';
-  const myBandIds = info.memberships.length > 0 ? info.memberships.map((m) => m.bandId) : [SENTINEL_NO_TENANT];
-
   // Fetch Gig with Project Join (must happen first — we need the gig data).
-  // We filter by band_id at the SQL layer so an unlinked viewer can never
-  // even discover a gig from another tenant by ID.
+  // Filtering by band_id at the SQL layer means an outsider cannot even discover a Show by ID.
   const { data: gigData, error: gigError } = await supabase
     .from('go_gigs')
     .select(`
@@ -77,24 +72,24 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     );
   }
 
-  // Everything else is decided by the gig's band: the person's role and member id there.
+  // Everything else is decided by the Show's Banda: the person's role and member id there.
   const bandId = gigData.band_id ?? null;
   const band = bandId ? info.bands[bandId] : undefined;
   const role = band?.role ?? 'viewer';
   const userMemberId = band?.memberId ?? null;
-  const effectiveTenantId = bandId ?? SENTINEL_NO_TENANT;
+  const showBandId = bandId ?? myBandIds[0];
 
-  // Build admin-scoped queries for members and projects
+  // Queries scoped to the Show's Banda
   const membersQuery = supabase
     .from('go_members')
     .select('*')
-    .eq('band_id', effectiveTenantId)
+    .eq('band_id', showBandId)
     .order('name', { ascending: true });
 
   const projectsQuery = supabase
     .from('go_projects')
     .select('*')
-    .eq('band_id', effectiveTenantId)
+    .eq('band_id', showBandId)
     .order('name', { ascending: true });
 
   // Parallel data fetching — lineup, members, projects, and sound person all at once
@@ -118,7 +113,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     role === 'admin'
       ? supabase.from('gig_payments').select('id, amount, paid_at, note').eq('gig_id', id).order('paid_at') as unknown as Promise<{ data: PaymentRow[] | null }>
       : Promise.resolve({ data: null as PaymentRow[] | null }),
-    supabase.from('setlists').select('id, name, is_default').eq('band_id', effectiveTenantId).eq('scope', 'band').order('name') as unknown as Promise<{ data: BandSetlistOption[] | null }>,
+    supabase.from('setlists').select('id, name, is_default').eq('band_id', showBandId).eq('scope', 'band').order('name') as unknown as Promise<{ data: BandSetlistOption[] | null }>,
   ]);
 
   const bandSetlists = (bandSetlistsResult.data ?? []) as BandSetlistOption[];
@@ -134,12 +129,10 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const projectColor = gigData.go_projects?.color_hex || '#71717a';
 
   if (role !== 'admin') {
-    // Two checks, both must pass for a viewer to access a gig detail page:
-    //   1. The gig belongs to the admin who invited them (tenant isolation).
-    //   2. The viewer is in the lineup of that gig.
-    const inTenant = bandId !== null && gigData?.band_id === bandId;
-    const isInLineup = lineup.some(l => l.member_id === userMemberId);
-    if (!inTenant || !isInLineup) {
+    // A Membro reaches a Show's detail page only by being on its Escala. (That the Show belongs to
+    // one of their Bandas is already settled by the `.in('band_id', myBandIds)` filter above.)
+    const isInLineup = isOnLineup(lineup, userMemberId);
+    if (!isInLineup) {
       return (
         <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-20 text-center">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 md:p-12 shadow-xl">
@@ -159,34 +152,28 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     }
   }
 
-  const gigDate = new Date(gigData.start_time);
-  const dateFormatted = gigDate.toLocaleDateString('pt-BR', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo'
+  const dateFormatted = fmtFullDate(gigData.start_time);
+  const timeFormatted = fmtTime(gigData.start_time);
+
+  // Money math comes from lib/finance, so the `track_receipts` rule applies here exactly as it does
+  // on the Relatório — this page used to inline its own sums and silently skip it.
+  const lineupCost = lineup.reduce((acc, curr) => acc + Number(curr.fee_amount), 0);
+  const soundCost = gigData.bring_sound ? Number(gigData.sound_cost ?? 0) : 0;
+  const receivedTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+  const fin = gigFinance({
+    gross: Number(gigData.gross_value),
+    lineupCost,
+    soundCost,
+    expenses: expensesTotal,
+    trackReceipts: !!gigData.track_receipts,
+    received: receivedTotal,
   });
-  const timeFormatted = gigDate.toLocaleTimeString('pt-BR', {
-    hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo'
-  });
+  const netProfit = fin.profit;
 
-  const lineupCost = lineup.reduce((acc, curr) => acc + curr.fee_amount, 0);
-  const soundCost = gigData.bring_sound ? (gigData.sound_cost ?? 0) : 0;
-  const totalCost = lineupCost + soundCost + expensesTotal;
-  const netProfit = gigData.gross_value - totalCost;
-
-  let viewerFee = 0;
-  let viewerNotScheduled = false;
-  let adminMyLineup: LineupWithMember | undefined;
-
-  const myLineup = lineup.find(l => l.member_id === userMemberId);
-
-  if (role === 'viewer') {
-    if (myLineup) {
-      viewerFee = myLineup.fee_amount;
-    } else {
-      viewerNotScheduled = true;
-    }
-  } else if (role === 'admin') {
-    adminMyLineup = myLineup;
-  }
+  const myLineup = lineupRowOf(lineup, userMemberId);
+  const viewerFee = role === 'viewer' ? Number(myLineup?.fee_amount ?? 0) : 0;
+  const viewerNotScheduled = role === 'viewer' && !myLineup;
+  const adminMyLineup: LineupWithMember | undefined = role === 'admin' ? myLineup : undefined;
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative pb-32">
@@ -245,18 +232,9 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                 {timeFormatted}
                 {gigData.end_time && (
                   <>
-                    {' '}– {new Date(gigData.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}
+                    {' '}– {fmtTime(gigData.end_time)}
                     <span className="ml-2 px-1.5 py-0.5 bg-zinc-800 text-xs font-medium text-zinc-400 rounded">
-                      {(() => {
-                        const diffMs = new Date(gigData.end_time).getTime() - new Date(gigData.start_time).getTime();
-                        if (diffMs <= 0) return '';
-                        const totalMins = Math.floor(diffMs / 60000);
-                        const h = Math.floor(totalMins / 60);
-                        const m = totalMins % 60;
-                        if (h > 0 && m > 0) return `${h}h${m}m`;
-                        if (h > 0) return `${h}h`;
-                        return `${m}m`;
-                      })()}
+                      {fmtDuration(gigData.start_time, gigData.end_time, '')}
                     </span>
                   </>
                 )}
@@ -318,7 +296,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-zinc-500">Cachê Bruto</span>
-              <span className="text-xl md:text-2xl font-bold text-zinc-50">R$ {gigData.gross_value.toFixed(2)}</span>
+              <span className="text-xl md:text-2xl font-bold text-zinc-50">{brl(Number(gigData.gross_value))}</span>
             </div>
 
             {role === 'admin' && (
@@ -326,7 +304,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                 <div className="hidden md:block w-px h-12 bg-zinc-800" />
                 <div className="flex flex-col gap-1.5">
                    <span className="text-xs font-medium text-zinc-500">Músicos (Escala)</span>
-                  <span className="text-xl md:text-2xl font-bold text-red-400">− R$ {lineupCost.toFixed(2)}</span>
+                  <span className="text-xl md:text-2xl font-bold text-red-400">− {brl(lineupCost)}</span>
                 </div>
               </>
             )}
@@ -336,7 +314,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                 <div className="hidden md:block w-px h-12 bg-zinc-800" />
                 <div className="flex flex-col gap-1.5">
                    <span className="text-xs font-medium text-amber-500/80">Custo do Som</span>
-                  <span className="text-xl md:text-2xl font-bold text-amber-400">− R$ {soundCost.toFixed(2)}</span>
+                  <span className="text-xl md:text-2xl font-bold text-amber-400">− {brl(soundCost)}</span>
                 </div>
               </>
             )}
@@ -358,14 +336,14 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                 <div className="flex flex-col gap-1.5 md:items-end">
                    <span className="text-xs font-semibold text-emerald-500">Seu Cachê</span>
                    <span className="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">
-                    R$ {adminMyLineup.fee_amount.toFixed(2)}
+                    {brl(Number(adminMyLineup.fee_amount))}
                   </span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5 md:items-end">
                    <span className="text-xs font-semibold text-emerald-500">Lucro Líquido</span>
                    <span className={`text-2xl md:text-3xl font-bold tracking-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    R$ {netProfit.toFixed(2)}
+                    {brl(netProfit)}
                   </span>
                 </div>
               )
@@ -374,7 +352,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                  <span className="text-xs font-semibold text-emerald-500">Meu Cachê</span>
                 {!viewerNotScheduled ? (
                    <span className="text-2xl md:text-3xl font-bold tracking-tight text-emerald-400">
-                     R$ {viewerFee.toFixed(2)}
+                     {brl(viewerFee)}
                    </span>
                  ) : (
                    <span className="text-lg md:text-xl font-medium tracking-tight text-zinc-500 mt-1 md:mt-2">
@@ -400,6 +378,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           trackReceipts={!!gigData.track_receipts}
           expenses={expenses}
           payments={payments}
+          fin={fin}
         />
       )}
 
@@ -482,7 +461,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="flex flex-col items-end gap-1.5">
                     <span className="font-semibold text-amber-400 tabular-nums">
-                      R$ {gigData.sound_cost.toFixed(2)}
+                      {brl(Number(gigData.sound_cost))}
                     </span>
                     <ToggleSoundPaymentButton
                       gigId={id}

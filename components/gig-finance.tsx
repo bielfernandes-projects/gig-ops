@@ -3,7 +3,8 @@
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
 import { addExpense, deleteExpense, addPayment, deletePayment, setTrackReceipts } from '@/app/actions/finance-actions';
-import { EXPENSE_CATEGORIES, brl } from '@/lib/finance';
+import { EXPENSE_CATEGORIES, brl, type GigFinanceTotals } from '@/lib/finance';
+import { fmtShortDate, startOfDayKey } from '@/lib/time';
 
 export type ExpenseRow = { id: string; category: string; description: string | null; amount: number };
 export type PaymentRow = { id: string; amount: number; paid_at: string; note: string | null };
@@ -14,6 +15,8 @@ type Props = {
   trackReceipts: boolean;
   expenses: ExpenseRow[];
   payments: PaymentRow[];
+  /** Already computed by the page from lib/finance — this component must not re-derive the money. */
+  fin: GigFinanceTotals;
 };
 
 const inputCls =
@@ -29,11 +32,11 @@ async function submit(action: (fd: FormData) => Promise<{ error?: string } | und
   }
 }
 
-const fmtDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR');
+/** `paid_at` is a date column, so it names a Brazilian day rather than an instant. */
+const fmtDate = (iso: string) => fmtShortDate(startOfDayKey(iso));
 
-export function GigFinance({ gigId, gross, trackReceipts, expenses, payments }: Props) {
-  const expensesTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const received = payments.reduce((sum, p) => sum + p.amount, 0);
+export function GigFinance({ gigId, gross, trackReceipts, expenses, payments, fin }: Props) {
+  const { expenses: expensesTotal, received } = fin;
   const pct = gross > 0 ? Math.min(100, Math.round((received / gross) * 100)) : 0;
 
   return (

@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation';
-import { getUserInfo, ownedBands } from '@/lib/auth';
+import { ownedBands, requireMembership } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { CatalogClient, type CatalogSong } from '@/components/catalog-client';
 import { PersonalSetlists } from '@/components/personal-setlists';
@@ -9,9 +8,7 @@ import { PageHeader } from '@/components/page-header';
 export const revalidate = 0;
 
 export default async function RepertorioPage() {
-  const info = await getUserInfo();
-  if (!info.userId) redirect('/login');
-  if (info.memberships.length === 0) redirect('/onboarding');
+  const { info } = await requireMembership();
 
   // Only bands (in the current view) whose plan includes the module.
   const repBandIds = info.bandIds.filter((id) => info.bands[id]?.modules.repertorio);

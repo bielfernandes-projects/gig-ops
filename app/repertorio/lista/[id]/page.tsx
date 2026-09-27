@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { getUserInfo } from '@/lib/auth';
+import { requireMembership } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { GigSetlist, type SetlistTree, type CatalogOption } from '@/components/gig-setlist';
+import { GigSetlist } from '@/components/gig-setlist';
+import { SETLIST_TREE_SELECT_WITH_SCOPE, type CatalogOption, type SetlistTree } from '@/lib/repertoire';
 
 export const revalidate = 0;
 
@@ -12,14 +12,12 @@ type SetlistRow = SetlistTree & { scope: 'band' | 'personal'; owner_user_id: str
 
 export default async function SetlistLibraryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const info = await getUserInfo();
-  if (!info.userId) redirect('/login');
-  if (info.memberships.length === 0) redirect('/onboarding');
+  const { info } = await requireMembership();
 
   const supabase = await createClient();
   const { data: setlist } = (await supabase
     .from('setlists')
-    .select('id, name, scope, owner_user_id, band_id, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, start_key, notes, bpm, source_url, lyrics_url, chart_text, pdf_path)))')
+    .select(SETLIST_TREE_SELECT_WITH_SCOPE)
     .eq('id', id)
     .maybeSingle()) as unknown as { data: SetlistRow | null };
 

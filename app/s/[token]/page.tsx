@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { PublicSetlistView, type PublicBlock } from '@/components/public-setlist-view';
+import { PublicSetlistView } from '@/components/public-setlist-view';
+import { SETLIST_TREE_SELECT, type SetlistBlock } from '@/lib/repertoire';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Repertório', robots: { index: false, follow: false } };
 
-type Tree = { name: string; blocks: PublicBlock[] };
+type Tree = { name: string; blocks: SetlistBlock[] };
 
 /**
  * Public, read-only view: o repertório completo (música, tom, observação, nota de passagem,
@@ -24,7 +25,7 @@ export default async function SharedSetlist({ params }: { params: Promise<{ toke
   const { data: setlist } = link
     ? ((await admin
         .from('setlists')
-        .select('name, blocks(id, name, position, block_songs(id, position, requested_key, reference_key, note, transition_note, songs(id, title, artist, original_key, start_key, notes, bpm, source_url, lyrics_url, chart_text, pdf_path)))')
+        .select(SETLIST_TREE_SELECT)
         .eq('id', link.setlist_id)
         .maybeSingle()) as unknown as { data: Tree | null })
     : { data: null };

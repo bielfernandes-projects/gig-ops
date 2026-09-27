@@ -8,7 +8,24 @@ import { CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { GigWithProject, GoLineup } from '@/lib/types';
-import { isOwnerOf, myMemberIdIn, type BandRoles } from '@/lib/band-view';
+import { type BandRoles } from '@/lib/band-view';
+import { brl, brlRound } from '@/lib/finance';
+import { subscriptionNotice, type Tone } from '@/lib/subscription';
+
+const NOTICE_TONE: Record<Tone, string> = {
+  neutral: 'border-zinc-700 bg-zinc-800/50 text-zinc-200',
+  warning: 'border-amber-500/30 bg-amber-500/10 text-amber-200',
+  danger: 'border-red-500/30 bg-red-500/10 text-red-300',
+};
+import {
+  byStartTime,
+  gigsVisibleTo,
+  isUpcoming,
+  myLineup,
+  unsettledGigs,
+  PAID,
+} from '@/lib/gig-view';
+import { endOfDayKey, fmtShortDateTime, monthKey, startOfDayKey, ymd } from '@/lib/time';
 import { BandTag } from '@/components/band-tag';
 
 const AppTour = dynamic(() => import('@/components/app-tour'), { ssr: false });
@@ -32,53 +49,25 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
   const [endDate, setEndDate] = useState('');
   const [hiddenProjects, setHiddenProjects] = useState<Set<string>>(new Set());
 
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  const notice = subscriptionNotice(subscription);
 
-  // Role and member id depend on the band each gig belongs to (the view may span several bands).
-  const ownsGig = (gig: GigWithProject) => isOwnerOf(bandRoles, gig.band_id);
-  const myIdFor = (gig: GigWithProject) => myMemberIdIn(bandRoles, gig.band_id);
-
-  // 1. Visible Gigs
-  const visibleGigs = gigs.filter(gig => ownsGig(gig) || lineups.some(l => l.gig_id === gig.id && l.member_id === myIdFor(gig)));
+  // 1. Visible Gigs — same rule as the Agenda, from the same module.
+  const visibleGigs = gigsVisibleTo(bandRoles, gigs, lineups);
 
   // 2. Next Gig
-  const futureGigs = visibleGigs.filter(g => new Date(g.start_time) >= now);
-  futureGigs.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-  const nextGig = futureGigs[0];
+  const nextGig = visibleGigs.filter((g) => isUpcoming(g)).sort(byStartTime)[0];
 
-  // 3. Pending Gigs (Shows que ainda têm pagamentos pendentes)
-  // For Admin: Past gigs where ANY musician is unpaid OR sound is unpaid
-  // For Member: Past gigs where the member is unpaid
-  const pendingGigsCount = visibleGigs.filter(gig => {
-    const gigDate = new Date(gig.start_time);
-    if (gigDate >= now) return false; // Only past gigs
-    
-    const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    
-    if (ownsGig(gig)) {
-      const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
-      const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
-      return anyMusicianUnpaid || soundUnpaid;
-    } else {
-      const myLineup = gigLineups.find(l => l.member_id === myIdFor(gig));
-      return myLineup && myLineup.status !== 'pago';
-    }
-  }).length;
+  // 3. Shows already played whose money is not settled yet.
+  const pendingGigsCount = unsettledGigs(bandRoles, visibleGigs, lineups).length;
 
   // 4. Pie Chart Data (Lucro por Projeto - Apenas Pagos)
+  const thisMonth = monthKey();
   const filteredGigsForPie = visibleGigs.filter(g => {
-    const d = new Date(g.start_time);
-    if (pieFilter === 'month') {
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-    }
     if (pieFilter === 'all') return true;
+    if (pieFilter === 'month') return monthKey(g.start_time) === thisMonth;
     if (pieFilter === 'custom' && startDate && endDate) {
-      const s = new Date(startDate);
-      s.setHours(0, 0, 0, 0);
-      const e = new Date(endDate);
-      e.setHours(23, 59, 59, 999);
-      return d >= s && d <= e;
+      const d = new Date(g.start_time);
+      return d >= startOfDayKey(startDate) && d <= endOfDayKey(endDate);
     }
     return false;
   });
@@ -86,11 +75,10 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
   const projectProfits: Record<string, { value: number; color: string }> = {};
 
   filteredGigsForPie.forEach(gig => {
-    const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    const myLineup = gigLineups.find(l => l.member_id === myIdFor(gig));
+    const mine = myLineup(bandRoles, gig, lineups);
 
-    if (myLineup && myLineup.status === 'pago') {
-      const profit = Number(myLineup.fee_amount) || 0;
+    if (mine && mine.status === PAID) {
+      const profit = Number(mine.fee_amount) || 0;
       if (profit > 0) {
         const projName = gig.go_projects?.name || 'Sem Projeto';
         const projColor = gig.go_projects?.color_hex || '#71717a';
@@ -127,23 +115,24 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
     }
   });
 
-  const sortedGigs = [...visibleGigs].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+  const sortedGigs = [...visibleGigs].sort(byStartTime);
 
   sortedGigs.forEach(gig => {
-    const d = new Date(gig.start_time);
-    const monthKey = `${d.getFullYear()}-${d.getMonth()}`; 
-    const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+    // Group by the month the Show falls in *in Brazil*, not in the viewer's timezone.
+    const [year, month] = ymd(gig.start_time);
+    const key = monthKey(gig.start_time);
+    const label = `${monthNames[month - 1]} ${year}`;
 
     const projName = gig.go_projects?.name || 'Sem Projeto';
 
-    if (!monthlyDataMap[monthKey]) {
-      monthlyDataMap[monthKey] = { label, timestamp: new Date(d.getFullYear(), d.getMonth(), 1).getTime() };
+    if (!monthlyDataMap[key]) {
+      monthlyDataMap[key] = { label, timestamp: startOfDayKey(`${key}-01`).getTime() };
       Array.from(projectsSet.keys()).forEach(proj => {
-        monthlyDataMap[monthKey][proj] = 0;
+        monthlyDataMap[key][proj] = 0;
       });
     }
 
-    monthlyDataMap[monthKey][projName] = Number(monthlyDataMap[monthKey][projName] ?? 0) + 1;
+    monthlyDataMap[key][projName] = Number(monthlyDataMap[key][projName] ?? 0) + 1;
   });
 
   const lineChartData = Object.values(monthlyDataMap).sort((a, b) => a.timestamp - b.timestamp);
@@ -166,18 +155,8 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
         <div className="absolute right-0 top-0 hidden md:block"><ThemeToggle /></div>
       </div>
 
-      {role === 'admin' && subscription && (subscription.state === 'expired' || (subscription.state === 'trial' && subscription.daysLeft !== null && subscription.daysLeft <= 7)) && (
-        <div
-          className={`rounded-xl border px-4 py-3 text-sm font-medium ${
-            subscription.state === 'expired'
-              ? 'border-red-500/30 bg-red-500/10 text-red-300'
-              : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
-          }`}
-        >
-          {subscription.state === 'expired'
-            ? 'A assinatura desta banda expirou. Seus dados estão preservados, mas a edição está bloqueada até a renovação.'
-            : `Seu teste grátis termina em ${subscription.daysLeft} ${subscription.daysLeft === 1 ? 'dia' : 'dias'}.`}
-        </div>
+      {role === 'admin' && notice && (
+        <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${NOTICE_TONE[notice.tone]}`}>{notice.text}</div>
       )}
 
       {/* Grid Layout para Desktop */}
@@ -201,7 +180,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
                     <span className="text-sm font-bold text-zinc-400" style={{ color: nextGig.go_projects?.color_hex || '#71717a' }}>{nextGig.go_projects?.name || 'Sem Projeto'}</span>
                   </div>
                   <p className="text-sm text-zinc-300 mt-3 font-medium">
-                    {new Date(nextGig.start_time).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }).toUpperCase()}
+                    {fmtShortDateTime(nextGig.start_time)}
                   </p>
                 </>
               ) : (
@@ -273,7 +252,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
               )}
             </div>
 
-            <div className="flex-1 min-h-[300px] flex items-center justify-center relative" role="img" aria-label={`Gráfico de pizza: Meu cachê por projeto. Total recebido: R$ ${totalPieProfit.toFixed(2)}`}>
+            <div className="flex-1 min-h-[300px] flex items-center justify-center relative" role="img" aria-label={`Gráfico de pizza: Meu cachê por projeto. Total recebido: ${brl(totalPieProfit)}`}>
               {pieChartData.length > 0 ? (
                 <>
                   <ResponsiveContainer width="100%" height="100%" minHeight={300}>
@@ -293,7 +272,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
                         ))}
                       </Pie>
                       <Tooltip 
-                        formatter={(value: unknown) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : `R$ 0.00`}
+                        formatter={(value: unknown) => brl(typeof value === 'number' ? value : 0)}
                         contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '0.5rem', fontSize: '0.875rem' }}
                         itemStyle={{ fontWeight: 'bold' }}
                       />
@@ -302,7 +281,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-[-24px]">
                     <span className="text-zinc-500 text-xs font-medium">Total Recebido</span>
-                    <span className="text-zinc-100 font-bold text-2xl leading-none mt-1">R$ {totalPieProfit.toFixed(0)}</span>
+                    <span className="text-zinc-100 font-bold text-2xl leading-none mt-1">{brlRound(totalPieProfit)}</span>
                   </div>
                 </>
               ) : (

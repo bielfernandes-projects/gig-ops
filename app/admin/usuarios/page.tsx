@@ -2,11 +2,11 @@ import { requireElevatedAdmin } from '@/lib/admin-session';
 import { listUsers } from '@/lib/admin-stats';
 import { AdminUserActions } from '@/components/admin-user-actions';
 import { AdminBandAccess } from '@/components/admin-band-access';
+import { fmtShortDate } from '@/lib/time';
 
 export const revalidate = 0;
 
-const date = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
+const date = (iso: string | null) => (iso ? fmtShortDate(iso) : '—');
 
 export default async function AdminUsersPage() {
   const { userId: meId } = await requireElevatedAdmin();

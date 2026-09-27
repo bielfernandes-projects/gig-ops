@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
+import { fmtTime, fmtWeekdayDayMonth } from '@/lib/time';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,18 +57,8 @@ export async function GET(req: Request) {
       ? gig.go_projects[0]?.name
       : gig.go_projects?.name;
 
-    const gigDate = new Date(gig.start_time);
-    const dateStr = gigDate.toLocaleDateString('pt-BR', {
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-      timeZone: 'America/Sao_Paulo',
-    });
-    const timeStr = gigDate.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'America/Sao_Paulo',
-    });
+    const dateStr = fmtWeekdayDayMonth(gig.start_time);
+    const timeStr = fmtTime(gig.start_time);
 
     // Find all lineup members for this gig
     const { data: lineupMembers } = await supabase

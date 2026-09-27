@@ -19,9 +19,11 @@ import {
   openBillingPortal,
 } from '@/app/profile/actions';
 import { BANDS_CHANGED, type BandOption } from '@/components/band-switcher';
-import type { SubscriptionState } from '@/lib/subscription';
+import { subscriptionLabel, type SubscriptionState, type Tone } from '@/lib/subscription';
+import { fmtLongDate } from '@/lib/time';
 import { ALL_BANDS } from '@/lib/band-view';
 import { PRICES, type BillingPeriod } from '@/lib/pricing';
+import { brl } from '@/lib/finance';
 
 export type BandMemberView = { userId: string; email: string; label: string; role: 'owner' | 'member'; isSelf: boolean; share: number | null };
 
@@ -47,18 +49,14 @@ const primaryBtn = 'bg-zinc-100 hover:bg-white text-zinc-900 font-bold px-4 py-2
 
 const PLAN_NAMES: Record<Props['pricePlan'], string> = { standard: 'Banda', founder: 'Banda (Fundador)', solo: 'Solo' };
 
-const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
+const fmtDate = fmtLongDate;
 
-function subscriptionLabel(s: Props['subscription']) {
-  if (!s) return null;
-  if (s.state === 'active') return { text: 'Assinatura ativa', tone: 'text-zinc-300' };
-  if (s.state === 'trial') {
-    return { text: s.daysLeft ? `Teste grátis: ${s.daysLeft} ${s.daysLeft === 1 ? 'dia restante' : 'dias restantes'}` : 'Teste grátis', tone: 'text-amber-400' };
-  }
-  return { text: 'Assinatura expirada: dados preservados, edição bloqueada', tone: 'text-red-400' };
-}
+const LABEL_TONE: Record<Tone, string> = {
+  neutral: 'text-zinc-300',
+  warning: 'text-amber-400',
+  danger: 'text-red-400',
+};
 
 /** Extra line under the status: when the trial/renewal date falls, or that it never expires (manual free access). */
 function subscriptionDateLine(s: Props['subscription']) {
@@ -208,7 +206,7 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
           {sub && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 flex flex-col gap-2">
               <p className="text-xs font-medium text-zinc-500">Plano {PLAN_NAMES[pricePlan]}</p>
-              <p className={`text-sm font-semibold ${sub.tone}`}>{sub.text}</p>
+              <p className={`text-sm font-semibold ${LABEL_TONE[sub.tone]}`}>{sub.text}</p>
               {subscriptionDateLine(subscription) && <p className="text-xs text-zinc-500">{subscriptionDateLine(subscription)}</p>}
               {billing?.justPaid && <p className="text-xs text-emerald-400">Pagamento recebido! Se o plano ainda não mudou, atualize a página em instantes.</p>}
               {billing && subscription?.state !== 'active' && (

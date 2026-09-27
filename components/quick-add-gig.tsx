@@ -1,6 +1,7 @@
 'use client';
 
 import { EVENT_TYPES } from '@/lib/finance';
+import { suggestedEndLocalValue } from '@/lib/time';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, X, Loader2, Copy, Volume2, VolumeX, Users, Trash2, Bell } from 'lucide-react';
@@ -88,10 +89,7 @@ export function QuickAddGig({
 
   const handleStartTimeChange = useCallback((isoValue: string) => {
     if (!isoValue) return;
-    const start = new Date(isoValue);
-    start.setHours(start.getHours() + 2);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    setEndDefault(`${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}T${pad(start.getHours())}:${pad(start.getMinutes())}`);
+    setEndDefault(suggestedEndLocalValue(isoValue));
     setEndKey(k => k + 1);
   }, []);
 

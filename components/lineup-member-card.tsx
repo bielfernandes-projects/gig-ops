@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { X, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { removeFromLineup, updateLineupFee } from '@/app/actions/gig-actions';
 import { LineupWithMember } from '@/lib/types';
+import { brl } from '@/lib/finance';
+import { PAID } from '@/lib/gig-view';
 import { TogglePaymentButton } from '@/app/gigs/[id]/toggle-payment-button';
 import { toast } from 'sonner';
 
@@ -80,11 +82,11 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
           <div className="flex items-center gap-3 shrink-0">
             <div className="flex flex-col items-end gap-1.5">
               <span className="font-semibold text-zinc-300 tabular-nums">
-                R$ {freela.fee_amount.toFixed(2)}
+                {brl(Number(freela.fee_amount))}
               </span>
               <TogglePaymentButton
                 lineupId={freela.id}
-                currentStatus={freela.status === 'pago'}
+                currentStatus={freela.status === PAID}
                 role={role}
               />
             </div>
@@ -146,7 +148,7 @@ export function LineupMemberCard({ freela, gigId, role }: LineupMemberCardProps)
                   <input
                     type="number"
                     id={`fee-${freela.id}`}
-                    name="agreed_fee"
+                    name="fee_amount"
                     defaultValue={freela.fee_amount}
                     step="0.01"
                     inputMode="decimal"

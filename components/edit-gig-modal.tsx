@@ -1,6 +1,7 @@
 'use client';
 
 import { EVENT_TYPES } from '@/lib/finance';
+import { toLocalInputValue } from '@/lib/time';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Loader2, Trash2, Settings, Volume2, VolumeX, Copy } from 'lucide-react';
@@ -18,15 +19,7 @@ interface EditGigModalProps {
 function toDatetimeLocal(isoString: string): string {
   const d = new Date(isoString);
   if (isNaN(d.getTime())) return '';
-  
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const year = d.getFullYear();
-  const month = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
-  
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return toLocalInputValue(d);
 }
 
 export function EditGigModal({ gig, projects, members }: EditGigModalProps) {

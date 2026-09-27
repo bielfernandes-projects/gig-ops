@@ -3,31 +3,16 @@
 import { Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 import { GigWithProject } from '@/lib/types';
+import { fmtDate, fmtDuration, fmtTime } from '@/lib/time';
 
 interface CopyLogisticsButtonProps {
   gig: GigWithProject;
 }
 
-function formatDuration(startIso: string, endIso: string): string {
-  const start = new Date(startIso);
-  const end = new Date(endIso);
-  const diffMs = end.getTime() - start.getTime();
-  if (diffMs <= 0) return '';
-  const totalMins = Math.floor(diffMs / 60000);
-  const hours = Math.floor(totalMins / 60);
-  const mins = totalMins % 60;
-  if (hours > 0 && mins > 0) return `${hours}h${mins}m de show`;
-  if (hours > 0) return `${hours}h de show`;
-  return `${mins}m de show`;
-}
+const formatDuration = fmtDuration;
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });
-}
+const formatTime = fmtTime;
+const formatDate = fmtDate;
 
 export function CopyLogisticsButton({ gig }: CopyLogisticsButtonProps) {
   const [copied, setCopied] = useState(false);

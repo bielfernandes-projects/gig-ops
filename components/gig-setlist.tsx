@@ -22,35 +22,21 @@ import {
   revokeShareLink,
 } from '@/app/actions/setlist-actions';
 import { MUSICAL_KEYS } from '@/lib/keys';
-import { transposeStartKey } from '@/lib/transpose';
-import { SongViewer, type SongView } from '@/components/song-viewer';
+import { byPosition, resolveKeys } from '@/lib/repertoire';
+import type { BandSetlistOption, CatalogOption, SetlistTree } from '@/lib/repertoire';
+import { SongViewer } from '@/components/song-viewer';
+import type { SongView } from '@/components/song-viewer';
 
-export type SetlistSong = {
-  id: string;
-  title: string;
-  artist: string | null;
-  original_key: string | null;
-  start_key: string | null;
-  notes: string | null;
-  bpm: number | null;
-  source_url: string | null;
-  lyrics_url: string | null;
-  chart_text: string | null;
-  pdf_path: string | null;
-};
-export type SetlistItem = {
-  id: string;
-  position: number;
-  requested_key: string | null;
-  reference_key: string | null;
-  note: string | null;
-  transition_note: string | null;
-  songs: SetlistSong | null;
-};
-export type SetlistBlock = { id: string; name: string; position: number; block_songs: SetlistItem[] };
-export type SetlistTree = { id: string; name: string; blocks: SetlistBlock[] };
-export type CatalogOption = { id: string; title: string; artist: string | null; original_key: string | null };
-export type BandSetlistOption = { id: string; name: string; is_default: boolean };
+// The Repertório's shape lives in lib/repertoire — re-exported here so existing importers keep
+// working, and so there is exactly one declaration of each row.
+export type {
+  Song as SetlistSong,
+  SetlistItem,
+  SetlistBlock,
+  SetlistTree,
+  CatalogOption,
+  BandSetlistOption,
+} from '@/lib/repertoire';
 
 const inputCls =
   'bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-600 placeholder-zinc-600';
@@ -168,7 +154,7 @@ export function GigSetlist({
     );
   }
 
-  const blocks = [...setlist.blocks].sort((a, b) => a.position - b.position);
+  const blocks = [...setlist.blocks].sort(byPosition);
   const total = blocks.reduce((n, b) => n + b.block_songs.length, 0);
   const shared = usageCount > 1;
   const swapOptions = bandSetlists.filter((s) => s.id !== setlist.id);
@@ -216,7 +202,7 @@ export function GigSetlist({
 
       <div className="flex flex-col gap-4">
         {blocks.map((block, bi) => {
-          const items = [...block.block_songs].sort((a, b) => a.position - b.position);
+          const items = [...block.block_songs].sort(byPosition);
           return (
             <div key={block.id} className="rounded-xl border border-zinc-800 bg-zinc-900">
               <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-4 py-2.5">
@@ -239,8 +225,7 @@ export function GigSetlist({
               <ol className="divide-y divide-zinc-800">
                 {items.map((item, ii) => {
                   const song = item.songs;
-                  const original = song?.original_key || item.reference_key;
-                  const pedido = item.requested_key || original;
+                  const keys = resolveKeys(item);
                   return (
                     <li key={item.id} className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -252,7 +237,7 @@ export function GigSetlist({
                         >
                           <p className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
                             <span className="truncate">{song?.title ?? 'Música removida'}</span>
-                            {pedido && <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-bold text-zinc-900" title={pedido !== original ? `Tom neste show (original ${original})` : 'Tom da música'}>{pedido}</span>}
+                            {keys.to && <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-bold text-zinc-900" title={keys.transposed ? `Tom neste show (original ${keys.from})` : 'Tom da música'}>{keys.to}</span>}
                           </p>
                           <p className="truncate text-xs text-zinc-500">
                             {song?.artist}
@@ -260,9 +245,9 @@ export function GigSetlist({
                           </p>
                           {song?.notes && <p className="truncate text-xs text-zinc-600">{song.notes}</p>}
                         </button>
-                        {song?.start_key && (
+                        {keys.startKey && (
                           <span className="shrink-0 rounded bg-amber-300 px-2 py-0.5 text-xs font-bold text-black" title="Tom pedido à harmonia para iniciar a música">
-                            Tom que começa {transposeStartKey(song.start_key, song.original_key, item.requested_key)}
+                            Tom que começa {keys.startKey}
                           </span>
                         )}
                         {song?.source_url && (

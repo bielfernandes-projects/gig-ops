@@ -3,10 +3,10 @@ import { productOverview } from '@/lib/admin-stats';
 import { AdminStatCard } from '@/components/admin-stat-card';
 import { AdminBarList } from '@/components/admin-bar-list';
 import { AdminDailyBars } from '@/components/admin-daily-bars';
+import { brl } from '@/lib/finance';
 
 export const revalidate = 0;
 
-const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 /** Janela fechada de 30 dias: dias sem cadastro entram como zero, senão o eixo do tempo tem buraco. */
 function fillDays(rows: { day: string; total: number }[], days = 30): { day: string; total: number }[] {

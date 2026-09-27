@@ -2,6 +2,8 @@
 
 import { bandOfLineup, requireOwner, requireOwnerFor } from '@/lib/auth';
 import { findConflicts } from '@/lib/conflicts';
+import { PAID } from '@/lib/gig-view';
+import { advance, daysInMonth, endOfDayKey, toInstant, wallClock, type Cadence } from '@/lib/time';
 import { revalidatePath } from 'next/cache';
 import { logAction } from '@/lib/telemetry';
 import { redirect } from 'next/navigation';
@@ -61,22 +63,23 @@ export async function addQuickGig(formData: FormData) {
     originalGig = data;
   }
 
-  // Configuração da data limite de recorrência
+  // Até quando a recorrência vai. Contado no calendário brasileiro, não no fuso do servidor.
+  const isRecurring = !!recurrence && recurrence !== 'none';
   let endRecurrenceDate: Date | null = null;
-  if (recurrence && recurrence !== 'none') {
-    const start = new Date(start_time);
-    endRecurrenceDate = new Date(start);
-    if (recurrence_end === '1month') endRecurrenceDate.setMonth(endRecurrenceDate.getMonth() + 1);
-    else if (recurrence_end === '3months') endRecurrenceDate.setMonth(endRecurrenceDate.getMonth() + 3);
-    else if (recurrence_end === '6months') endRecurrenceDate.setMonth(endRecurrenceDate.getMonth() + 6);
-    else if (recurrence_end === '1year') endRecurrenceDate.setFullYear(endRecurrenceDate.getFullYear() + 1);
-    else if (recurrence_end === 'custom' && custom_end_date) {
-      endRecurrenceDate = new Date(custom_end_date);
-      endRecurrenceDate.setHours(23, 59, 59, 999);
+  if (isRecurring) {
+    const months = { '1month': 1, '3months': 3, '6months': 6, '1year': 12 }[recurrence_end];
+    if (months) {
+      const w = wallClock(start_time);
+      const totalMonths = w.month - 1 + months;
+      const year = w.year + Math.floor(totalMonths / 12);
+      const month = (totalMonths % 12) + 1;
+      endRecurrenceDate = toInstant(year, month, Math.min(w.day, daysInMonth(year, month)), 23, 59);
+    } else if (recurrence_end === 'custom' && custom_end_date) {
+      endRecurrenceDate = endOfDayKey(custom_end_date);
     }
   }
 
-  const recurrence_group_id = (recurrence && recurrence !== 'none') ? crypto.randomUUID() : null;
+  const recurrence_group_id = isRecurring ? crypto.randomUUID() : null;
 
   const startDt = new Date(start_time);
   const endDt = end_time ? new Date(end_time) : null;
@@ -88,7 +91,7 @@ export async function addQuickGig(formData: FormData) {
     : (await supabase.from('setlists').select('id').eq('band_id', bandId).eq('scope', 'band').eq('is_default', true).maybeSingle()).data;
 
   const gigsToInsert = [];
-  const currentStart = new Date(startDt);
+  let currentStart = new Date(startDt);
 
   // Gera as datas recorrentes e/ou apenas a gig isolada
   while (true) {
@@ -112,19 +115,17 @@ export async function addQuickGig(formData: FormData) {
       setlist_id: originalGig ? originalGig.setlist_id : (defaultSetlist?.id ?? null),
     });
 
-    if (!recurrence || recurrence === 'none' || !endRecurrenceDate) break;
+    if (!isRecurring || !endRecurrenceDate) break;
 
-    if (recurrence === 'weekly') currentStart.setDate(currentStart.getDate() + 7);
-    else if (recurrence === 'biweekly') currentStart.setDate(currentStart.getDate() + 14);
-    else if (recurrence === 'monthly') currentStart.setMonth(currentStart.getMonth() + 1);
-
+    currentStart = advance(currentStart, recurrence as Cadence);
     if (currentStart > endRecurrenceDate) break;
   }
 
+  // start_time volta junto porque cada ocorrência tem a sua — os lembretes são por ocorrência.
   const { data: insertedGigs, error } = await supabase
     .from('go_gigs')
     .insert(gigsToInsert)
-    .select('id');
+    .select('id, start_time');
 
   if (error) {
     console.error('Error inserting gig:', error);
@@ -152,38 +153,37 @@ export async function addQuickGig(formData: FormData) {
     }
   }
 
-  // Insert lineup from the QuickAddGig form (if provided and not a clone)
+  // Escala vinda do formulário — em TODAS as ocorrências, não só na primeira.
   if (!clone_id && lineupData.length > 0 && insertedGigs && insertedGigs.length > 0) {
-    const targetGigId = insertedGigs[0].id;
-    const newLineups = lineupData.map(l => ({
-      gig_id: targetGigId,
-      member_id: l.member_id || null,
-      fee_amount: l.fee_amount || 0,
-      custom_name: l.member_id ? null : (l.custom_name || null),
-      custom_instrument: l.member_id ? null : (l.custom_instrument || null),
-      status: 'pendente' as const,
-    }));
+    const newLineups = insertedGigs.flatMap(gig =>
+      lineupData.map(l => ({
+        gig_id: gig.id,
+        member_id: l.member_id || null,
+        fee_amount: l.fee_amount || 0,
+        custom_name: l.member_id ? null : (l.custom_name || null),
+        custom_instrument: l.member_id ? null : (l.custom_instrument || null),
+        status: 'pendente' as const,
+      }))
+    );
     await supabase.from('go_lineup').insert(newLineups);
 
-    // Double-booking warnings (never block the gig)
+    // Double-booking warnings (never block the gig) — checados na primeira ocorrência.
     try {
-      const memberIds = newLineups.map((l) => l.member_id).filter(Boolean) as string[];
-      warnings = Object.values(await findConflicts(targetGigId, memberIds)).map((w) => w[0]);
+      const memberIds = lineupData.map((l) => l.member_id).filter(Boolean) as string[];
+      warnings = Object.values(await findConflicts(insertedGigs[0].id, memberIds)).map((w) => w[0]);
     } catch (e) {
       console.warn('Conflict check failed:', e);
     }
   }
 
-  // Create reminder entries for the first gig (recurrence creates reminders per gig)
+  // Lembretes: cada ocorrência tem os seus, contados a partir do próprio horário dela.
   if (reminderMinutes.length > 0 && insertedGigs && insertedGigs.length > 0) {
-    const gigStart = new Date(start_time);
-    const remindersToInsert = insertedGigs.flatMap(gig => {
-      const gigStartDate = new Date(gig.id ? start_time : gigStart);
-      return reminderMinutes.map(minutes => ({
+    const remindersToInsert = insertedGigs.flatMap(gig =>
+      reminderMinutes.map(minutes => ({
         gig_id: gig.id,
-        remind_at: new Date(gigStartDate.getTime() - minutes * 60 * 1000).toISOString(),
-      }));
-    });
+        remind_at: new Date(new Date(gig.start_time).getTime() - minutes * 60 * 1000).toISOString(),
+      }))
+    );
     await supabase.from('go_reminders').insert(remindersToInsert);
   }
 
@@ -298,21 +298,17 @@ export async function cancelGig(gigId: string, reason: string, deleteMode: 'sing
 export async function addMemberToLineup(formData: FormData) {
   const ctx = await requireOwnerFor('go_gigs', formData.get('gig_id') as string);
   if (!ctx.ok) return { error: ctx.error };
-  const { supabase, bandId } = ctx;
+  const { supabase } = ctx;
 
   const gig_id = formData.get('gig_id') as string;
-  let member_id = formData.get('musician_id') as string | null;
-  const feeStr = formData.get('agreed_fee') as string;
-  const custom_name = formData.get('musician_name') as string;
+  let member_id = formData.get('member_id') as string | null;
+  const feeStr = formData.get('fee_amount') as string;
+  const custom_name = formData.get('custom_name') as string;
   const custom_instrument = formData.get('custom_instrument') as string;
 
   if (!gig_id || (!member_id && !custom_name)) {
     return { error: 'Campos obrigatórios faltando.' };
   }
-
-  // Verify gig belongs to admin
-  const { data: gig } = await supabase.from('go_gigs').select('id').eq('id', gig_id).eq('band_id', bandId).single();
-  if (!gig) return { error: 'Gig não encontrada.' };
 
   if (!member_id) member_id = null;
 
@@ -367,7 +363,7 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
-  const newStatus = targetIsPaid ? 'pago' : 'pendente';
+  const newStatus = targetIsPaid ? PAID : 'pendente';
   
   // Grab lineup info to know who to notify and the gig title
   const { data: lineupData } = await supabase
@@ -419,11 +415,7 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
 export async function removeFromLineup(lineupId: string, gigId: string) {
   const ctx = await requireOwnerFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
-  const { supabase, bandId } = ctx;
-
-  // Verify gig belongs to admin
-  const { data: gig } = await supabase.from('go_gigs').select('id').eq('id', gigId).eq('band_id', bandId).single();
-  if (!gig) return { error: 'Gig não encontrada.' };
+  const { supabase } = ctx;
 
   const { error } = await supabase
     .from('go_lineup')
@@ -442,19 +434,15 @@ export async function removeFromLineup(lineupId: string, gigId: string) {
 export async function updateLineupFee(formData: FormData) {
   const ctx = await requireOwnerFor('go_gigs', formData.get('gig_id') as string);
   if (!ctx.ok) return { error: ctx.error };
-  const { supabase, bandId } = ctx;
+  const { supabase } = ctx;
 
   const lineupId = formData.get('lineup_id') as string;
   const gigId = formData.get('gig_id') as string;
-  const feeStr = formData.get('agreed_fee') as string;
+  const feeStr = formData.get('fee_amount') as string;
 
   if (!lineupId || !gigId) {
     return { error: 'Dados inválidos.' };
   }
-
-  // Verify gig belongs to admin
-  const { data: gig } = await supabase.from('go_gigs').select('id').eq('id', gigId).eq('band_id', bandId).single();
-  if (!gig) return { error: 'Gig não encontrada.' };
 
   const fee_amount = parseFloat(feeStr) || 0;
 

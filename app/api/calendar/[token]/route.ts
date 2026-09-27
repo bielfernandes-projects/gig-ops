@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import * as ics from 'ics';
 import { NextRequest, NextResponse } from 'next/server';
+import { showEnd } from '@/lib/time';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
       ];
     } else {
       // Default duration is 3 hours if strictly endtime is missing (Standard for music)
-      const endDate = new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
+      const endDate = showEnd(gig.start_time, null);
       endObj = [
         endDate.getUTCFullYear(),
         endDate.getUTCMonth() + 1,

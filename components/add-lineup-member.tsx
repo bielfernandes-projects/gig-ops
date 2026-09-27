@@ -181,8 +181,8 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
               )}
 
               {/* Hidden fields */}
-              <input type="hidden" name="musician_id" value={selected?.type === 'member' ? selected.member.id : ''} />
-              <input type="hidden" name="musician_name" value={selected?.type === 'custom' ? search.trim() : ''} />
+              <input type="hidden" name="member_id" value={selected?.type === 'member' ? selected.member.id : ''} />
+              <input type="hidden" name="custom_name" value={selected?.type === 'custom' ? search.trim() : ''} />
 
               {/* Custom instrument field */}
               {selected?.type === 'custom' && (
@@ -205,7 +205,7 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
               {/* Fee field */}
               {selected && (
                 <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label htmlFor="agreed_fee" className="text-xs font-medium text-zinc-400">
+                  <label htmlFor="fee_amount" className="text-xs font-medium text-zinc-400">
                     Cachê Base Acordado
                   </label>
                   <div className="relative">
@@ -214,8 +214,8 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
                     </div>
                     <input
                       type="number"
-                      id="agreed_fee"
-                      name="agreed_fee"
+                      id="fee_amount"
+                      name="fee_amount"
                       placeholder="0.00"
                       step="0.01"
                       inputMode="decimal"

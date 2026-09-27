@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/alias-hook.mjs --test \"scripts/check-*.ts\"",
     "check:transpose": "node scripts/check-transpose.ts",
     "check:finance": "node scripts/check-finance.ts",
     "check:extenso": "node scripts/check-extenso.ts",

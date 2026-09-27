@@ -595,3 +595,158 @@ Quatro decisões que valem estar escritas:
 * **Revogar volta pra `trial`, não pra `expired`.** Assim `subscriptionState()` recalcula o estado verdadeiro a partir de `trial_ends_at`: se o teste já acabou fica expirada de qualquer forma, e se ainda tinha dias a banda não perde o que era dela. (A §27 sugeria forçar `expired` por SQL — isto é mais honesto.)
 
 Com prazo, `paid_until` faz o acesso expirar sozinho, sem ninguém precisar lembrar de revogar. Sem prazo, `paid_until` fica `null` — que é também como o painel distingue "liberada na mão" de "pagando", e por isso essas bandas ficam fora do MRR (§47.2).
+
+## 48. Refatoração de arquitetura: regras de domínio saem das telas e ganham módulos
+
+Uma revisão de arquitetura encontrou o mesmo padrão dez vezes: `lib/auth.ts`, `lib/transpose.ts`,
+`lib/finance.ts` e `lib/subscription.ts` são módulos sólidos, mas as **regras de domínio eram
+re-derivadas** nas páginas e nos componentes em vez de pedidas a eles — e cada cópia divergia. Esta
+rodada moveu cada regra para o módulo que a possui.
+
+### Módulos novos
+
+* **`lib/time.ts`** — toda decisão de fuso horário. Um Show acontece num horário de parede no Brasil,
+  não num instante escolhido pela máquina que renderiza a página (a Vercel roda em UTC; um músico em
+  viagem carrega o próprio fuso). O banco guarda instantes (`timestamptz`) e **toda** conversão passa
+  por `TZ`. Interface: `wallClock`, `ymd`, `dayKey`, `monthKey`, `toInstant`/`toIso`, `startOfDay`,
+  `startOfToday`, `startOfDayKey`/`endOfDayKey`, `advance` (recorrência), `showEnd`,
+  `suggestedEndLocalValue`, `toLocalInputValue` e a família `fmt*`.
+  Antes: 4 constantes `TZ` + 16 literais `'America/Sao_Paulo'` espalhados, 4 cópias de
+  `formatDuration` e duas respostas para "quanto dura um show" (2h no formulário, 3h no conflito).
+* **`lib/gig-view.ts`** — "quais Shows eu vejo" e "o dinheiro está quitado". `gigsVisibleTo`,
+  `paymentStatus`, `unsettledGigs`, `myFee`, `myUnpaidFee`, `owedByBand`, `showsPlayedCount`,
+  `isPast`/`isUpcoming`, `lineupRowOf`/`isOnLineup`, `PAID`. Client-safe: a Agenda (servidor) e o Dashboard (cliente) leem o mesmo
+  módulo, então não podem mais discordar.
+* **`lib/repertoire.ts`** — a forma do Repertório e **a** regra de qual tom mostrar. `resolveKeys`,
+  `resolveSongKeys`, `chartFor`, `orderedBlocks`, `byPosition`, os tipos de linha e
+  `SETLIST_TREE_SELECT`.
+* **`lib/identity.ts`** — "essa linha de `go_members` sou eu?". `identityKey`, `sameHuman`,
+  `isViewer`, `memberRowsFilter`. E-mail sempre comparado em caixa baixa e aparado.
+
+### Correções de comportamento que saíram daí
+
+1. **"Hoje" era duas coisas.** A Agenda usava meia-noite de Brasília; o Dashboard usava
+   `setHours(0,0,0,0)` no fuso do servidor. O mesmo Show podia ser passado numa tela e futuro na
+   outra. Agora `isPast` é a única resposta, e um Show que toca hoje à noite só conta como passado
+   amanhã — ninguém é cobrado por um pagamento durante o próprio show.
+2. **O tom errado no link público.** `reference_key` é um retrato do `original_key` no momento em que
+   a Música entrou no Bloco. Três leitores o usavam com precedências diferentes, e a transposição
+   ignorava o fallback que o próprio selo acima dela exibia. Agora `reference_key` é **só
+   informativo** (`resolveKeys().drifted` avisa que o catálogo mudou): a transposição sempre parte do
+   `original_key` atual, que é o tom em que a cifra está escrita.
+3. **Escala e lembretes só na primeira ocorrência.** Em `addQuickGig`, a Escala era inserida apenas em
+   `insertedGigs[0]` — shows recorrentes 2..n nasciam sem ninguém. E os lembretes usavam sempre o
+   `start_time` do primeiro show, então todos disparavam no horário dele. Os dois corrigidos; o
+   `insert` agora devolve `id, start_time` porque cada ocorrência tem o seu.
+4. **Recorrência no calendário brasileiro.** `setMonth`/`setDate` locais deslizavam conforme o fuso do
+   host. `advance` opera no horário de parede e **limita** em vez de transbordar: um show no dia 31
+   recorre no dia 28/30 nos meses curtos, nunca no dia 1º do mês seguinte.
+5. **O horário escolhido no formulário.** O `DateTimePicker` montava o instante a partir do relógio do
+   navegador e rotulava em Brasília. Agora trabalha em ano/mês/dia brasileiros e emite `toIso`.
+6. **Dinheiro mal formatado.** A Agenda e a tela do Show usavam `toFixed(2)` com um `R$` na mão, o que
+   renderiza `R$ 1234.5`; `brl()` existia e era chamado só pelo Relatório. Todo dinheiro passa por
+   `brl`/`brlRound` agora (uma declaração, não quatro).
+7. **A tela do Show não aplicava `track_receipts`.** Ela refazia as somas à mão e pulava a regra que é
+   a razão de `gigFinance` existir. Agora lê `gigFinance` como o Relatório, e o `GigFinance` recebe o
+   resultado por prop em vez de recalcular uma terceira vez.
+8. **Identidade sensível a caixa.** Duas das quatro cópias comparavam e-mail sem dobrar a caixa. Além
+   disso, uma linha ligada à conta e uma linha só com e-mail da mesma pessoa não se cruzavam — o
+   `sameHuman` compara conta **e** e-mail como caminhos independentes.
+9. **Datas sem fuso no admin e no recibo.** `/admin/usuarios` e `admin-band-access` formatavam sem
+   `timeZone`; o `paid_at` do recibo (coluna `date`) virava um dia antes.
+
+### Autorização: deixar `requireBand*` terminar o trabalho
+
+`requireBandFor` já lê o registro para descobrir a Banda dele. As ações então liam de novo para
+confirmar a Banda que acabaram de receber — `moveBlockSong` chegava a **5 queries só de
+autorização** por reordenação.
+
+* `setlist-actions.ts` ganhou `requireEditableSetlist` / `requireEditableBlock` /
+  `requireEditableItem`: resolvem Banda + permissão + linha numa travessia. As chamadas perderam duas
+  linhas e três queries cada, e `editableSetlist`/`editableBlock`/`editableItem`/`blockBand`/
+  `itemBand` foram deletados.
+* `finance-actions.ts`: `ownGig` deletado (o `requireOwnerFor` acima já provou existência e posse).
+* `gig-actions.ts`: três blocos "Verify gig belongs to admin" deletados.
+* Em `gigs/[id]`, `inTenant` comparava `bandId` com o valor de que ele mesmo tinha sido atribuído —
+  uma tautologia.
+
+**A enforcement continua no RLS** (`private.is_band_owner()`); o que saiu foi a repetição manual em
+TypeScript, não a defesa em profundidade.
+
+### Pré-condição de página e vocabulário
+
+* **`requireMembership()`** (em `lib/auth.ts`) é a pré-condição única: exige sessão e pelo menos uma
+  Banda, e devolve `bandIds` (escopo da visão atual) e `allBandIds` (todas as Bandas da pessoa, que é
+  o que uma página de detalhe precisa). Antes eram três variantes incompatíveis — algumas
+  redirecionavam sem checar sessão, outras checavam as duas coisas, outras nenhuma. O UUID sentinela,
+  inventado três vezes nas páginas, virou `NO_BAND`, exportado uma vez.
+* **Um vocabulário para papel.** O banco diz `'owner'`/`'member'`; o app diz `'admin'`/`'viewer'`. A
+  conversão acontece **uma vez**, onde a linha de `band_members` é lida. `BandContext.role` agora é
+  `UserRole`, então `requireBand` não converte de volta.
+
+### Assinatura: a redação junto da máquina de estados
+
+`subscriptionNotice`, `subscriptionLabel`, `subscriptionPlan` e `TRIAL_WARNING_DAYS` moram em
+`lib/subscription.ts`. O limiar de 7 dias estava escrito na JSX do Dashboard, havia um segundo
+renderizador com redação diferente em `band-sections`, e o painel admin re-derivava "cortesia" da
+ausência de um id do Stripe (agora é `subscriptionPlan().comped`).
+
+### Vocabulário pré-Banda aposentado
+
+`lib/mocks.ts` (85 linhas, zero importadores) deletado. O formulário de Escala falava
+`musician_id`/`musician_name`/`agreed_fee` enquanto o banco e as ações falavam
+`member_id`/`custom_name`/`fee_amount` — agora todos falam o nome do banco. Comentários que citavam
+`getUserRole`/`getUserEmail` (funções que não existem) e "tenant"/"admin_id" (não há tenant, há
+Bandas) foram corrigidos.
+
+### Testes
+
+`npm test` passou a existir: `node --test scripts/check-*.ts`, com `scripts/alias-hook.mjs` ensinando
+o `node` puro a resolver o alias `@/*` do tsconfig — assim qualquer módulo de `lib/` é testável sem
+bundler. Cobertura antes: `transpose`, `finance`, `extenso` (os três arquivos que já eram testáveis).
+Agora também `time`, `gig-view`, `repertoire`, `identity` e `subscription` — 8 suítes. Os testes de
+tempo rodam iguais em `TZ=UTC`, `TZ=Asia/Tokyo` e no fuso local, que é justamente o que o módulo
+promete. Dois defeitos reais (a precedência do tom e o cruzamento de identidade) foram achados pelos
+próprios asserts ao escrevê-los.
+
+### Revisão de segurança do conjunto de mudanças
+
+Rodada com o `/security-review` sobre o diff inteiro, com instrução de citar a policy do RLS antes de
+afirmar qualquer bypass. **Nenhuma vulnerabilidade HIGH ou MEDIUM foi introduzida.** O que foi
+verificado e descartado, para não ser re-investigado depois:
+
+* **As re-checagens deletadas eram tautológicas.** `ownGig()` comparava o show com a banda dele
+  mesmo: `ctx.bandId` vem de `requireOwnerFor('go_gigs', gigId)` → `bandOf('go_gigs', gigId)`, isto
+  é, é derivado do próprio registro. Mesma coisa para os três "Verify gig belongs to admin" e para o
+  `inTenant`. O desacoplamento entre `lineupId` e `gigId` em `removeFromLineup`/`updateLineupFee` é
+  **pré-existente** (o bloco removido nunca validava esse vínculo) e é barrado pela policy
+  `lineup_band_write`, que exige `private.is_band_owner` do show dono da linha.
+* **A troca do vocabulário de `role` era o maior risco e está limpa.** Uma comparação esquecida com
+  `!== 'owner'` viraria sempre verdadeira — fail-open, escalação de privilégio. Só existem
+  `ctx.role === 'admin'` e `ctx.role !== 'admin'`; todo `=== 'owner'` restante lê `band_members.role`
+  direto do banco, onde a grafia continua correta.
+* **`memberRowsFilter` não é injetável na prática.** O escape de `"` e `\` está correto, e três
+  camadas independentes anulam o impacto: o e-mail vem de claim de JWT verificado, a query é
+  co-restringida por `.in('band_id', ids)` das associações reais, e `members_band_select` exige
+  `private.is_band_member`.
+* **`NO_BAND` nunca produz query sem filtro.** `requireMembership()` redireciona antes de retornar,
+  então os arrays nunca são vazios.
+* **O link público não expõe coluna nova.** `SETLIST_TREE_SELECT` adiciona exatamente `id` em relação
+  à string antiga; a página de `/s/[token]` desestrutura só `name` e `blocks`, então o UUID nunca
+  chega ao visitante anônimo.
+* **`scripts/alias-hook.mjs` não alcança produção** — é referenciado só pelo script `test`.
+
+### Dois ajustes que saíram da revisão
+
+1. **Um "avulso" podia ser confundido com o próprio usuário** (severidade baixa, e **pré-existente**,
+   não introduzido nesta rodada). Um convidado digitado direto na Escala tem `member_id === null`;
+   alguém da banda sem linha em `go_members` tem `memberId === null`. O portão de acesso da tela do
+   Show era `lineup.some(l => l.member_id === userMemberId)` — `null === null` casava, liberando um
+   Show em que a pessoa não está escalada e atribuindo a ela o cachê do avulso. `lib/gig-view.ts`
+   ganhou `lineupRowOf()` / `isOnLineup()`, que retornam vazio quando `memberId` é nulo, usados nos
+   três sítios (`gigs/[id]:133`, `gigs/[id]:172`, `agenda:376`). Travado por asserts.
+2. **`memberIds` em `BandScope`.** A troca do relatório para `bands[id].memberId` sub-relatava: esse
+   campo é a **primeira** linha encontrada, enquanto a query removida coletava todas. Uma pessoa com
+   duas linhas em `go_members` na mesma banda (uma adicionada por e-mail, outra ligada à conta)
+   perderia cachês em "Meus cachês". `BandScope` agora carrega `memberIds: string[]` e o relatório
+   soma todas; `memberId` segue sendo a primeira, para os usos de identidade única.

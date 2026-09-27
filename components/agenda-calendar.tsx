@@ -1,14 +1,13 @@
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { GigWithProject } from '@/lib/types';
+import { dayKey, daysInMonth as daysIn, fmtTime } from '@/lib/time';
+import { isPast } from '@/lib/gig-view';
 
-const TZ = 'America/Sao_Paulo';
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MAX_PER_DAY = 3;
 
-const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
 const pad = (n: number) => String(n).padStart(2, '0');
 
 type Props = {
@@ -23,16 +22,16 @@ type Props = {
 export function AgendaCalendar({ gigs, year, month, monthHref }: Props) {
   const byDay = new Map<string, GigWithProject[]>();
   for (const g of gigs) {
-    const key = ymd(new Date(g.start_time));
+    const key = dayKey(g.start_time);
     byDay.set(key, [...(byDay.get(key) ?? []), g]);
   }
 
   const firstWeekday = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
-  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const daysInMonth = daysIn(year, month);
   const cells: (number | null)[] = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   while (cells.length % 7 !== 0) cells.push(null);
 
-  const today = ymd(new Date());
+  const today = dayKey();
   const prev = month === 1 ? { y: year - 1, m: 12 } : { y: year, m: month - 1 };
   const next = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 };
   const [ty, tm] = today.split('-').map(Number);
@@ -90,16 +89,16 @@ export function AgendaCalendar({ gigs, year, month, monthHref }: Props) {
               <div className="flex flex-col gap-0.5">
                 {list.slice(0, MAX_PER_DAY).map((g) => {
                   const color = g.go_projects?.color_hex || '#71717a';
-                  const past = new Date(g.start_time).getTime() < Date.now();
+                  const past = isPast(g);
                   return (
                     <Link
                       key={g.id}
                       href={`/gigs/${g.id}`}
-                      title={`${hhmm(g.start_time)} ${g.title}`}
+                      title={`${fmtTime(g.start_time)} ${g.title}`}
                       className={`block truncate rounded px-1 py-0.5 text-[10px] font-semibold leading-tight text-zinc-100 hover:brightness-125 md:text-xs ${past ? 'opacity-60' : ''}`}
                       style={{ backgroundColor: `${color}40`, borderLeft: `3px solid ${color}` }}
                     >
-                      <span className="hidden md:inline">{hhmm(g.start_time)} </span>
+                      <span className="hidden md:inline">{fmtTime(g.start_time)} </span>
                       {g.title}
                     </Link>
                   );

@@ -4,35 +4,15 @@ import { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { SongViewer, type SongView } from '@/components/song-viewer';
 import { getPublicSongPdfUrl } from '@/app/actions/setlist-actions';
+import { orderedBlocks, resolveKeys } from '@/lib/repertoire';
+import type { SetlistBlock } from '@/lib/repertoire';
 
-export type PublicSong = {
-  id: string;
-  title: string;
-  artist: string | null;
-  original_key: string | null;
-  start_key: string | null;
-  notes: string | null;
-  bpm: number | null;
-  source_url: string | null;
-  lyrics_url: string | null;
-  chart_text: string | null;
-  pdf_path: string | null;
-};
-export type PublicItem = {
-  id: string;
-  position: number;
-  requested_key: string | null;
-  reference_key: string | null;
-  note: string | null;
-  transition_note: string | null;
-  songs: PublicSong | null;
-};
-export type PublicBlock = { id: string; name: string; position: number; block_songs: PublicItem[] };
+// The public link reads the same rows as the in-app Repertório — so it cannot show a different tom.
+export type { Song as PublicSong, SetlistItem as PublicItem, SetlistBlock as PublicBlock } from '@/lib/repertoire';
 
-export function PublicSetlistView({ token, name, blocks }: { token: string; name: string; blocks: PublicBlock[] }) {
+export function PublicSetlistView({ token, name, blocks }: { token: string; name: string; blocks: SetlistBlock[] }) {
   const [viewing, setViewing] = useState<SongView | null>(null);
-  const sorted = [...blocks].sort((a, b) => a.position - b.position);
-  const offsets = sorted.map((_, i) => sorted.slice(0, i).reduce((sum, b) => sum + b.block_songs.length, 0));
+  const sorted = orderedBlocks(blocks);
 
   return (
     <div className="fixed inset-0 z-[999] overflow-y-auto bg-zinc-950 px-4 py-8 text-zinc-100">
@@ -41,15 +21,14 @@ export function PublicSetlistView({ token, name, blocks }: { token: string; name
         <p className="mt-1 text-sm text-zinc-500">Repertório completo — só visualização.</p>
 
         <div className="mt-8 flex flex-col gap-6">
-          {sorted.map((block, bi) => (
+          {sorted.map(({ block, items, offset }) => (
             <section key={block.id}>
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">{block.name}</h2>
               <ol className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900">
-                {[...block.block_songs]
-                  .sort((a, b) => a.position - b.position)
+                {items
                   .map((bs, si) => {
-                    const n = offsets[bi] + si + 1;
-                    const key = bs.requested_key || bs.reference_key || bs.songs?.original_key;
+                    const n = offset + si + 1;
+                    const key = resolveKeys(bs).to;
                     const song = bs.songs;
                     return (
                       <li key={bs.id}>

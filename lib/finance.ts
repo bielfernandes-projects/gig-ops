@@ -12,7 +12,12 @@ export const EVENT_TYPES = [
 
 export const EXPENSE_CATEGORIES = ['Músicos', 'Som', 'Iluminação', 'Transporte', 'Alimentação', 'Merch', 'Outros'] as const;
 
+/** The only spelling of money in the app: `R$ 1.234,50`. */
 export const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+/** `R$ 1.235` — for the landing page and chart labels, where the cents are noise. */
+export const brlRound = (value: number) =>
+  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
 export type FinanceInputs = {
   gross: number;
@@ -24,11 +29,24 @@ export type FinanceInputs = {
   received: number;
 };
 
-/** Money math for one gig. Without receipt tracking the gross counts as fully received (legacy behaviour). */
-export function gigFinance(i: FinanceInputs) {
+/**
+ * Every money figure for one Show, derived in one place. The inputs are echoed back so a consumer
+ * never has to re-sum rows the caller already summed — the Show page, its finance panel and the
+ * Relatório all read the same object.
+ *
+ * Without receipt tracking the gross counts as fully received (legacy behaviour).
+ */
+export type GigFinanceTotals = FinanceInputs & {
+  totalCost: number;
+  profit: number;
+  pending: number;
+};
+
+export function gigFinance(i: FinanceInputs): GigFinanceTotals {
   const totalCost = i.lineupCost + i.soundCost + i.expenses;
   const receivedAmount = i.trackReceipts ? Math.min(i.received, i.gross) : i.gross;
   return {
+    ...i,
     totalCost,
     profit: i.gross - totalCost,
     received: receivedAmount,

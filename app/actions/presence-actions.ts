@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { logAction } from '@/lib/telemetry';
 import { createClient } from '@/lib/supabase/server';
+import { isViewer } from '@/lib/identity';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getUserInfo } from '@/lib/auth';
 import { sendPushToBandOwners } from '@/lib/push';
@@ -17,9 +18,7 @@ export async function setPresence(lineupId: string, status: 'confirmed' | 'decli
   if (!row?.member_id) return { error: 'Escala não encontrada.' };
 
   const { data: member } = await supabase.from('go_members').select('name, user_id, email').eq('id', row.member_id).maybeSingle();
-  const isMe =
-    !!member && (member.user_id === info.userId || (!!member.email && !!info.email && member.email.toLowerCase() === info.email.toLowerCase()));
-  if (!isMe) return { error: 'Você só pode responder pela sua própria presença.' };
+  if (!member || !isViewer(member, info)) return { error: 'Você só pode responder pela sua própria presença.' };
 
   const admin = createAdminClient();
   const { error } = await admin.from('go_lineup').update({ confirmation: status }).eq('id', lineupId);

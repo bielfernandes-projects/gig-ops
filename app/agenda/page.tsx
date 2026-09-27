@@ -4,11 +4,36 @@ import { FilterTabs } from '@/components/filter-tabs';
 import { CopyLogisticsButton } from '@/components/copy-logistics-button';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
 import { GigWithProject, GoProject, GoLineup, GoMember } from '@/lib/types';
+import { brl } from '@/lib/finance';
 import { PostgrestError } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
-import { redirect } from 'next/navigation';
-import { getUserInfo, ownedBands } from '@/lib/auth';
+import { ownedBands, requireMembership } from '@/lib/auth';
+import { toBandRoles } from '@/lib/band-view';
+import {
+  gigsVisibleTo,
+  myFee,
+  myUnpaidFee,
+  owedByBand,
+  ownsGig,
+  paymentStatus,
+  showsPlayedCount,
+  unsettledGigs,
+  isUpcoming,
+  lineupRowOf,
+} from '@/lib/gig-view';
+import {
+  endOfDayKey,
+  fmtDayOfMonth,
+  fmtDuration,
+  fmtMonthYear,
+  fmtTime,
+  fmtWeekdayShort,
+  monthKey,
+  startOfDayKey,
+  startOfToday,
+  ymd,
+} from '@/lib/time';
 import { Suspense } from 'react';
 import { AgendaCalendar } from '@/components/agenda-calendar';
 import { PageHeader } from '@/components/page-header';
@@ -18,43 +43,25 @@ export const revalidate = 0;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const TZ = 'America/Sao_Paulo';
-
-// Y/M/D as seen in Brasília, independent of the server timezone (Vercel runs in UTC).
-function brYMD(d: Date): [number, number, number] {
-  const [y, m, day] = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' })
-    .format(d).split('-').map(Number);
-  return [y, m, day];
-}
-
-// 00:00 of today in Brasília (UTC-3, no DST since 2019).
-function startOfTodayBR(): Date {
-  const [y, m, d] = brYMD(new Date());
-  return new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
-}
-
 function filterGigs(gigs: GigWithProject[], tab: string, from?: string, to?: string): GigWithProject[] {
-  const now = startOfTodayBR();
+  const today = startOfToday();
 
   if (tab === '7days') {
-    const end = new Date(now.getTime() + 8 * 86400000 - 1);
+    const end = new Date(today.getTime() + 8 * 86400000 - 1);
     return gigs.filter((g) => {
       const d = new Date(g.start_time);
-      return d >= now && d <= end;
+      return d >= today && d <= end;
     });
   }
 
   if (tab === 'month') {
-    const [y, m] = brYMD(new Date());
-    return gigs.filter((g) => {
-      const [gy, gm] = brYMD(new Date(g.start_time));
-      return gy === y && gm === m;
-    });
+    const thisMonth = monthKey();
+    return gigs.filter((g) => monthKey(g.start_time) === thisMonth);
   }
 
   if (tab === 'custom' && from && to) {
-    const start = new Date(`${from.slice(0, 10)}T00:00:00-03:00`);
-    const end = new Date(`${to.slice(0, 10)}T23:59:59.999-03:00`);
+    const start = startOfDayKey(from);
+    const end = endOfDayKey(to);
     return gigs.filter((g) => {
       const d = new Date(g.start_time);
       return d >= start && d <= end;
@@ -68,28 +75,11 @@ function filterGigs(gigs: GigWithProject[], tab: string, from?: string, to?: str
 function groupByMonth(gigs: GigWithProject[]): [string, GigWithProject[]][] {
   const map = new Map<string, GigWithProject[]>();
   for (const gig of gigs) {
-    const d = new Date(gig.start_time);
-    const key = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
-    const capitalized = key.charAt(0).toUpperCase() + key.slice(1);
-    if (!map.has(capitalized)) map.set(capitalized, []);
-    map.get(capitalized)!.push(gig);
+    const key = fmtMonthYear(gig.start_time);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(gig);
   }
   return Array.from(map.entries());
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
-}
-
-function formatDuration(startIso: string, endIso: string): string {
-  const diffMs = new Date(endIso).getTime() - new Date(startIso).getTime();
-  if (diffMs <= 0) return '';
-  const totalMins = Math.floor(diffMs / 60000);
-  const h = Math.floor(totalMins / 60);
-  const m = totalMins % 60;
-  if (h > 0 && m > 0) return `${h}h${m}m de show`;
-  if (h > 0) return `${h}h de show`;
-  return `${m}m de show`;
 }
 
 // ─── Page ───────────────────────────────────────────────────────────────────
@@ -102,7 +92,7 @@ export default async function Home({
   const sp = await searchParams;
   const { tab = '7days', from, to, cloneId, project = 'all' } = sp;
   const calendarView = sp.view !== 'detalhado';
-  const [nowY, nowM] = brYMD(new Date());
+  const [nowY, nowM] = ymd();
   const mesMatch = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(sp.mes ?? '');
   const calYear = mesMatch ? Number(mesMatch[1]) : nowY;
   const calMonth = mesMatch ? Number(mesMatch[2]) : nowM;
@@ -119,15 +109,14 @@ export default async function Home({
     return str ? `/agenda?${str}` : '/agenda';
   };
 
-  // Single auth call (replaces getUserRole + getUserEmail + go_members lookup)
-  const info = await getUserInfo();
-  if (info.memberships.length === 0) redirect('/onboarding');
+  const { info } = await requireMembership();
   const { bandIds, bands, allBands } = info;
   const supabase = await createClient();
 
-  // Multi-tenant isolation: every read is scoped to the bands in the current view (one band, or
-  // all of the person's bands). Role and member id are decided per gig, by the gig's band.
-  const roleOf = (gig: GigWithProject) => (gig.band_id ? bands[gig.band_id]?.role : undefined) ?? 'viewer';
+  // Every read is scoped to the bands in the current view (one band, or all of the person's bands).
+  // Role and member id are decided per gig, by the gig's band — see lib/gig-view.
+  const roles = toBandRoles(bands);
+  const roleOf = (gig: GigWithProject) => (ownsGig(roles, gig) ? 'admin' : 'viewer');
   const myIdOf = (gig: GigWithProject) => (gig.band_id ? bands[gig.band_id]?.memberId : null) ?? null;
   const owned = ownedBands(info);
   const ownedIds = owned.map((b) => b.bandId);
@@ -187,9 +176,7 @@ export default async function Home({
     .filter((m) => m.is_fixed || (m.user_id && ownerKeys.has(`${m.band_id}:${m.user_id}`)))
     .map((m) => m.id);
 
-  // Fetch lineups only for the gigs we already have — this is the multi-tenant seam.
-  // Viewers see lineups for gigs they're invited to (still inside their tenant).
-  // If there's no tenant (no admin link yet), we read no lineups.
+  // Fetch lineups only for the gigs we already have — RLS keeps the rows inside the person's bands.
   const gigIdsForLineups = allGigs.map(g => g.id);
   let lineups: GoLineup[] = [];
   if (gigIdsForLineups.length > 0) {
@@ -200,32 +187,15 @@ export default async function Home({
     lineups = (data as GoLineup[] | null) || [];
   }
 
-  // Owners see every gig of their band. Musicians see only gigs where they
-  // (their go_members.id in that band) appear in the lineup.
-  let visibleGigs = allGigs.filter(gig => roleOf(gig) === 'admin' || lineups.some(l => l.gig_id === gig.id && l.member_id === myIdOf(gig)));
+  let visibleGigs = gigsVisibleTo(roles, allGigs, lineups);
 
   // Filter by selected project
   if (project !== 'all') {
     visibleGigs = visibleGigs.filter(g => g.project_id === project);
   }
 
-  // Pending gigs: past gigs with unpaid musicians or unpaid sound equipment
-  const now2 = new Date();
-  const pendingGigs = visibleGigs.filter(gig => {
-    const gigDate = new Date(gig.start_time);
-    if (gigDate >= now2) return false; // Only past gigs
-    
-    const gigLineups = lineups.filter(l => l.gig_id === gig.id);
-    
-    if (roleOf(gig) === 'admin') {
-      const anyMusicianUnpaid = gigLineups.some(l => l.status !== 'pago');
-      const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
-      return anyMusicianUnpaid || soundUnpaid;
-    } else {
-      const myLineup = gigLineups.find(l => l.member_id === myIdOf(gig));
-      return myLineup && myLineup.status !== 'pago';
-    }
-  });
+  // Shows already played whose money is not settled yet.
+  const pendingGigs = unsettledGigs(roles, visibleGigs, lineups);
 
   // Exclude pending gigs from the main timeline to avoid showing them twice
   const pendingGigIds = new Set(pendingGigs.map(g => g.id));
@@ -233,35 +203,20 @@ export default async function Home({
   const grouped = groupByMonth(filtered);
 
   // My cachê on the shows still to come (respects the current filter).
-  const upcomingFee = filtered.reduce((acc, gig) => {
-    if (new Date(gig.start_time) < now2) return acc;
-    const myLineup = lineups.find(l => l.gig_id === gig.id && l.member_id === myIdOf(gig));
-    return acc + (myLineup ? myLineup.fee_amount : 0);
-  }, 0);
+  const upcomingFee = filtered
+    .filter((gig) => isUpcoming(gig))
+    .reduce((acc, gig) => acc + myFee(roles, gig, lineups), 0);
 
   // My cachê on shows already played that has not been paid to me yet.
-  const feeToReceive = pendingGigs.reduce((acc, gig) => {
-    const myLineup = lineups.find(l => l.gig_id === gig.id && l.member_id === myIdOf(gig));
-    return acc + (myLineup && myLineup.status !== 'pago' ? myLineup.fee_amount : 0);
-  }, 0);
+  const feeToReceive = pendingGigs.reduce((acc, gig) => acc + myUnpaidFee(roles, gig, lineups), 0);
 
   // Owners: what their bands still owe the crew (musicians + sound) for shows already played.
-  const feeToPay = pendingGigs.reduce((acc, gig) => {
-    if (roleOf(gig) !== 'admin') return acc;
-    const unpaid = lineups.filter(l => l.gig_id === gig.id && l.status !== 'pago').reduce((s, l) => s + l.fee_amount, 0);
-    const sound = gig.bring_sound && !gig.is_sound_paid ? Number(gig.sound_cost ?? 0) : 0;
-    return acc + unpaid + sound;
-  }, 0);
+  const feeToPay = pendingGigs.reduce(
+    (acc, gig) => acc + (ownsGig(roles, gig) ? owedByBand(gig, lineups) : 0),
+    0
+  );
 
-  // "Shows Total" stat:
-  //   - Owner: every gig of the band (all statuses, past + future).
-  //   - Musician: only past gigs where they were actually in the lineup
-  //     (cancelled gigs that never happened don't count).
-  const totalShows = allGigs.filter(gig => {
-    if (roleOf(gig) === 'admin') return true;
-    if (new Date(gig.start_time) >= now2) return false; // only past
-    return lineups.some(l => l.gig_id === gig.id && l.member_id === myIdOf(gig));
-  }).length;
+  const totalShows = showsPlayedCount(roles, allGigs, lineups);
 
   const bandNameOf = (gig: GigWithProject) => (allBands && gig.band_id ? bands[gig.band_id]?.name : undefined);
 
@@ -275,16 +230,16 @@ export default async function Home({
         <div className="flex gap-3 overflow-x-auto pb-3 snap-x hide-scrollbar mb-6">
           <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
             <span className="text-xs font-medium text-zinc-500 block mb-1">Próximos cachês</span>
-            <span className="text-xl font-bold text-zinc-100">R$ {upcomingFee.toFixed(2)}</span>
+            <span className="text-xl font-bold text-zinc-100">{brl(upcomingFee)}</span>
           </div>
           <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
             <span className="text-xs font-medium text-zinc-500 block mb-1">A receber</span>
-            <span className={`text-xl font-bold ${feeToReceive > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>R$ {feeToReceive.toFixed(2)}</span>
+            <span className={`text-xl font-bold ${feeToReceive > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>{brl(feeToReceive)}</span>
           </div>
           {owned.length > 0 && (
             <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
               <span className="text-xs font-medium text-zinc-500 block mb-1">A pagar à equipe</span>
-              <span className={`text-xl font-bold ${feeToPay > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>R$ {feeToPay.toFixed(2)}</span>
+              <span className={`text-xl font-bold ${feeToPay > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>{brl(feeToPay)}</span>
             </div>
           )}
           <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
@@ -363,20 +318,11 @@ export default async function Home({
               <div className="flex flex-col gap-3">
                 {monthGigs.map((gig) => {
                   const lineupData = lineups.filter((l) => l.gig_id === gig.id);
-                  const gigDate = new Date(gig.start_time);
-                  const isPast = gigDate < now2;
-                  
-                  let isFullyPaid = false;
-                  if (isPast) {
-                    if (roleOf(gig) === 'admin') {
-                      const anyMusicianUnpaid = lineupData.some(l => l.status !== 'pago');
-                      const soundUnpaid = gig.bring_sound && (gig.sound_cost ?? 0) > 0 && !gig.is_sound_paid;
-                      isFullyPaid = !anyMusicianUnpaid && !soundUnpaid && lineupData.length > 0;
-                    } else {
-                      const myLineup = lineupData.find(l => l.member_id === myIdOf(gig));
-                      isFullyPaid = myLineup ? myLineup.status === 'pago' : false;
-                    }
-                  }
+                  // A played Show is dimmed once there is nothing left to settle on it.
+                  const isFullyPaid =
+                    !isUpcoming(gig) &&
+                    lineupData.length > 0 &&
+                    paymentStatus(roles, gig, lineupData) === 'settled';
 
                   return (
                     <GigCard key={gig.id} gig={gig} lineupData={lineupData} role={roleOf(gig)} userMemberId={myIdOf(gig)} bandName={bandNameOf(gig)} isPastFullyPaid={isFullyPaid} />
@@ -428,27 +374,20 @@ function GigCard({ gig, lineupData, role, userMemberId, bandName, isPastFullyPai
   const lineupFees = lineupData.reduce((acc, curr) => acc + curr.fee_amount, 0);
   const soundCost = gig.bring_sound ? (gig.sound_cost ?? 0) : 0;
   
-  let estimatedProfit = 0;
-  let isNotScheduled = false;
-
-  const myLineup = lineupData.find(l => l.member_id === userMemberId);
-  if (myLineup) {
-    estimatedProfit = myLineup.fee_amount;
-  } else {
-    isNotScheduled = true;
-  }
+  const mine = lineupRowOf(lineupData, userMemberId);
+  const estimatedProfit = Number(mine?.fee_amount ?? 0);
+  const isNotScheduled = !mine;
 
   const isGigPronta = (gig.gross_value > 0) && (Math.abs(gig.gross_value - (lineupFees + soundCost)) < 0.01);
 
   const projectColor = gig.go_projects?.color_hex || '#71717a';
 
-  const gigDate = new Date(gig.start_time);
-  const day = gigDate.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: TZ });
-  const weekday = gigDate.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '').toUpperCase();
+  const day = fmtDayOfMonth(gig.start_time);
+  const weekday = fmtWeekdayShort(gig.start_time);
 
-  const startStr = formatTime(gig.start_time);
-  const endStr = gig.end_time ? formatTime(gig.end_time) : null;
-  const duration = gig.end_time ? formatDuration(gig.start_time, gig.end_time) : null;
+  const startStr = fmtTime(gig.start_time);
+  const endStr = gig.end_time ? fmtTime(gig.end_time) : null;
+  const duration = fmtDuration(gig.start_time, gig.end_time);
 
   const timeDisplay = endStr
     ? `${startStr} – ${endStr}${duration ? ` (${duration})` : ''}`
@@ -496,7 +435,7 @@ function GigCard({ gig, lineupData, role, userMemberId, bandName, isPastFullyPai
         {/* Financial row */}
         <div className="mt-auto flex items-center justify-between gap-3 pt-2.5 border-t border-zinc-800/60">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500 font-medium">R$ {gig.gross_value.toFixed(2)}</span>
+            <span className="text-xs text-zinc-500 font-medium">{brl(Number(gig.gross_value))}</span>
             {isGigPronta && (
               <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500">
                 Gig OK
@@ -507,7 +446,7 @@ function GigCard({ gig, lineupData, role, userMemberId, bandName, isPastFullyPai
             <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
               estimatedProfit >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'
             }`}>
-              R$ {estimatedProfit.toFixed(2)}
+              {brl(estimatedProfit)}
             </span>
           ) : role === 'admin' ? (
             <span className="text-xs text-zinc-600 font-medium">

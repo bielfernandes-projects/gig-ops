@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireOwner, requireOwnerFor } from '@/lib/auth';
+import { requireOwnerFor } from '@/lib/auth';
 
 function money(value: FormDataEntryValue | null): number | null {
   const n = parseFloat(String(value ?? '').replace(',', '.'));
@@ -12,12 +12,6 @@ function refresh(gigId: string) {
   revalidatePath(`/gigs/${gigId}`);
   revalidatePath('/relatorio');
   revalidatePath('/dashboard');
-}
-
-/** Confirms the gig belongs to the band before touching its finances. */
-async function ownGig(ctx: Extract<Awaited<ReturnType<typeof requireOwner>>, { ok: true }>, gigId: string) {
-  const { data } = await ctx.supabase.from('go_gigs').select('id').eq('id', gigId).eq('band_id', ctx.bandId).maybeSingle();
-  return !!data;
 }
 
 export async function addExpense(formData: FormData) {
@@ -31,7 +25,6 @@ export async function addExpense(formData: FormData) {
 
   if (!gigId || !category) return { error: 'Informe a categoria.' };
   if (amount === null || amount < 0) return { error: 'Informe um valor válido.' };
-  if (!(await ownGig(ctx, gigId))) return { error: 'Show não encontrado.' };
 
   const { error } = await ctx.supabase
     .from('gig_expenses')
@@ -65,7 +58,6 @@ export async function addPayment(formData: FormData) {
 
   if (!gigId) return { error: 'Show inválido.' };
   if (amount === null || amount <= 0) return { error: 'Informe um valor maior que zero.' };
-  if (!(await ownGig(ctx, gigId))) return { error: 'Show não encontrado.' };
 
   const { error } = await ctx.supabase
     .from('gig_payments')

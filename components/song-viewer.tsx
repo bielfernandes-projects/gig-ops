@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { X, ExternalLink, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
-import { transposeChart, transposeStartKey } from '@/lib/transpose';
+import { chartFor, resolveSongKeys } from '@/lib/repertoire';
 import { getSongPdfUrl } from '@/app/actions/song-actions';
 
 export type SongView = {
@@ -30,14 +30,13 @@ type PdfUrlFetcher = (songId: string) => Promise<{ url?: string; error?: string 
  * token-scoped one instead, since the caller there has no authenticated session.
  */
 export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMessage = 'Esta música não tem texto salvo. Use os links de cifra e letra ou o PDF.' }: { song: SongView; onClose: () => void; fetchPdfUrl?: PdfUrlFetcher; emptyMessage?: string }) {
-  const key = song.requested_key || song.original_key;
-  const changed = !!(song.requested_key && song.original_key && song.requested_key !== song.original_key);
+  const keys = resolveSongKeys(song);
+  const key = keys.to;
+  const changed = keys.transposed;
   const [showOriginal, setShowOriginal] = useState(false);
-  const startKey = showOriginal ? song.start_key : transposeStartKey(song.start_key, song.original_key, song.requested_key);
-  const text = useMemo(
-    () => (song.chart_text && !showOriginal ? transposeChart(song.chart_text, song.original_key, song.requested_key) : song.chart_text),
-    [song.chart_text, song.original_key, song.requested_key, showOriginal]
-  );
+  const startKey = showOriginal ? song.start_key : keys.startKey;
+  const { from, to } = keys;
+  const text = useMemo(() => chartFor(song.chart_text, { from, to }, showOriginal), [song.chart_text, from, to, showOriginal]);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-zinc-950" role="dialog" aria-modal="true" aria-label={song.title}>
@@ -49,7 +48,7 @@ export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMe
             {key && (
               <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-semibold text-zinc-100">
                 Tom {key}
-                {song.requested_key && song.original_key && song.requested_key !== song.original_key ? ` (original ${song.original_key})` : ''}
+                {keys.transposed ? ` (original ${keys.from})` : ''}
               </span>
             )}
             {startKey && <span className="rounded bg-amber-300 px-1.5 py-0.5 font-semibold text-black">Tom que começa {startKey}</span>}

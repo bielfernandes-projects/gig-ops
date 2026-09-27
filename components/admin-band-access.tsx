@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { grantPremium, revokePremium } from '@/app/admin/actions';
 import type { AdminUserBand } from '@/lib/admin-stats';
+import { fmtShortDate } from '@/lib/time';
+import { subscriptionPlan } from '@/lib/subscription';
 
 const STATE_LABEL = { trial: 'teste', active: 'ativa', expired: 'expirada' } as const;
 const STATE_TONE = { trial: 'text-amber-300', active: 'text-emerald-400', expired: 'text-red-400' } as const;
@@ -14,7 +16,7 @@ const PRAZOS: { label: string; days: number | null }[] = [
   { label: '90 dias', days: 90 },
 ];
 
-const shortDate = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+const shortDate = fmtShortDate;
 
 /**
  * Estado da assinatura de uma banda e o controle de acesso de cortesia. Só aparece pra banda da qual
@@ -34,8 +36,8 @@ export function AdminBandAccess({ band, canManage }: { band: AdminUserBand; canM
       }
     });
 
-  /** Ativa sem prazo e sem Stripe = cortesia. Com paid_until, é cortesia com validade. */
-  const isComped = band.state === 'active' && !band.hasStripe;
+  /** Cortesia = ativa sem cartão por trás (com ou sem prazo). A regra vive em lib/subscription. */
+  const { comped: isComped } = subscriptionPlan(band, band.hasStripe);
 
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
