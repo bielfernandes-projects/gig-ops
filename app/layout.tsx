@@ -28,6 +28,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   robots: { index: true, follow: true },
+  verification: { google: '2SxqrjPHa0xrCKyPiVcUmvpFFSIUTcR3fSsIi4cgIxU' },
   openGraph: {
     siteName: 'Gigueiros',
     locale: 'pt_BR',
