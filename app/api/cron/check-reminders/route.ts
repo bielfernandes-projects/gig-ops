@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { CONTACT_EMAIL } from '@/lib/contact';
 import { NextResponse } from 'next/server';
 import { fmtTime, fmtWeekdayDayMonth } from '@/lib/time';
 
@@ -117,7 +118,7 @@ export async function GET(req: Request) {
         // Send to all subscriptions
         const webpush = (await import('web-push')).default;
         webpush.setVapidDetails(
-          process.env.VAPID_ADMIN_EMAIL || 'mailto:contato@gigueiros.com.br',
+          process.env.VAPID_ADMIN_EMAIL || `mailto:${CONTACT_EMAIL}`,
           process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
           process.env.VAPID_PRIVATE_KEY!
         );

@@ -5,6 +5,7 @@ import { Setlist } from '@/components/landing-setlist';
 import { ClickableShot, FeatureCarousel, type Shot } from '@/components/screenshot-lightbox';
 import { FOUNDER_LIMIT } from '@/lib/pricing';
 import { countFounders } from '@/lib/founders';
+import { CONTACT_EMAIL } from '@/lib/contact';
 
 export const revalidate = 3600;
 
@@ -261,6 +262,9 @@ export default async function Landing() {
             <Link href="/privacidade" className="underline-offset-4 hover:text-[var(--l-fg)] hover:underline">
               Privacidade
             </Link>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="underline-offset-4 hover:text-[var(--l-fg)] hover:underline">
+              Contato
+            </a>
           </nav>
         </div>
       </footer>

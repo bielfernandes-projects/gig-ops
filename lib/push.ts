@@ -1,8 +1,9 @@
 import webpush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { CONTACT_EMAIL } from '@/lib/contact';
 
 webpush.setVapidDetails(
-  process.env.VAPID_ADMIN_EMAIL || 'mailto:contato@gigueiros.com.br',
+  process.env.VAPID_ADMIN_EMAIL || `mailto:${CONTACT_EMAIL}`,
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!
 );

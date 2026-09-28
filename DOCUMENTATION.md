@@ -750,3 +750,9 @@ verificado e descartado, para não ser re-investigado depois:
    duas linhas em `go_members` na mesma banda (uma adicionada por e-mail, outra ligada à conta)
    perderia cachês em "Meus cachês". `BandScope` agora carrega `memberIds: string[]` e o relatório
    soma todas; `memberId` segue sendo a primeira, para os usos de identidade única.
+
+## 38. Contato e textos legais
+* `lib/contact.ts` (`CONTACT_EMAIL`) é o único lugar do e-mail público de contato/privacidade/reembolso (hoje o Gmail do criador, já que o domínio não tem caixa de e-mail: só o subdomínio `send.` existe, para o Resend enviar). Usado em Termos, Privacidade, rodapé da landing e no fallback do assunto VAPID (`lib/push.ts`, cron de lembretes). Se um dia existir `contato@gigueiros.com.br` (precisa de registro MX no DNS da Vercel), troque só a constante.
+* **Termos** (`app/termos/page.tsx`): identificam o responsável (pessoa física), preço de Fundador (perdido se cancelar), modo somente leitura por falha de pagamento, reembolso que também encerra a assinatura, responsabilidade pelo conteúdo cadastrado com canal de remoção (cifras/letras) e foro do consumidor.
+* **Privacidade** (`app/privacidade/page.tsx`): controlador e contato, dados de conta/uso/cobrança/telemetria (`app_events`), base legal, operadores (Supabase, Vercel, Stripe, Resend, Google), cookies essenciais, retenção, direitos LGPD com prazo de 15 dias e ANPD.
+* O portal de cobrança do Stripe aponta para essas duas páginas (configurado na conta live).
