@@ -20,6 +20,8 @@ export type ActionName =
   | 'musico_cadastrado'
   | 'musica_criada'
   | 'repertorio_criado'
+  | 'repertorio_lido'
+  | 'repertorio_importado'
   | 'banda_criada'
   | 'entrou_na_banda';
 
