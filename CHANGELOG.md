@@ -6,5 +6,5 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 Primeira versão numerada, correspondente ao app em produção desde o go-live.
 
 ### Adicionado
-- Versão do app visível no rodapé da landing e no fim da tela de Perfil.
+- Versão do app visível no rodapé da landing, na tela de login e no fim da tela de Perfil.
 - `CHANGELOG.md` e `lib/version.ts` (fonte única da versão: `package.json`).
