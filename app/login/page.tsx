@@ -8,6 +8,7 @@ import { CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { login, signup, forgotPassword, adminSignup } from './actions';
 import { createClient } from '@/lib/supabase/client';
 import { PasswordStrengthIndicator, isPasswordValid } from '@/components/password-strength-indicator';
+import { APP_VERSION } from '@/lib/version';
 
 /** Codes GoTrue returns when an OAuth email collides with an account under another provider (linking is off). */
 const GOOGLE_EMAIL_CONFLICT_CODES = new Set([
@@ -368,6 +369,7 @@ function LoginPageInner() {
           </>
         )}
       </div>
+      <p className="mt-3 shrink-0 text-[11px] text-zinc-600">v{APP_VERSION}</p>
     </div>
   );
 }

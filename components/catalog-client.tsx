@@ -7,6 +7,7 @@ import { Plus, Search, Pencil, Trash2, FileText, AlignLeft, Paperclip } from 'lu
 import { addSong, updateSong, deleteSong, getSongPdfUrl } from '@/app/actions/song-actions';
 import { MUSICAL_KEYS } from '@/lib/keys';
 import { SongViewer } from '@/components/song-viewer';
+import { ImportRepertoire } from '@/components/import-repertoire';
 
 export type CatalogSong = {
   id: string;
@@ -205,6 +206,7 @@ export function CatalogClient({ songs, userId, isOwner, bandId }: { songs: Catal
         >
           <Plus className="h-4 w-4" /> Nova música
         </button>
+        {isOwner && <ImportRepertoire bandId={bandId} songs={songs.filter((s) => s.scope !== 'personal').map((s) => ({ id: s.id, title: s.title }))} />}
       </div>
 
       {editing && (

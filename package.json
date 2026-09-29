@@ -1,6 +1,6 @@
 {
   "name": "gigueiros",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -20,6 +20,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "ics": "^3.11.0",
     "lucide-react": "^1.8.0",
+    "mammoth": "^1.13.0",
     "next": "16.2.3",
     "react": "19.2.4",
     "react-colorful": "^5.6.1",
@@ -28,6 +29,7 @@
     "recharts": "^3.8.1",
     "sonner": "^2.0.7",
     "stripe": "^22.6.2",
+    "unpdf": "^1.8.1",
     "web-push": "^3.6.7"
   },
   "devDependencies": {

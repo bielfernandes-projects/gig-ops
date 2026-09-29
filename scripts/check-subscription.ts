@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  premiumNoticeAction,
   subscriptionLabel,
   subscriptionNotice,
   subscriptionPlan,
@@ -61,3 +62,10 @@ assert.deepEqual(subscriptionPlan({ state: 'expired' }, false), { comped: false,
 assert.equal(subscriptionPlan(null, false).comped, false, 'no row means trial, not courtesy');
 
 console.log('check-subscription: ok');
+
+// ── "Premium desbloqueado" notice ───────────────────────────────────────────
+assert.equal(premiumNoticeAction('active', null), 'show', 'became Premium and was never told');
+assert.equal(premiumNoticeAction('active', days(-1)), 'none', 'already told, do not repeat');
+assert.equal(premiumNoticeAction('expired', days(-1)), 'reset', 'left Premium: forget, so a comeback notifies again');
+assert.equal(premiumNoticeAction('trial', null), 'none', 'a trial is not Premium');
+assert.equal(premiumNoticeAction('expired', null), 'none');

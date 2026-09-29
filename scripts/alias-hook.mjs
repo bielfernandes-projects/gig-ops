@@ -6,10 +6,10 @@
  * Used via `node --import ./scripts/alias-hook.mjs scripts/check-*.ts`.
  */
 import { registerHooks } from 'node:module';
-import { pathToFileURL } from 'node:url';
 import { existsSync } from 'node:fs';
 
-const root = pathToFileURL(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')).href.replace(/\/?$/, '/');
+// import.meta.url is already a proper file URL (spaces encoded once); re-encoding its pathname broke folders with spaces.
+const root = new URL('..', import.meta.url).href;
 
 registerHooks({
   resolve(specifier, context, nextResolve) {

@@ -25,7 +25,7 @@ export default function Termos() {
         <p>Em até 7 dias após a primeira cobrança, você pode pedir o reembolso integral pelo e-mail {CONTACT_EMAIL}. Fora desse prazo, não há reembolso proporcional do período já pago. O reembolso devolve o valor e encerra a assinatura.</p>
 
         <h2 className="font-semibold text-zinc-100">Conteúdo que você cadastra</h2>
-        <p>Os dados, textos, cifras, letras, links e PDFs que você coloca no app são de sua responsabilidade: use apenas material que você tem direito de usar. O Gigueiros não fornece cifras nem letras; guarda o que você e sua banda cadastram. Se você é titular de direitos e acredita que algum conteúdo foi cadastrado indevidamente, escreva para {CONTACT_EMAIL} e o material será analisado e removido quando cabível.</p>
+        <p>Os dados, textos, cifras, letras, links e PDFs que você coloca no app, inclusive os que entram pela importação de repertório a partir de um arquivo seu, são de sua responsabilidade: use apenas material que você tem direito de usar. O Gigueiros não fornece cifras nem letras; guarda o que você e sua banda cadastram. Se você é titular de direitos e acredita que algum conteúdo foi cadastrado indevidamente, escreva para {CONTACT_EMAIL} e o material será analisado e removido quando cabível.</p>
 
         <h2 className="font-semibold text-zinc-100">Disponibilidade</h2>
         <p>Buscamos manter o serviço no ar, mas ele é fornecido no estado em que se encontra, sem garantia de disponibilidade contínua. Os valores calculados no app são apoio de gestão e não substituem contabilidade. Faça suas próprias cópias de informações críticas, como contratos e comprovantes.</p>

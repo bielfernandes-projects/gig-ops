@@ -8,6 +8,7 @@ import { MobileNav } from '@/components/mobile-nav';
 import { OfflineSetup } from '@/components/offline-setup';
 import { ThemeToaster } from '@/components/theme-toaster';
 import { ScreenTracker } from '@/components/screen-tracker';
+import { PremiumNotice } from '@/components/premium-notice';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -86,6 +87,7 @@ export default function RootLayout({
 
         <ThemeToaster />
         <ScreenTracker />
+        <PremiumNotice />
         <OfflineSetup />
         <Analytics />
         <SpeedInsights />
