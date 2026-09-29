@@ -20,6 +20,7 @@ CADA MÚSICA
 - lyricHint: o primeiro verso, quando o documento traz (coluna "Início", texto entre parênteses que é letra). Senão null.
 - note: observações de execução (solo, transição, crescente, só refrão, cai meio tom, sequência de acordes, marcadores soltos como "P" ou "R"). Senão null.
 - Se uma linha junta várias músicas claramente separadas, separe.
+- NÃO são músicas: sequências de acordes soltas (ex.: "Am7 - Em (3x) Am7 - D"), instruções sem nome de música (ex.: "(Original)", "Palmas + Diretão", "Só viola largando de G7M", "bye bye - cai meio tom") e falas de palco. Se estiverem logo abaixo de uma música, coloque em note dela; se estiverem sozinhas, ignore.
 
 REGRAS
 - Nunca invente nada. Campo ausente é null.
@@ -59,7 +60,10 @@ const RESPONSE_SCHEMA = {
 
 export type ImportFile = { name: string; mime: string; bytes: Uint8Array };
 
-const FALLBACK_MODELS = ['gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.8-flash'];
+// Order = capacity first, not strength: the person reviews and fixes the result on screen anyway, so what matters is
+// the import going through. Each model has its own free daily quota. Measured 2026-09: `3.1-flash-lite` took 55+ requests
+// with no limit, while the "flash" ones stop at 20/day. The stronger ones stay as the last resort.
+const FALLBACK_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.8-flash'];
 
 export const IMPORT_MAX_BYTES = 4 * 1024 * 1024;
 
@@ -118,15 +122,20 @@ export async function parseRepertoire(file: ImportFile, opts: { apiKey: string; 
   // 503 (busy) per model. So: the configured model first (GEMINI_MODEL), then the others, one after another.
   const chain = [...new Set([opts.model, ...FALLBACK_MODELS].filter((m): m is string => Boolean(m)))];
   let res: Response | null = null;
+  let dailyQuota = 0; // models that answered 429 because their DAILY quota is gone (a wait of minutes won't help)
   for (const model of chain) {
     res = await call(model);
     if (res.status === 503) {
       await new Promise((r) => setTimeout(r, 2000));
       res = await call(model);
     }
+    if (res.status === 429 && /PerDay/i.test(await res.clone().text())) dailyQuota++;
     if (res.ok || ![404, 429, 503].includes(res.status)) break;
   }
 
+  if (res?.status === 429 && dailyQuota === chain.length) {
+    throw new ImportError('A cota gratuita diária da leitura por IA acabou por hoje. Tente de novo amanhã.');
+  }
   if (res?.status === 429) throw new ImportError('O serviço de leitura está no limite de uso agora. Tente de novo em alguns minutos.');
   if (res?.status === 503) throw new ImportError('O serviço de leitura está sobrecarregado agora. Tente de novo em alguns minutos.');
   if (res && !res.ok) console.error('repertoire import: Gemini error', res.status, (await res.text()).slice(0, 500));
