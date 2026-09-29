@@ -764,3 +764,11 @@ verificado e descartado, para não ser re-investigado depois:
 * **Branches:** `main` = produção (Supabase `Gigueiros`); `homolog` = homologação fixa (Supabase `Gigueiros-Homolog`, domínio `homolog.gigueiros.com.br`); `feature/*` saem da `homolog` e voltam por PR. Só `homolog → main` publica em produção.
 * **Ambientes na Vercel:** as variáveis `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` de **Preview** apontam para a homologação; as de Production/Development, para produção. Preview não tem `STRIPE_SECRET_KEY` (checkout desligado até existirem chaves de teste). Toda migration é aplicada primeiro na homologação.
 * O schema-base (tabelas `go_*` etc.) não está nas migrations: a homologação foi montada a partir do catálogo de produção (somente estrutura, sem dados).
+
+## 50. Aviso "Premium desbloqueado"
+* Quando uma banda passa a ter assinatura **ativa**, o Dono vê uma vez o aviso "Premium desbloqueado" no próximo login ou atualização do app. Vale para qualquer origem da mudança (webhook do Stripe, botão do painel `/admin/usuarios` ou alteração direta no banco), porque a decisão olha só o estado final.
+* **Como funciona:** `components/premium-notice.tsx` (montado no layout raiz) chama a server action `claimPremiumNotice` (`app/actions/premium-actions.ts`) na primeira tela do app de cada carregamento; a regra pura é `premiumNoticeAction` em `lib/subscription.ts` (coberta por `scripts/check-subscription.ts`). O marcador é `subscriptions.premium_seen_at` (vazio = ainda não avisado), gravado com update condicional (`is null`), então duas abas avisam uma vez só. Se a banda deixa de ser Premium (cancelou/expirou), o marcador é limpo e a próxima ativação avisa de novo.
+* Só o **Dono** é avisado; membros não veem.
+* **Migration** `20260929000000_premium_seen.sql`: cria a coluna e faz backfill das bandas que já são Premium (para ninguém receber o aviso retroativamente). **Em produção, aplicar a migration antes de publicar o código**, senão a consulta da coluna falha.
+* Para testar em homologação: `update subscriptions set premium_seen_at = null where band_id = '...'` e recarregar o app.
+* Onboarding e landing não são afetados (nenhum fluxo do tour nem promessa da landing muda).

@@ -36,6 +36,16 @@ export function subscriptionState(sub: SubscriptionRow | null, now: Date = new D
   return { state: 'expired', daysLeft: null, ...dates };
 }
 
+/**
+ * What the app does about the "Premium desbloqueado" notice for one Banda. `seenAt` is
+ * `subscriptions.premium_seen_at`: set once the Dono was told. Leaving Premium clears it, so the
+ * next activation (Stripe, admin panel or a direct database change) tells them again.
+ */
+export function premiumNoticeAction(state: SubscriptionState['state'], seenAt: string | null): 'show' | 'reset' | 'none' {
+  if (state === 'active') return seenAt ? 'none' : 'show';
+  return seenAt ? 'reset' : 'none';
+}
+
 // ─── How the state is shown ─────────────────────────────────────────────────
 // The wording and the "warn at N days" threshold used to live in JSX — three differently-worded
 // renderers of the same three states, each with its own copy of the rule. They belong next to the

@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 const IGNORED = ['/', '/login', '/termos', '/privacidade'];
 const IGNORED_PREFIXES = ['/s/', '/auth/', '/admin', '/api/'];
 
-const shouldTrack = (path: string) => !IGNORED.includes(path) && !IGNORED_PREFIXES.some((p) => path.startsWith(p));
+export const shouldTrack = (path: string) => !IGNORED.includes(path) && !IGNORED_PREFIXES.some((p) => path.startsWith(p));
 
 /**
  * Registra cada navegação dentro do app (tabela `app_events`, painel em /admin). Montado uma vez no
