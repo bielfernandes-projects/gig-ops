@@ -784,5 +784,5 @@ verificado e descartado, para não ser re-investigado depois:
 * **Variáveis:** `GEMINI_API_KEY` (obrigatória; sem ela a rota responde 503 "ainda não está disponível") e `GEMINI_MODEL` (opcional). Hoje só em **Preview**; ao publicar, criar em Production.
 * **Privacidade:** o Google (Gemini) foi listado como operador em `/privacidade` e a tela avisa que, no plano gratuito, o conteúdo pode ser usado por ele para melhorar produtos. Se migrar para o plano pago, atualizar o texto.
 * **Testes:** `scripts/check-import.ts` (tom, título, limpeza da resposta); `scripts/try-import.ts` roda a leitura real numa pasta de arquivos (manual, sem gravar no banco).
-* **Sync:** landing (Repertório e cifras), tour (passo do Repertório) e Privacidade atualizados.
+* **Sync:** a landing tem uma **seção própria** ("Seu repertório já existe. Traga ele pra cá.", `importSteps` em `app/page.tsx`, com o aviso de que a IA não inventa tom/artista e que PDF escaneado não é lido) além do card "Repertório e cifras" e da meta description; o tour (passo do Repertório) e a Privacidade também foram atualizados. Ao mudar o comportamento da importação, revisar esses textos.
 * O `alias-hook.mjs` dos testes codificava duas vezes caminhos com espaço (o de OneDrive), o que fazia `check-gig-view` e `check-repertoire` falharem; corrigido.

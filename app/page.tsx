@@ -11,7 +11,7 @@ import { APP_VERSION } from '@/lib/version';
 export const revalidate = 3600;
 
 const title = 'Gigueiros: agenda, escala e cachês da sua banda';
-const description = 'Chega de planilha e grupo de WhatsApp. Organize shows, escala de músicos, cachês, repertório e financeiro em um app feito para bandas.';
+const description = 'Chega de planilha e grupo de WhatsApp. Organize shows, escala de músicos, cachês, repertório (importe o seu de um PDF ou Word) e financeiro em um app feito para bandas.';
 
 export const metadata: Metadata = {
   title,
@@ -61,6 +61,21 @@ const features = [
   {
     title: 'Financeiro e rateio',
     text: 'Recibo em PDF para o contratante, controle de sinal e restante, e divisão do lucro entre os sócios da banda.',
+  },
+];
+
+const importSteps = [
+  {
+    title: 'Envie o arquivo',
+    text: 'O PDF, o Word (DOCX) ou o TXT que você já usa. Pode ser lista, tabela ou blocos: o app entende o formato do seu jeito de anotar.',
+  },
+  {
+    title: 'Revise na tela',
+    text: 'Veja o que foi lido, corrija o que precisar e filtre as músicas com nome, tom ou artista faltando. Nada é salvo até você confirmar.',
+  },
+  {
+    title: 'Pronto no catálogo',
+    text: 'As músicas entram no catálogo e o repertório é criado com os blocos do seu documento. O que o arquivo não trazia fica em branco, para você completar aos poucos.',
   },
 ];
 
@@ -147,6 +162,30 @@ export default async function Landing() {
                 </li>
               ))}
             </ul>
+          </div>
+        </section>
+
+        {/* Importar repertório */}
+        <section className="border-t-2 border-[var(--l-fg)]">
+          <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
+            <h2 className="max-w-3xl text-balance text-3xl font-black tracking-[-0.03em] sm:text-5xl">
+              Seu repertório já existe. Traga ele pra cá.
+            </h2>
+            <p className="mt-4 max-w-2xl text-pretty text-base text-[var(--l-mute)] sm:text-lg">
+              Sem digitar música por música: o app lê o PDF, o Word ou o TXT que você já tem e monta o catálogo e os blocos do jeito que estão.
+            </p>
+            <ol className="mt-12 grid gap-6 lg:grid-cols-3">
+              {importSteps.map((step, i) => (
+                <li key={step.title} className="border-2 border-[var(--l-fg)] p-6 sm:p-7">
+                  <span aria-hidden className="text-4xl font-black tabular-nums tracking-[-0.04em]">0{i + 1}</span>
+                  <h3 className="mt-3 text-xl font-bold tracking-[-0.02em] sm:text-2xl">{step.title}</h3>
+                  <p className="mt-2 text-pretty text-base text-[var(--l-mute)]">{step.text}</p>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-6 max-w-2xl text-sm text-[var(--l-mute)]">
+              A leitura é feita por inteligência artificial e não inventa: tom ou artista que o arquivo não diz ficam vazios. PDF escaneado (foto do papel) ainda não é lido.
+            </p>
           </div>
         </section>
 
