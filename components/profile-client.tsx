@@ -41,9 +41,10 @@ type Props = {
   pricePlan: 'standard' | 'founder' | 'solo';
   billing: BillingView | null;
   founderWhatsappUrl: string | null;
+  appVersion: string;
 };
 
-export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, billing, founderWhatsappUrl }: Props) {
+export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, billing, founderWhatsappUrl, appVersion }: Props) {
   // The browser's permission is the starting point; `override` is what this screen's own
   // buttons set while subscribing/unsubscribing.
   const permission = useSyncExternalStore(subscribePermission, readPermission, serverPermission);
@@ -287,6 +288,7 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
         </div>
       </section>
 
+      <p className="text-center text-xs text-zinc-500">Gigueiros v{appVersion}</p>
     </div>
   );
 }

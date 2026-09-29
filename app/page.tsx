@@ -6,6 +6,7 @@ import { ClickableShot, FeatureCarousel, type Shot } from '@/components/screensh
 import { FOUNDER_LIMIT } from '@/lib/pricing';
 import { countFounders } from '@/lib/founders';
 import { CONTACT_EMAIL } from '@/lib/contact';
+import { APP_VERSION } from '@/lib/version';
 
 export const revalidate = 3600;
 
@@ -265,6 +266,7 @@ export default async function Landing() {
             <a href={`mailto:${CONTACT_EMAIL}`} className="underline-offset-4 hover:text-[var(--l-fg)] hover:underline">
               Contato
             </a>
+            <span aria-label={`Versão ${APP_VERSION}`}>v{APP_VERSION}</span>
           </nav>
         </div>
       </footer>

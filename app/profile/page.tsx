@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { monthlyPlan, PRICES } from '@/lib/pricing';
 import { countFounders } from '@/lib/founders';
 import ProfileClient from '@/components/profile-client';
+import { APP_VERSION } from '@/lib/version';
 import type { BandMemberView, BillingView } from '@/components/band-sections';
 
 export const revalidate = 0;
@@ -74,6 +75,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       subscription={info.subscription}
       pricePlan={info.pricePlan}
       billing={billing}
+      appVersion={APP_VERSION}
       founderWhatsappUrl={info.isFounder ? process.env.FOUNDER_WHATSAPP_URL || null : null}
     />
   );

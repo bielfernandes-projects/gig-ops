@@ -757,3 +757,10 @@ verificado e descartado, para não ser re-investigado depois:
 * **Privacidade** (`app/privacidade/page.tsx`): controlador e contato, dados de conta/uso/cobrança/telemetria (`app_events`), base legal, operadores (Supabase, Vercel, Stripe, Resend, Google), cookies essenciais, retenção, direitos LGPD com prazo de 15 dias e ANPD.
 * Portal de cobrança do Stripe: os links de Termos e Privacidade já estão cadastrados (modo produção).
 * **Google Search Console** (2026-09): propriedade de prefixo de URL `https://gigueiros.com.br`, verificada pela meta tag em `metadata.verification.google` (`app/layout.tsx`). Sitemap `sitemap.xml` enviado e indexação solicitada para a home, `/termos` e `/privacidade`. Não remover a meta tag, senão a verificação é perdida.
+
+## 49. Versionamento e fluxo de branches
+* **SemVer** (`MAJOR.MINOR.PATCH`) no campo `version` do `package.json`; `lib/version.ts` exporta `APP_VERSION` (importar só em Server Components e passar por prop, para não levar o `package.json` inteiro ao bundle do cliente). Exibida no rodapé da landing e no fim do Perfil. Histórico em `CHANGELOG.md`.
+* **Regra de bump:** `PATCH` correção; `MINOR` funcionalidade nova compatível; `MAJOR` mudança que quebra fluxo ou dados existentes. O bump entra no PR que sobe a mudança para `main`, junto com a entrada do `CHANGELOG.md`; a tag `vX.Y.Z` é criada na `main` depois do deploy validado.
+* **Branches:** `main` = produção (Supabase `Gigueiros`); `homolog` = homologação fixa (Supabase `Gigueiros-Homolog`, domínio `homolog.gigueiros.com.br`); `feature/*` saem da `homolog` e voltam por PR. Só `homolog → main` publica em produção.
+* **Ambientes na Vercel:** as variáveis `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` de **Preview** apontam para a homologação; as de Production/Development, para produção. Preview não tem `STRIPE_SECRET_KEY` (checkout desligado até existirem chaves de teste). Toda migration é aplicada primeiro na homologação.
+* O schema-base (tabelas `go_*` etc.) não está nas migrations: a homologação foi montada a partir do catálogo de produção (somente estrutura, sem dados).
