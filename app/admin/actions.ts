@@ -6,6 +6,8 @@ import { isSuperAdmin } from '@/lib/admin';
 import { isElevated } from '@/lib/admin-session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { UPDATE_KINDS, type UpdateKind } from '@/lib/notification-model';
+import { dayKey, toIso } from '@/lib/time';
 
 /**
  * Gestão de contas pelo painel de produto.
@@ -91,7 +93,7 @@ export async function previewUserDeletion(userId: string): Promise<DeletionImpac
 
 /**
  * Apaga a conta e, com ela, as bandas das quais era a única dona — o `on delete cascade` de `bands`
- * leva membros, assinatura, shows, escala, projetos, músicas e repertórios. Bandas com outro dono
+ * leva membros, assinatura, gigs, escala, projetos, músicas e repertórios. Bandas com outro dono
  * ficam de pé: a pessoa só deixa de ser membro (cascade de `band_members.user_id`).
  * Irreversível: a tela chama `previewUserDeletion` antes e mostra exatamente isso.
  */
@@ -184,5 +186,46 @@ export async function revokePremium(bandId: string) {
 
   revalidatePath('/admin/usuarios');
   revalidatePath('/admin');
+  return { success: true };
+}
+
+/**
+ * Lança uma atualização do app (aparece no pop-up de todos e na lista "Atualizações do app" do sino).
+ * A data é a que aparece para as pessoas; quem já viu o pop-up é decidido por quando foi lançada.
+ */
+export async function createAppUpdate(input: { kind: string; title: string; body: string; date: string }) {
+  const gate = await requireSuperAdmin();
+  if (!gate.ok) return { error: gate.error };
+
+  const title = input.title.trim();
+  const body = input.body.trim();
+  if (!UPDATE_KINDS.includes(input.kind as UpdateKind)) return { error: 'Escolha o tipo da atualização.' };
+  if (!title || title.length > 120) return { error: 'Informe o título (até 120 caracteres).' };
+  if (!body || body.length > 2000) return { error: 'Informe a descrição (até 2000 caracteres).' };
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.date);
+  if (!m) return { error: 'Informe a data.' };
+
+  // Hoje = agora (mantém a ordem entre lançamentos do mesmo dia); outro dia = meio-dia em Brasília.
+  const publishedAt = input.date === dayKey() ? new Date().toISOString() : toIso(Number(m[1]), Number(m[2]), Number(m[3]), 12, 0);
+
+  const { error } = await createAdminClient().from('app_updates').insert({ kind: input.kind, title, body, published_at: publishedAt });
+  if (error) {
+    console.error('admin: falha ao lançar atualização:', error.message);
+    return { error: 'Não foi possível lançar a atualização.' };
+  }
+  revalidatePath('/admin/atualizacoes');
+  return { success: true };
+}
+
+export async function deleteAppUpdate(id: string) {
+  const gate = await requireSuperAdmin();
+  if (!gate.ok) return { error: gate.error };
+
+  const { error } = await createAdminClient().from('app_updates').delete().eq('id', id);
+  if (error) {
+    console.error('admin: falha ao apagar atualização:', error.message);
+    return { error: 'Não foi possível apagar.' };
+  }
+  revalidatePath('/admin/atualizacoes');
   return { success: true };
 }

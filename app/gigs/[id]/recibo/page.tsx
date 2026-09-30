@@ -43,13 +43,13 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 pb-32 md:p-10 print:p-0">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/gigs/${id}`} className="text-sm font-medium text-zinc-400 hover:text-zinc-100">← Voltar ao show</Link>
+        <Link href={`/gigs/${id}`} className="text-sm font-medium text-zinc-400 hover:text-zinc-100">← Voltar Ã  gig</Link>
         <PrintButton />
       </div>
 
       {amount <= 0 ? (
         <p className="rounded-xl border border-dashed border-zinc-700 p-6 text-center text-sm text-zinc-400 print:hidden">
-          Ainda não há valor recebido registrado para este show. Registre o recebimento na página do show para emitir o recibo.
+          Ainda não há valor recebido registrado para esta gig. Registre o recebimento na página da gig para emitir o recibo.
         </p>
       ) : (
         <article className="rounded-xl bg-white p-8 text-black shadow-sm md:p-12 print:rounded-none print:p-0 print:shadow-none">

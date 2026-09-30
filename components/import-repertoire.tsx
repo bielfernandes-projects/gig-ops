@@ -178,9 +178,11 @@ export function ImportRepertoire({ bandId, songs }: { bandId: string; songs: Cat
                     className={`${inputCls} file:mr-3 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1 file:text-zinc-200`}
                   />
                 </label>
-                <p className="text-xs text-zinc-500">
-                  O texto do arquivo é enviado ao Google (Gemini) para identificar as músicas. No plano gratuito do Google, esse conteúdo pode ser usado para melhorar os produtos deles: não envie dados pessoais. PDF escaneado (foto) não é lido.
-                </p>
+                <ul className="list-disc space-y-1 pl-4 text-xs text-zinc-500">
+                  <li>O texto do arquivo é enviado ao Google (Gemini) para identificar as músicas e esse conteúdo pode ser usado para melhorar os produtos deles: não envie dados sensíveis (senhas, telefones, CPFs).</li>
+                  <li>Depois de importar, você pode editar todas as músicas e o repertório.</li>
+                  <li>PDF escaneado (foto) não é lido.</li>
+                </ul>
                 {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
                 {step === 'reading' && (
                   <p className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm text-zinc-300">

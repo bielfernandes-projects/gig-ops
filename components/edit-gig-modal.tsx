@@ -123,7 +123,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
               {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="gig-title" className="text-xs font-medium text-zinc-400">
-                  Título do Show
+                  Título da Gig
                 </label>
                 <input
                   type="text"
@@ -375,7 +375,7 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
 
               {gig.recurrence_group_id && (
                 <div className="flex flex-col gap-2 bg-zinc-900 border border-red-500/20 p-3 rounded-lg text-left">
-                  <label className="text-xs font-medium text-red-400">Este show se repete</label>
+                  <label className="text-xs font-medium text-red-400">Esta gig se repete</label>
                   <label className="flex items-center gap-2 text-xs font-semibold text-zinc-300 hover:text-white cursor-pointer">
                     <input type="radio" name="deleteMode" value="single" checked={deleteMode === 'single'} onChange={() => setDeleteMode('single')} className="accent-red-500" />
                     Apagar apenas este

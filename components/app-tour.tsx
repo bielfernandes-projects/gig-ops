@@ -34,19 +34,19 @@ const nav = (href: string, title: string, content: string): Step => ({ target: n
 
 const OWNER_STEPS: Step[] = [
   welcome('Em menos de 1 minuto te mostro o caminho pra tirar a banda da planilha e do grupo de WhatsApp.'),
-  nav('/members', 'Comece pela equipe', 'Cadastre os músicos com instrumento. Quem tiver e-mail cadastrado vê os próprios shows e cachês no app.'),
-  nav('/agenda', 'Crie os shows', 'Toque em "Novo Show", escale os músicos e defina o cachê de cada um. O lucro do show é calculado na hora.'),
-  nav('/repertorio', 'Monte o repertório', 'Catálogo com links de cifra e letra, tom, tom que começa, observações e PDF e repertórios reutilizáveis: marque um como principal e ele já entra nos shows novos. Já tem o repertório pronto? Use "Importar repertório" para trazer de um PDF, Word ou TXT.'),
+  nav('/members', 'Comece pela equipe', 'Cadastre os músicos com instrumento. Use o mesmo e-mail com que cada um entra no Gigueiros: ao escalar o músico numa gig, a gig aparece na hora na agenda dele, com o cachê.'),
+  nav('/agenda', 'Crie as gigs', 'Toque em "Nova Gig" (dá até pra criar o projeto ali mesmo), escale os músicos e defina o cachê de cada um. O lucro da gig é calculado na hora. Já tem uma lista? Use "Importar gigs" para trazer de uma planilha ou texto.'),
+  nav('/repertorio', 'Monte o repertório', 'Catálogo com links de cifra e letra, tom, tom que começa, observações e PDF e repertórios reutilizáveis: marque um como principal e ele já entra nas gigs novas. Já tem o repertório pronto? Use "Importar repertório" para trazer de um PDF, Word ou TXT.'),
   nav('/relatorio', 'Acompanhe o caixa', 'Faturamento, custos e lucro de cada mês, e o que ainda falta receber ou pagar.'),
-  nav('/profile', 'Chame a banda', 'No Perfil fica o código de convite pros músicos entrarem, a assinatura (é lá que você assina e gerencia o cartão) e o botão pra rever este tour.'),
+  nav('/profile', 'Chame a banda', 'No Perfil fica o código de convite pros músicos entrarem, a assinatura (é lá que você assina e gerencia o cartão) e o botão pra rever este tour. Precisou de ajuda? Em "Ajuda" tem o FAQ e um formulário pra falar com a gente. No sino do Dashboard ficam seus avisos e as novidades do app.'),
 ];
 
 const MUSICIAN_STEPS: Step[] = [
-  welcome('Aqui você acompanha os shows em que está escalado, sem precisar caçar mensagem no grupo.'),
-  nav('/agenda', 'Seus shows', 'Todos os shows em que você está escalado. Abra um pra ver local, horário, seu cachê e confirmar presença.'),
-  nav('/repertorio', 'Repertório', 'Os repertórios da banda e o do seu show, no tom certo. No show, use "Abrir repertório" para ver blocos, tons e observações.'),
+  welcome('Aqui você acompanha as gigs em que está escalado, sem precisar caçar mensagem no grupo.'),
+  nav('/agenda', 'Suas gigs', 'Todas as gigs em que você está escalado. Abra uma pra ver local, horário, seu cachê e confirmar presença.'),
+  nav('/repertorio', 'Repertório', 'Os repertórios da banda e o da sua gig, no tom certo. Na gig, use "Abrir repertório" para ver blocos, tons e observações.'),
   nav('/relatorio', 'Seus cachês', 'Quanto você tem a receber, somando todas as bandas em que toca.'),
-  nav('/profile', 'Não perca nenhum show', 'Ative as notificações no Perfil pra ser avisado quando for escalado. O tour pode ser revisto por lá também.'),
+  nav('/profile', 'Não perca nenhuma gig', 'Ative as notificações no Perfil pra ser avisado quando for escalado. O tour pode ser revisto por lá também. No sino do Dashboard ficam seus avisos e as novidades do app.'),
 ];
 
 /**

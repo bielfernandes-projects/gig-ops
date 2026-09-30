@@ -132,9 +132,9 @@ export function GigFinance({ gigId, gross, trackReceipts, expenses, payments, fi
         )}
       </div>
 
-      {/* Despesas do show */}
+      {/* Despesas da gig */}
       <div className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-200">Despesas do show</h2>
+        <h2 className="mb-1 text-sm font-semibold text-zinc-200">Despesas da gig</h2>
         <p className="mb-4 text-xs text-zinc-500">
           Além do cachê dos músicos e do som. Total: <span className="font-semibold text-zinc-300">{brl(expensesTotal)}</span>
         </p>

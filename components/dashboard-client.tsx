@@ -2,6 +2,7 @@
 
 import { PageHeader } from '@/components/page-header';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { NotificationBell } from '@/components/notification-bell';
 import { useState } from 'react';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
@@ -57,7 +58,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
   // 2. Next Gig
   const nextGig = visibleGigs.filter((g) => isUpcoming(g)).sort(byStartTime)[0];
 
-  // 3. Shows already played whose money is not settled yet.
+  // 3. Gigs already played whose money is not settled yet.
   const pendingGigsCount = unsettledGigs(bandRoles, visibleGigs, lineups).length;
 
   // 4. Pie Chart Data (Lucro por Projeto - Apenas Pagos)
@@ -98,7 +99,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
   }));
   const totalPieProfit = pieChartData.reduce((acc, curr) => acc + curr.value, 0);
 
-  // 5. Line Chart Data (Quantidade de Shows - Todos os status/períodos)
+  // 5. Line Chart Data (Quantidade de Gigs - Todos os status/períodos)
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   // One row per month: the label/timestamp plus a gig count per project name (Recharts needs the
   // project keys flat on the row, since each <Line> reads one dataKey).
@@ -106,7 +107,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
   const monthlyDataMap: Record<string, MonthRow> = {};
   const projectsSet = new Map<string, string>(); // Guarda o nome e a cor de cada projeto
 
-  // Identifica todos os projetos com shows visíveis
+  // Identifica todos os projetos com gigs visíveis
   visibleGigs.forEach((gig) => {
     const projName = gig.go_projects?.name || 'Sem Projeto';
     const projColor = gig.go_projects?.color_hex || '#71717a';
@@ -118,7 +119,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
   const sortedGigs = [...visibleGigs].sort(byStartTime);
 
   sortedGigs.forEach(gig => {
-    // Group by the month the Show falls in *in Brazil*, not in the viewer's timezone.
+    // Group by the month the Gig falls in *in Brazil*, not in the viewer's timezone.
     const [year, month] = ymd(gig.start_time);
     const key = monthKey(gig.start_time);
     const label = `${monthNames[month - 1]} ${year}`;
@@ -151,8 +152,8 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
       <AppTour role={role === 'admin' ? 'admin' : 'viewer'} userId={userId} tourSeen={tourSeen} />
       <div className="relative">
         <PageHeader title="Dashboard" description="Visão geral da agenda e das finanças." className="mb-0" />
-        {/* Desktop only: on phones the theme toggle lives in the menu */}
-        <div className="absolute right-0 top-0 hidden md:block"><ThemeToggle /></div>
+        {/* Desktop only: on phones the theme toggle lives in the menu and the bell in the top bar */}
+        <div className="absolute right-0 top-0 hidden items-center gap-2 md:flex"><NotificationBell /><ThemeToggle /></div>
       </div>
 
       {role === 'admin' && notice && (
@@ -164,13 +165,13 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
         
         {/* Coluna Esquerda: Cards (Insights) */}
         <div className="flex flex-col gap-6 lg:col-span-1">
-          {/* Card Próximo Show */}
+          {/* Card Próxima Gig */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <CalendarDays className="w-24 h-24 text-zinc-100" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-zinc-200 mb-4">Próximo Show</h3>
+              <h3 className="text-sm font-semibold text-zinc-200 mb-4">Próxima Gig</h3>
               {nextGig ? (
                 <>
                    {allBands && <BandTag name={nextGig.band_id ? bandRoles[nextGig.band_id]?.name : null} className="mb-2" />}
@@ -184,7 +185,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
                   </p>
                 </>
               ) : (
-                <p className="text-zinc-500 text-sm font-medium">Nenhum show agendado.</p>
+                <p className="text-zinc-500 text-sm font-medium">Nenhuma gig agendada.</p>
               )}
             </div>
             {nextGig && (
@@ -206,7 +207,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
                   {pendingGigsCount}
                 </span>
                 <span className="text-sm text-zinc-400 font-medium mb-1">
-                  {pendingGigsCount === 1 ? 'show pendente' : 'shows pendentes'}
+                  {pendingGigsCount === 1 ? 'gig pendente' : 'gigs pendentes'}
                 </span>
               </div>
             </div>
@@ -295,7 +296,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
           {/* ─── GRÁFICO 2: QUANTIDADE DE SHOWS (LINHA) ─── */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-sm p-6 flex flex-col">
             <h3 className="text-zinc-100 font-bold mb-4 flex items-center justify-between">
-              <span>Quantidade de Shows por Projeto</span>
+              <span>Quantidade de Gigs por Projeto</span>
             </h3>
 
             {/* Filtro Dinâmico de Projetos (Botões toggle) */}
@@ -317,7 +318,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
               </div>
             )}
 
-            <div className="flex-1 min-h-[300px] flex items-center justify-center relative" role="img" aria-label="Gráfico de linha: Quantidade de shows por projeto ao longo do tempo">
+            <div className="flex-1 min-h-[300px] flex items-center justify-center relative" role="img" aria-label="Gráfico de linha: Quantidade de gigs por projeto ao longo do tempo">
             {lineChartData.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height="100%" minHeight={300}>
@@ -344,7 +345,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
               </>
             ) : (
               <div className="w-full py-16 flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/50">
-                <p className="text-zinc-500 text-sm font-medium">Nenhum show neste período.</p>
+                <p className="text-zinc-500 text-sm font-medium">Nenhuma gig neste período.</p>
               </div>
             )}
           </div>

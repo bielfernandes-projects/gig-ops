@@ -32,7 +32,7 @@ export function CalendarSubscriptionBanner({ calendarToken }: Props) {
         </p>
         <p className="text-xs text-zinc-400 mb-3">
           Copie o link abaixo e adicione no Google Agenda (<strong>Configurações &gt; Adicionar agenda &gt; Do URL</strong>). 
-          Depois disso, novos shows aparecem automaticamente.
+          Depois disso, novas gigs aparecem automaticamente.
         </p>
         <div className="flex items-center gap-2">
           <input

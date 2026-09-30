@@ -28,6 +28,7 @@ export async function setPresence(lineupId: string, status: 'confirmed' | 'decli
     const { data: gig } = await admin.from('go_gigs').select('title, band_id').eq('id', row.gig_id).maybeSingle();
     if (gig) {
       await sendPushToBandOwners(gig.band_id, {
+        kind: 'presenca',
         title: 'Presença recusada',
         body: `${member?.name ?? 'Um músico'} não poderá tocar em "${gig.title}".`,
         url: `/gigs/${row.gig_id}`,

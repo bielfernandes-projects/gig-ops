@@ -24,12 +24,12 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
-  // A detail page follows the Show's own Banda, whatever the band filter says.
+  // A detail page follows the Gig's own Banda, whatever the band filter says.
   const { info, allBandIds: myBandIds } = await requireMembership();
   const supabase = await createClient();
 
   // Fetch Gig with Project Join (must happen first — we need the gig data).
-  // Filtering by band_id at the SQL layer means an outsider cannot even discover a Show by ID.
+  // Filtering by band_id at the SQL layer means an outsider cannot even discover a Gig by ID.
   const { data: gigData, error: gigError } = await supabase
     .from('go_gigs')
     .select(`
@@ -59,7 +59,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   if (gigError || !gigData) {
     return (
       <div className="p-10 text-center">
-        <h2 className="text-zinc-100 font-bold mb-4">Gig não encontrado</h2>
+        <h2 className="text-zinc-100 font-bold mb-4">Gig não encontrada</h2>
         {gigError && (
           <pre className="text-xs text-red-400 bg-red-400/10 p-4 rounded-lg text-left overflow-auto mb-4 border border-red-400/20">
             {JSON.stringify(gigError, null, 2)}
@@ -72,14 +72,14 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
     );
   }
 
-  // Everything else is decided by the Show's Banda: the person's role and member id there.
+  // Everything else is decided by the Gig's Banda: the person's role and member id there.
   const bandId = gigData.band_id ?? null;
   const band = bandId ? info.bands[bandId] : undefined;
   const role = band?.role ?? 'viewer';
   const userMemberId = band?.memberId ?? null;
   const showBandId = bandId ?? myBandIds[0];
 
-  // Queries scoped to the Show's Banda
+  // Queries scoped to the Gig's Banda
   const membersQuery = supabase
     .from('go_members')
     .select('*')
@@ -129,7 +129,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const projectColor = gigData.go_projects?.color_hex || '#71717a';
 
   if (role !== 'admin') {
-    // A Membro reaches a Show's detail page only by being on its Escala. (That the Show belongs to
+    // A Membro reaches a Gig's detail page only by being on its Escala. (That the Gig belongs to
     // one of their Bandas is already settled by the `.in('band_id', myBandIds)` filter above.)
     const isInLineup = isOnLineup(lineup, userMemberId);
     if (!isInLineup) {
@@ -138,7 +138,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 md:p-12 shadow-xl">
             <h2 className="text-2xl font-bold text-zinc-100 mb-4">Acesso Negado</h2>
             <p className="text-zinc-400 text-sm mb-8 max-w-sm mx-auto">
-              Você não está escalado para este show e não tem permissão para visualizar estes detalhes.
+              Você não está escalado para esta gig e não tem permissão para visualizar estes detalhes.
             </p>
           <BackButton
               className="inline-flex items-center justify-center gap-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold px-6 py-3 rounded-xl text-sm transition-all"

@@ -9,7 +9,7 @@ import { createBandSetlist, setDefaultSetlist } from '@/app/actions/setlist-acti
 import { BandTag } from '@/components/band-tag';
 import type { BandChoice } from '@/components/band-select-field';
 
-/** "Repertórios da banda": reutilizáveis entre shows, um deles pode ser o principal. `bands` = bandas em que o usuário é dono (só elas criam/definem o principal). */
+/** "Repertórios da banda": reutilizáveis entre gigs, um deles pode ser o principal. `bands` = bandas em que o usuário é dono (só elas criam/definem o principal). */
 export function BandSetlists({ lists, bands }: { lists: { id: string; name: string; isDefault: boolean; bandId: string; bandName?: string }[]; bands: BandChoice[] }) {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -21,7 +21,7 @@ export function BandSetlists({ lists, bands }: { lists: { id: string; name: stri
     <section className="mb-10">
       <div className="mb-3 flex items-center gap-2">
         <h2 className="text-sm font-semibold text-zinc-200">Repertórios da banda</h2>
-        <span className="text-xs text-zinc-500">reutilizáveis em qualquer show</span>
+        <span className="text-xs text-zinc-500">reutilizáveis em qualquer gig</span>
       </div>
 
       {bands.length > 0 && (
@@ -68,7 +68,7 @@ export function BandSetlists({ lists, bands }: { lists: { id: string; name: stri
 
       {lists.length === 0 ? (
         <p className="rounded-xl border border-dashed border-zinc-800 p-5 text-center text-sm text-zinc-500">
-          {bands.length > 0 ? 'Nenhum repertório da banda ainda. Crie um e marque como principal pra ele já vir selecionado em shows novos.' : 'Nenhum repertório da banda ainda.'}
+          {bands.length > 0 ? 'Nenhum repertório da banda ainda. Crie um e marque como principal pra ele já vir selecionado em gigs novas.' : 'Nenhum repertório da banda ainda.'}
         </p>
       ) : (
         <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900">

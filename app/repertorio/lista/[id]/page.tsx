@@ -57,8 +57,8 @@ export default async function SetlistLibraryPage({ params }: { params: Promise<{
         {setlist.scope === 'personal'
           ? 'Repertório pessoal: só você vê. Pode usar músicas da banda e as suas.'
           : usageCount > 0
-            ? `Repertório da banda, anexado a ${usageCount} ${usageCount === 1 ? 'show' : 'shows'}.`
-            : 'Repertório da banda, ainda não anexado a nenhum show.'}
+            ? `Repertório da banda, anexado a ${usageCount} ${usageCount === 1 ? 'gig' : 'gigs'}.`
+            : 'Repertório da banda, ainda não anexado a nenhuma gig.'}
       </p>
 
       <GigSetlist gigId="" setlist={setlist} catalog={catalog ?? []} isOwner={isOwner} shareToken={link?.token ?? null} bandSetlists={[]} usageCount={usageCount} />

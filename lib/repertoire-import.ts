@@ -1,4 +1,5 @@
 import { cleanImportResult, type ImportResult } from '@/lib/import-model';
+import { generateJson, ImportError, IMPORT_MAX_BYTES, textOf, tidy, type ImportFile } from '@/lib/gemini';
 
 export * from '@/lib/import-model';
 
@@ -58,96 +59,15 @@ const RESPONSE_SCHEMA = {
   required: ['blocks'],
 };
 
-export type ImportFile = { name: string; mime: string; bytes: Uint8Array };
-
-// Order = capacity first, not strength: the person reviews and fixes the result on screen anyway, so what matters is
-// the import going through. Each model has its own free daily quota. Measured 2026-09: `3.1-flash-lite` took 55+ requests
-// with no limit, while the "flash" ones stop at 20/day. The stronger ones stay as the last resort.
-const FALLBACK_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.8-flash'];
-
-export const IMPORT_MAX_BYTES = 4 * 1024 * 1024;
-
-/** Error whose message is safe to show to the person. */
-export class ImportError extends Error {}
-
-/** Readable text of the file. Scanned PDFs (an image, no text layer) are out of scope and say so. */
-async function textOf(file: ImportFile): Promise<string> {
-  const name = file.name.toLowerCase();
-  if (name.endsWith('.txt') || file.mime === 'text/plain') return new TextDecoder().decode(file.bytes);
-  if (name.endsWith('.docx')) {
-    const mammoth = await import('mammoth');
-    const { value } = await mammoth.extractRawText({ buffer: Buffer.from(file.bytes) });
-    return value;
-  }
-  if (name.endsWith('.pdf') || file.mime === 'application/pdf') {
-    const { extractText, getDocumentProxy } = await import('unpdf');
-    const { text } = await extractText(await getDocumentProxy(new Uint8Array(file.bytes)), { mergePages: true });
-    if (text.trim().length < 40) {
-      throw new ImportError('Este PDF parece ser uma imagem (escaneado) e não tem texto para ler. Envie um PDF com texto selecionável, um DOCX ou um TXT.');
-    }
-    return text;
-  }
-  throw new ImportError('Formato não suportado. Envie um PDF, DOCX ou TXT.');
-}
+export type { ImportFile } from '@/lib/gemini';
+export { ImportError, IMPORT_MAX_BYTES } from '@/lib/gemini';
 
 /**
  * Reads a repertoire document with Gemini and returns its songs grouped in blocks. The file is turned
- * into text first (PDF, DOCX and TXT alike): sending the PDF itself was slower and hit "overloaded"
- * errors far more often on the free tier, and extracting the text lets us refuse scanned PDFs early.
+ * into text first (PDF, DOCX and TXT alike), which also lets us refuse scanned PDFs early.
  */
 export async function parseRepertoire(file: ImportFile, opts: { apiKey: string; model?: string }): Promise<ImportResult> {
   if (file.bytes.byteLength > IMPORT_MAX_BYTES) throw new ImportError('Arquivo grande demais (máximo 4 MB).');
-
-  const parts = [{ text: (await textOf(file)).replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n') }];
-
-  const body = JSON.stringify({
-    systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
-    contents: [{ role: 'user', parts }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: RESPONSE_SCHEMA,
-      temperature: 0,
-      // Extracting a list needs no long "thinking"; without this the 3.x models take ~90s on a 200-song document.
-      thinkingConfig: { thinkingLevel: 'low' },
-    },
-  });
-  const call = (model: string) =>
-    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': opts.apiKey },
-      body,
-    });
-
-  // Google retires model names for new accounts without notice, and the free tier answers 429 (quota) or
-  // 503 (busy) per model. So: the configured model first (GEMINI_MODEL), then the others, one after another.
-  const chain = [...new Set([opts.model, ...FALLBACK_MODELS].filter((m): m is string => Boolean(m)))];
-  let res: Response | null = null;
-  let dailyQuota = 0; // models that answered 429 because their DAILY quota is gone (a wait of minutes won't help)
-  for (const model of chain) {
-    res = await call(model);
-    if (res.status === 503) {
-      await new Promise((r) => setTimeout(r, 2000));
-      res = await call(model);
-    }
-    if (res.status === 429 && /PerDay/i.test(await res.clone().text())) dailyQuota++;
-    if (res.ok || ![404, 429, 503].includes(res.status)) break;
-  }
-
-  if (res?.status === 429 && dailyQuota === chain.length) {
-    throw new ImportError('A cota gratuita diária da leitura por IA acabou por hoje. Tente de novo amanhã.');
-  }
-  if (res?.status === 429) throw new ImportError('O serviço de leitura está no limite de uso agora. Tente de novo em alguns minutos.');
-  if (res?.status === 503) throw new ImportError('O serviço de leitura está sobrecarregado agora. Tente de novo em alguns minutos.');
-  if (res && !res.ok) console.error('repertoire import: Gemini error', res.status, (await res.text()).slice(0, 500));
-  if (!res || !res.ok) throw new ImportError(`Não foi possível ler o documento (erro ${res?.status ?? 'desconhecido'}).`);
-
-  const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-  const out = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(out);
-  } catch {
-    throw new ImportError('A leitura do documento veio incompleta. Tente de novo.');
-  }
+  const parsed = await generateJson({ ...opts, instructions: INSTRUCTIONS, schema: RESPONSE_SCHEMA, text: tidy(await textOf(file)), label: 'repertoire import' });
   return cleanImportResult(parsed);
 }

@@ -15,9 +15,11 @@ export async function addProject(formData: FormData) {
     return { error: 'Campos nome e cor são obrigatórios.' };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('go_projects')
-    .insert([{ name, color_hex, band_id: bandId }]);
+    .insert([{ name, color_hex, band_id: bandId }])
+    .select('id, name, color_hex, band_id')
+    .single();
 
   if (error) {
     console.error('Error inserting project:', error);
@@ -27,7 +29,7 @@ export async function addProject(formData: FormData) {
   revalidatePath('/projects');
   revalidatePath('/agenda');
   revalidatePath('/dashboard');
-  return { success: true };
+  return { success: true, project: data as { id: string; name: string; color_hex: string; band_id: string } };
 }
 
 export async function updateProject(formData: FormData) {

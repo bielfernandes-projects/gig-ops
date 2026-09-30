@@ -198,7 +198,7 @@ export function AddLineupMember({ gigId, members }: { gigId: string, members: Go
                     required
                     className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2 text-sm text-emerald-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-emerald-500/30"
                   />
-                  <p className="text-xs font-medium text-zinc-500">Membro avulso. Será adicionado apenas a este show.</p>
+                  <p className="text-xs font-medium text-zinc-500">Membro avulso. Será adicionado apenas a esta gig.</p>
                 </div>
               )}
 

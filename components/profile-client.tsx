@@ -134,10 +134,10 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
         <div>
           <p className="text-xs text-zinc-400 mb-4">
             {pushStatus === 'active'
-              ? 'Você está inscrito. Receberá alertas quando for escalado para um show.'
+              ? 'Você está inscrito. Receberá alertas quando for escalado para uma gig.'
               : pushStatus === 'denied'
               ? 'Permissão bloqueada pelo dispositivo. Ative nas configurações do navegador.'
-              : 'Ative para receber alertas automáticos quando o admin te escalar para um novo show.'}
+              : 'Ative para receber alertas automáticos quando o admin te escalar para uma nova gig.'}
           </p>
 
           {pushStatus === 'active' ? (

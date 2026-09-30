@@ -26,7 +26,7 @@ export function PresenceControl({ lineupId, status }: { lineupId: string; status
   return (
     <section className="mb-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
       <div>
-        <p className="text-sm font-semibold text-zinc-200">Sua presença neste show</p>
+        <p className="text-sm font-semibold text-zinc-200">Sua presença nesta gig</p>
         <p className={`text-xs ${status === 'declined' ? 'text-red-400' : status === 'confirmed' ? 'text-zinc-300' : 'text-amber-300'}`}>
           {LABEL[status]}
         </p>
