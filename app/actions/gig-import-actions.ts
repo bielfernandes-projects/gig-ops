@@ -3,13 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { requireOwner } from '@/lib/auth';
 import { logAction } from '@/lib/telemetry';
-import { gigInstant } from '@/lib/gig-import-model';
+import { endInstant, gigInstant } from '@/lib/gig-import-model';
 
 export type GigImportPayload = {
   bandId: string;
   /** Used by rows that name no project. */
   defaultProjectId: string | null;
-  gigs: { title: string; date: string; time: string; fee: number | null; project: string | null; location: string | null; notes: string | null }[];
+  gigs: { title: string; date: string; time: string; endTime: string | null; fee: number | null; project: string | null; location: string | null; notes: string | null }[];
 };
 
 const MAX_GIGS = 300;
@@ -35,6 +35,7 @@ export async function saveImportedGigs(payload: GigImportPayload) {
   const rows = payload.gigs.map((g) => ({
     title: cut(g.title, 120),
     start_time: /^\d{4}-\d{2}-\d{2}$/.test(g.date) && /^\d{2}:\d{2}$/.test(g.time) ? gigInstant(g.date, g.time) : null,
+    end_time: g.endTime && /^\d{2}:\d{2}$/.test(g.endTime) && /^\d{4}-\d{2}-\d{2}$/.test(g.date) && /^\d{2}:\d{2}$/.test(g.time) ? endInstant(g.date, g.time, g.endTime) : null,
     gross_value: typeof g.fee === 'number' && g.fee >= 0 ? g.fee : 0,
     project: cut(g.project, 80),
     location: cut(g.location, 200) ?? 'A definir',
@@ -79,7 +80,7 @@ export async function saveImportedGigs(payload: GigImportPayload) {
       title: r.title,
       project_id: (r.project ? projectIds.get(r.project.toLowerCase()) : defaultProjectId)!,
       start_time: new Date(r.start_time!).toISOString(),
-      end_time: null,
+      end_time: r.end_time,
       gross_value: r.gross_value,
       location: r.location,
       notes: r.notes,

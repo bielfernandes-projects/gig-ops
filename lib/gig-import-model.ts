@@ -9,6 +9,8 @@ export type ImportedGig = {
   date: string | null;
   /** `HH:MM`, 24h */
   time: string | null;
+  /** End `HH:MM`, 24h, when the list gives one (a range like "20h às 23h"). */
+  endTime: string | null;
   /** Gross fee in reais. */
   fee: number | null;
   /** Band/project the gig was booked through, when the list says it ("Cala Playa(Brown)" -> "Brown"). */
@@ -48,6 +50,7 @@ export function cleanGigImport(raw: unknown): GigImportResult {
       title: title ?? '',
       date,
       time: cleanTime(o.time),
+      endTime: cleanTime(o.endTime),
       fee: typeof o.fee === 'number' && Number.isFinite(o.fee) && o.fee >= 0 ? Math.round(o.fee * 100) / 100 : null,
       project: str(o.project, 80),
       location: str(o.location, 200),
@@ -60,6 +63,13 @@ export function cleanGigImport(raw: unknown): GigImportResult {
 /** What a row still needs before it can become a gig. */
 export const missingGigFields = (g: { title: string; date: string | null; time: string | null }) =>
   [!g.title.trim() && 'title', !g.date && 'date', !g.time && 'time'].filter(Boolean) as ('title' | 'date' | 'time')[];
+
+/** End instant of a gig: the end time on the same day, or on the next day when it is not after the start ("22:00" to "01:00"). */
+export function endInstant(date: string, time: string, endTime: string): string {
+  const start = Date.parse(gigInstant(date, time));
+  const end = Date.parse(gigInstant(date, endTime));
+  return new Date(end > start ? end : end + 86_400_000).toISOString();
+}
 
 /** ISO instant (UTC) of a Brasília date + time. */
 export function gigInstant(date: string, time: string): string {

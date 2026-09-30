@@ -11,7 +11,7 @@ import type { GoProject } from '@/lib/types';
 
 type BandChoice = { bandId: string; name: string };
 
-type Row = { id: string; title: string; date: string; time: string; fee: string; project: string; location: string; notes: string };
+type Row = { id: string; title: string; date: string; time: string; endTime: string; fee: string; project: string; location: string; notes: string };
 
 const inputCls =
   'w-full bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-zinc-600 placeholder-zinc-600';
@@ -19,7 +19,7 @@ const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', curren
 const uid = () => crypto.randomUUID();
 
 const toRows = (r: GigImportResult): Row[] =>
-  r.gigs.map((g) => ({ id: uid(), title: g.title, date: g.date ?? '', time: g.time ?? '', fee: g.fee == null ? '' : String(g.fee), project: g.project ?? '', location: g.location ?? '', notes: g.notes ?? '' }));
+  r.gigs.map((g) => ({ id: uid(), title: g.title, date: g.date ?? '', time: g.time ?? '', endTime: g.endTime ?? '', fee: g.fee == null ? '' : String(g.fee), project: g.project ?? '', location: g.location ?? '', notes: g.notes ?? '' }));
 
 const pendingOf = (r: Row) => missingGigFields({ title: r.title, date: r.date || null, time: r.time || null });
 const feeOf = (r: Row) => {
@@ -96,7 +96,7 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
     const res = await saveImportedGigs({
       bandId,
       defaultProjectId: defaultProjectId || null,
-      gigs: rows.map((r) => ({ title: r.title, date: r.date, time: r.time, fee: feeOf(r), project: r.project.trim() || null, location: r.location.trim() || null, notes: r.notes.trim() || null })),
+      gigs: rows.map((r) => ({ title: r.title, date: r.date, time: r.time, endTime: r.endTime || null, fee: feeOf(r), project: r.project.trim() || null, location: r.location.trim() || null, notes: r.notes.trim() || null })),
     });
     if (!res || 'error' in res) {
       toast.error(res?.error ?? 'Não foi possível importar.');
@@ -175,7 +175,6 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                       disabled={step === 'reading'}
                       rows={8}
                       maxLength={60000}
-                      placeholder={'15/10-Bar do Zé(Sambakura)-21:00/$800\n22/10-Casamento Ana e Pedro(Brown)-20:30/$2500'}
                       className={inputCls}
                     />
                   </label>
@@ -194,7 +193,7 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                 )}
 
                 <p className="text-xs text-zinc-500">
-                  O texto é enviado ao Google (Gemini) para identificar as gigs. No plano gratuito do Google, esse conteúdo pode ser usado para melhorar os produtos deles: não envie dados pessoais de terceiros (telefones, CPFs). Planilha Excel (.xlsx): copie as células e cole aqui, ou salve como CSV.
+                  O texto é enviado ao Google (Gemini) para identificar as gigs. Depois de importar, você pode editar todos os dados de cada gig. Planilha Excel (.xlsx): copie as células e cole aqui, ou salve como CSV.
                 </p>
                 {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
                 {step === 'reading' && (
@@ -260,20 +259,21 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                     const missing = pendingOf(r);
                     return (
                       <li key={r.id} className={`px-3 py-2 ${missing.length > 0 ? 'border-l-2 border-amber-500/70 bg-amber-500/5' : ''}`}>
-                        <div className="grid grid-cols-[1fr_auto] items-start gap-2 md:grid-cols-[2fr_1.3fr_8.5rem_5.5rem_6.5rem_auto]">
+                        <div className="grid grid-cols-[1fr_auto] items-start gap-2 md:grid-cols-[2fr_1.3fr_8.5rem_5.5rem_5.5rem_6.5rem_auto]">
                           <input value={r.title} onChange={(e) => patch(r.id, { title: e.target.value })} placeholder="Nome da gig" aria-label="Nome da gig" className={`${inputCls} ${!r.title.trim() ? 'border-red-500/60' : ''}`} />
                           <button
                             type="button"
                             onClick={() => setRows((rs) => rs.filter((x) => x.id !== r.id))}
                             aria-label="Remover gig"
                             title="Remover gig"
-                            className="rounded p-1.5 text-zinc-500 hover:text-red-400 md:order-6"
+                            className="rounded p-1.5 text-zinc-500 hover:text-red-400 md:order-7"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
                           <input list="import-projects" value={r.project} onChange={(e) => patch(r.id, { project: e.target.value })} placeholder="Projeto / banda" aria-label="Projeto ou banda" className={inputCls} />
                           <input type="date" value={r.date} onChange={(e) => patch(r.id, { date: e.target.value })} aria-label="Data" className={`${inputCls} ${!r.date ? 'border-red-500/60' : ''}`} />
                           <input type="time" value={r.time} onChange={(e) => patch(r.id, { time: e.target.value })} aria-label="Horário" className={`${inputCls} ${!r.time ? 'border-red-500/60' : ''}`} />
+                          <input type="time" value={r.endTime} onChange={(e) => patch(r.id, { endTime: e.target.value })} aria-label="Horário final" title="Horário final" className={inputCls} />
                           <input type="number" min="0" step="0.01" inputMode="decimal" value={r.fee} onChange={(e) => patch(r.id, { fee: e.target.value })} placeholder="Cachê" aria-label="Cachê" className={inputCls} />
                         </div>
                         {(missing.length > 0 || (r.project.trim() && !knownProject(r.project)) || r.location || r.notes || (r.date && r.time && gigInstant(r.date, r.time) < new Date().toISOString())) && (

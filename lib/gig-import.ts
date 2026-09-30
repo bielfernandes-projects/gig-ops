@@ -18,7 +18,8 @@ Títulos de mês e de ano NÃO são gigs: use-os para completar as datas.
 CADA GIG
 - title: o nome da gig como está escrito (evento, casa, local, contratante), SEM a parte da banda/projeto (veja project). Se só houver o local, use o local. Não invente.
 - date: AAAA-MM-DD. Datas brasileiras vêm como dia/mês ("15/10", "15/10/26", "sáb 15 de outubro"). Sem ano escrito: use o ano de hoje, a menos que o documento mostre outro ano (título, cabeçalho, outras linhas). Se a data estiver ilegível ou ausente: null.
-- time: horário de início em HH:MM, 24h ("21h" vira "21:00", "20h30" vira "20:30", "9 da noite" vira "21:00"). Se houver faixa ("20h às 23h"), use só o início. Se não houver horário: null.
+- time: horário de início em HH:MM, 24h ("21h" vira "21:00", "20h30" vira "20:30", "9 da noite" vira "21:00"). Se houver faixa ("20h às 23h"), time é só o início. Se não houver horário: null.
+- endTime: horário de término em HH:MM, 24h, SOMENTE se a lista o informa (faixa "20h às 23h", "21:00-00:30", "até 1h"). Se não houver: null. Não calcule nem deduza a duração.
 - fee: o cachê em reais como número, sem símbolo ("$400" vira 400, "R$ 1.500,00" vira 1500, "800,50" vira 800.5, "1.5k" vira 1500). Se não houver valor: null. Não some nem calcule.
 - project: a banda ou projeto pelo qual o músico foi contratado, quando a lista indica. Costuma vir entre parênteses, colchetes ou depois de um traço junto do nome da gig. Escreva como está. Se não houver: null.
 - location: cidade, endereço ou nome do local, SOMENTE se estiver escrito e não for o próprio title. Senão null.
@@ -40,6 +41,7 @@ const RESPONSE_SCHEMA = {
           title: { type: 'STRING' },
           date: { type: 'STRING', nullable: true },
           time: { type: 'STRING', nullable: true },
+          endTime: { type: 'STRING', nullable: true },
           fee: { type: 'NUMBER', nullable: true },
           project: { type: 'STRING', nullable: true },
           location: { type: 'STRING', nullable: true },
