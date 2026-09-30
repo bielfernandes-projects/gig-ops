@@ -36,7 +36,7 @@ export const FAQ: { title: string; items: FaqItem[] }[] = [
       },
       {
         q: 'Onde vejo meus avisos e as novidades do app?',
-        a: 'No sino, no canto superior do Dashboard. Ali ficam os avisos (escala, pagamento, lembretes) e a linha "Atualizações do app", que mostra as novidades, melhorias e correções mais recentes. Quando há algo novo, um pop-up aparece no seu próximo login.',
+        a: 'No sino, no canto superior do Dashboard. Ali ficam os avisos (escala, pagamento, lembretes) e a linha "Atualizações do app", que mostra as novidades, melhorias e correções mais recentes. Quando há algo novo, um pop-up aparece na próxima vez que você abrir ou voltar ao app (e, se você ativou as notificações, também chega um aviso no celular).',
       },
       {
         q: 'Como levo a agenda para o Google Agenda ou o Apple Calendário?',

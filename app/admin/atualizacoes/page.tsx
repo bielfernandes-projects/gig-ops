@@ -23,7 +23,7 @@ export default async function AdminUpdatesPage() {
         <div>
           <h2 className="text-lg font-bold text-zinc-100">Lançar atualização do app</h2>
           <p className="text-xs text-zinc-500">
-            Aparece num pop-up para todos no próximo login (uma vez) e fica na lista &ldquo;Atualizações do app&rdquo; do sino do Dashboard.
+            Aparece num pop-up para todos (uma vez) na próxima vez que abrirem ou voltarem ao app, e fica na lista &ldquo;Atualizações do app&rdquo; do sino do Dashboard. Com o push marcado, também chega como notificação no celular de quem ativou.
           </p>
         </div>
         <AdminUpdateForm />

@@ -71,6 +71,33 @@ export async function sendPushToMember(memberId: string, { kind, ...payload }: P
     console.error('Error in sendPushToMember:', err);
   }
 }
+/**
+ * Push to every subscribed device (used when an app update is launched). Returns how many devices it tried.
+ * ponytail: one request per device in a single batch; move to a queue if the subscriber count gets large.
+ */
+export async function sendPushToAll(payload: { title: string; body: string; url?: string }): Promise<number> {
+  try {
+    const { data: subscriptions } = await createAdminClient().from('go_push_subscriptions').select('subscription_json');
+    if (!subscriptions || subscriptions.length === 0) return 0;
+
+    const payloadStr = JSON.stringify({ ...payload, icon: '/icon-192x192.png', badge: '/badge-icon.png' });
+    await Promise.allSettled(
+      subscriptions.map(async (row) => {
+        try {
+          await webpush.sendNotification(JSON.parse(row.subscription_json) as webpush.PushSubscription, payloadStr);
+        } catch (err) {
+          console.warn('Push subscription expired, removing:', err);
+          await createAdminClient().from('go_push_subscriptions').delete().eq('subscription_json', row.subscription_json);
+        }
+      })
+    );
+    return subscriptions.length;
+  } catch (err) {
+    console.error('Error in sendPushToAll:', err);
+    return 0;
+  }
+}
+
 /** Send a push notification to every owner of a band. Also keeps an in-app copy for the bell. */
 export async function sendPushToBandOwners(bandId: string, { kind, ...payload }: PushPayload) {
   const enrichedPayload = {
