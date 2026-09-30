@@ -22,6 +22,8 @@ export type ActionName =
   | 'repertorio_criado'
   | 'repertorio_lido'
   | 'repertorio_importado'
+  | 'gigs_lidas'
+  | 'gigs_importadas'
   | 'banda_criada'
   | 'entrou_na_banda';
 

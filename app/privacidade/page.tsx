@@ -23,7 +23,7 @@ export default function Privacidade() {
         <p>Os dados de uma banda ficam isolados das demais. O músico convidado vê as gigs em que está escalado, sem os cachês dos colegas nem observações contratuais. Links públicos de repertório e de calendário (.ics) mostram o conteúdo a quem tiver o link, então não os compartilhe com quem não deve ver.</p>
 
         <h2 className="font-semibold text-zinc-100">Com quem compartilhamos</h2>
-        <p>Apenas com prestadores necessários para o serviço funcionar: Supabase (banco de dados e login, com dados hospedados em São Paulo), Vercel (hospedagem e métricas de acesso), Stripe (pagamentos), Resend (envio de e-mails da conta) e Google (login, se você escolher, e leitura por IA dos documentos de repertório que você decidir importar). Alguns deles podem processar dados fora do Brasil, sempre sob contratos que exigem proteção adequada.</p>
+        <p>Apenas com prestadores necessários para o serviço funcionar: Supabase (banco de dados e login, com dados hospedados em São Paulo), Vercel (hospedagem e métricas de acesso), Stripe (pagamentos), Resend (envio de e-mails da conta) e Google (login, se você escolher, e leitura por IA dos documentos de repertório e das listas de gigs que você decidir importar). Alguns deles podem processar dados fora do Brasil, sempre sob contratos que exigem proteção adequada.</p>
 
         <h2 className="font-semibold text-zinc-100">Cookies</h2>
         <p>Usamos apenas cookies essenciais: manter você logado e lembrar qual banda você está usando. Não usamos cookies de publicidade.</p>

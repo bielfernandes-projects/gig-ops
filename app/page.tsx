@@ -40,7 +40,7 @@ const jsonLd = {
 const features = [
   {
     title: 'Agenda de gigs',
-    text: 'Todas as gigs da banda em uma linha do tempo, com sincronização no Google Agenda e no Apple Calendário.',
+    text: 'Todas as gigs da banda em uma linha do tempo, com sincronização no Google Agenda e no Apple Calendário. Já tem a lista numa planilha ou no WhatsApp? Cole e importe, com prévia antes de salvar.',
   },
   {
     title: 'Escala de músicos',

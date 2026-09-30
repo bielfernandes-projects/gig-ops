@@ -27,6 +27,10 @@ export const FAQ: { title: string; items: FaqItem[] }[] = [
     title: 'Agenda, escala e cachês',
     items: [
       {
+        q: 'Já tenho minhas gigs numa planilha ou em texto. Preciso cadastrar uma por uma?',
+        a: 'Não. Na Agenda, toque em "Importar gigs" e cole a lista (dá para copiar direto do Excel, Google Planilhas ou WhatsApp) ou envie um arquivo CSV, TXT, DOCX ou PDF. O app identifica data, horário, nome e cachê de cada gig e mostra tudo numa prévia para você conferir e corrigir antes de salvar. As gigs entram sem escala de músicos.',
+      },
+      {
         q: 'O músico vê o cachê dos colegas?',
         a: 'Não. O músico vê apenas as gigs em que está escalado e o próprio cachê. Valores dos colegas e observações contratuais ficam só com o dono da banda.',
       },

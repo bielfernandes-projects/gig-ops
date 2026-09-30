@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { QuickAddGig } from '@/components/quick-add-gig';
+import { ImportGigs } from '@/components/import-gigs';
 import { FilterTabs } from '@/components/filter-tabs';
 import { CopyLogisticsButton } from '@/components/copy-logistics-button';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
@@ -225,6 +226,12 @@ export default async function Home({
       {/* Header */}
       <header className="mb-8">
         <PageHeader title="Agenda" description="Suas gigs, escalas e cachês, em calendário ou em lista." />
+
+        {owned.length > 0 && (
+          <div className="mb-5">
+            <ImportGigs bands={owned} projects={projects.filter((p) => p.band_id && ownedIds.includes(p.band_id))} />
+          </div>
+        )}
 
         {/* Stats strip */}
         <div className="flex gap-3 overflow-x-auto pb-3 snap-x hide-scrollbar mb-6">
