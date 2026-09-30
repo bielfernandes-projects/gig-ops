@@ -192,9 +192,11 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                   </label>
                 )}
 
-                <p className="text-xs text-zinc-500">
-                  O texto é enviado ao Google (Gemini) para identificar as gigs. Depois de importar, você pode editar todos os dados de cada gig. Planilha Excel (.xlsx): copie as células e cole aqui, ou salve como CSV.
-                </p>
+                <ul className="list-disc space-y-1 pl-4 text-xs text-zinc-500">
+                  <li>O texto é enviado ao Google (Gemini) para identificar as gigs e esse conteúdo pode ser usado para melhorar os produtos deles: não envie dados sensíveis (senhas, telefones, CPFs).</li>
+                  <li>Depois de importar, você pode editar todos os dados de cada gig.</li>
+                  <li>Planilha Excel (.xlsx): copie as células e cole aqui, ou salve como CSV.</li>
+                </ul>
                 {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
                 {step === 'reading' && (
                   <p className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm text-zinc-300">
