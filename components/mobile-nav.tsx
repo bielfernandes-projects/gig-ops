@@ -8,6 +8,7 @@ import { Logo } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { navItems, hideNav } from '@/components/navigation';
 import { signout } from '@/app/login/actions';
+import { InstagramLink } from '@/components/instagram-link';
 import { BandFilter } from '@/components/band-switcher';
 
 export const NAV_EVENT = 'gg:nav';
@@ -67,6 +68,19 @@ export function MobileNav() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
+            if (item.disabled) {
+              return (
+                <span
+                  key={item.name}
+                  title="Em breve"
+                  aria-disabled="true"
+                  className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-zinc-600"
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.name}
+                </span>
+              );
+            }
             return (
               <Link
                 key={item.name}
@@ -82,11 +96,14 @@ export function MobileNav() {
           })}
         </nav>
         <div className="flex items-center justify-between p-4">
-          <form action={signout}>
-            <button type="submit" aria-label="Sair" className="rounded-full border border-zinc-700 bg-zinc-800 p-2.5 text-zinc-300 hover:bg-zinc-700 hover:text-red-400">
-              <LogOut className="h-4 w-4" />
-            </button>
-          </form>
+          <div className="flex items-center gap-2">
+            <form action={signout}>
+              <button type="submit" aria-label="Sair" className="rounded-full border border-zinc-700 bg-zinc-800 p-2.5 text-zinc-300 hover:bg-zinc-700 hover:text-red-400">
+                <LogOut className="h-4 w-4" />
+              </button>
+            </form>
+            <InstagramLink iconClassName="h-4 w-4" className="rounded-full border border-zinc-700 bg-zinc-800 p-2.5 text-zinc-300 hover:bg-zinc-700 hover:text-pink-400" />
+          </div>
           <ThemeToggle />
         </div>
       </aside>

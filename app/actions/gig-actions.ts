@@ -59,7 +59,7 @@ export async function addQuickGig(formData: FormData) {
   let originalGig = null;
   if (clone_id) {
     const { data } = await supabase.from('go_gigs').select('*').eq('id', clone_id).eq('band_id', bandId).single();
-    if (!data) return { error: 'Show original não encontrado.' };
+    if (!data) return { error: 'Gig original não encontrada.' };
     originalGig = data;
   }
 
@@ -85,7 +85,7 @@ export async function addQuickGig(formData: FormData) {
   const endDt = end_time ? new Date(end_time) : null;
   const durationMs = endDt ? endDt.getTime() - startDt.getTime() : 0;
 
-  // clone herda o repertorio do show original; so shows novos pegam o principal da banda
+  // clone herda o repertorio da gig original; so gigs novas pegam o principal da banda
   const defaultSetlist = clone_id
     ? null
     : (await supabase.from('setlists').select('id').eq('band_id', bandId).eq('scope', 'band').eq('is_default', true).maybeSingle()).data;
@@ -242,7 +242,7 @@ export async function cancelGig(gigId: string, reason: string, deleteMode: 'sing
   const { supabase, bandId } = ctx;
 
   const { data: currentGig } = await supabase.from('go_gigs').select('*').eq('id', gigId).eq('band_id', bandId).single();
-  if (!currentGig) return { error: 'Show não encontrado.' };
+  if (!currentGig) return { error: 'Gig não encontrada.' };
 
   let query = supabase.from('go_gigs').select('id').eq('band_id', bandId);
   
@@ -256,10 +256,10 @@ export async function cancelGig(gigId: string, reason: string, deleteMode: 'sing
   }
 
   const { data: targetGigs } = await query;
-  if (!targetGigs || targetGigs.length === 0) return { error: 'Nenhum show localizado para exclusão.' };
+  if (!targetGigs || targetGigs.length === 0) return { error: 'Nenhuma gig localizada para exclusão.' };
 
   const gigIdsToDelete = targetGigs.map(g => g.id);
-  const gigTitle = currentGig.title || 'Show';
+  const gigTitle = currentGig.title || 'Gig';
 
   const { data: lineups } = await supabase.from('go_lineup').select('member_id').in('gig_id', gigIdsToDelete);
   const memberIds = [...new Set((lineups || []).map(l => l.member_id).filter(Boolean))] as string[];
@@ -347,7 +347,7 @@ export async function addMemberToLineup(formData: FormData) {
     try {
       await sendPushToMember(member_id, {
         title: 'Nova Gig Escalada! 🎸',
-        body: 'Você foi escalado para um novo show. Abra o app para ver os detalhes e adicionar ao seu calendário.',
+        body: 'Você foi escalado para um nova gig. Abra o app para ver os detalhes e adicionar ao seu calendário.',
         url: `/gigs/${gig_id}`,
       });
     } catch (e) {
@@ -392,12 +392,12 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
     // The embedded row comes back as an object or a single-item array, depending on how
     // supabase-js infers the relationship.
     const gig = lineupData.go_gigs as { title: string } | { title: string }[] | null;
-    const gigTitle = (Array.isArray(gig) ? gig[0]?.title : gig?.title) || 'um show';
+    const gigTitle = (Array.isArray(gig) ? gig[0]?.title : gig?.title) || 'uma gig';
     
     try {
       await sendPushToMember(lineupData.member_id, {
         title: 'Cachê na conta! 💸',
-        body: `Seu pagamento do show ${gigTitle} foi confirmado no Gigueiros.`,
+        body: `Seu pagamento da gig ${gigTitle} foi confirmado no Gigueiros.`,
         url: `/gigs/${lineupData.gig_id}`,
       });
     } catch (e) {

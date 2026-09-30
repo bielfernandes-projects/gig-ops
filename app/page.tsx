@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Logo } from '@/components/logo';
+import { InstagramLink } from '@/components/instagram-link';
 import { Setlist } from '@/components/landing-setlist';
 import { ClickableShot, FeatureCarousel, type Shot } from '@/components/screenshot-lightbox';
 import { FOUNDER_LIMIT } from '@/lib/pricing';
@@ -11,7 +12,7 @@ import { APP_VERSION } from '@/lib/version';
 export const revalidate = 3600;
 
 const title = 'Gigueiros: agenda, escala e cachês da sua banda';
-const description = 'Chega de planilha e grupo de WhatsApp. Organize shows, escala de músicos, cachês, repertório (importe o seu de um PDF ou Word) e financeiro em um app feito para bandas.';
+const description = 'Chega de planilha e grupo de WhatsApp. Organize gigs, escala de músicos, cachês, repertório (importe o seu de um PDF ou Word) e financeiro em um app feito para bandas.';
 
 export const metadata: Metadata = {
   title,
@@ -39,24 +40,24 @@ const jsonLd = {
 
 const features = [
   {
-    title: 'Agenda de shows',
-    text: 'Todos os shows da banda em uma linha do tempo, com sincronização no Google Agenda e no Apple Calendário.',
+    title: 'Agenda de gigs',
+    text: 'Todas as gigs da banda em uma linha do tempo, com sincronização no Google Agenda e no Apple Calendário.',
   },
   {
     title: 'Escala de músicos',
-    text: 'Escale quem toca em cada show. O músico recebe o aviso no celular na mesma hora.',
+    text: 'Escale quem toca em cada gig. O músico recebe o aviso no celular na mesma hora.',
   },
   {
     title: 'Cachês e pendências',
-    text: 'Veja quem já recebeu, quem falta pagar e quanto sobrou de cada show.',
+    text: 'Veja quem já recebeu, quem falta pagar e quanto sobrou de cada gig.',
   },
   {
     title: 'Lembretes e cancelamentos',
-    text: 'Aviso antes do show. Se um show cai, todos os escalados sabem o motivo.',
+    text: 'Aviso antes da gig. Se uma gig cai, todos os escalados sabem o motivo.',
   },
   {
     title: 'Repertório e cifras',
-    text: 'Catálogo de músicas da banda com links de cifra e letra, tom, tom que começa, observações e PDF anexado. Já tem o repertório em PDF, Word ou TXT? Importe: o app lê o arquivo, cria as músicas e os blocos e você revisa antes de salvar. Monte repertórios reutilizáveis, marque um como principal e compartilhe por link ou WhatsApp. No show, abra o repertório com blocos, tons pedidos e observações.',
+    text: 'Catálogo de músicas da banda com links de cifra e letra, tom, tom que começa, observações e PDF anexado. Já tem o repertório em PDF, Word ou TXT? Importe: o app lê o arquivo, cria as músicas e os blocos e você revisa antes de salvar. Monte repertórios reutilizáveis, marque um como principal e compartilhe por link ou WhatsApp. Na gig, abra o repertório com blocos, tons pedidos e observações.',
   },
   {
     title: 'Financeiro e rateio',
@@ -79,13 +80,13 @@ const importSteps = [
   },
 ];
 
-const dashboardDesktop: Shot = { src: '/screenshots/dashboard-desktop.jpg', alt: 'Dashboard do Gigueiros no computador, com próximo show e gráficos financeiros', width: 1568, height: 652 };
+const dashboardDesktop: Shot = { src: '/screenshots/dashboard-desktop.jpg', alt: 'Dashboard do Gigueiros no computador, com próxima gig e gráficos financeiros', width: 1568, height: 652 };
 const dashboardTablet: Shot = { src: '/screenshots/dashboard-tablet.png', alt: 'Dashboard do Gigueiros aberto em um tablet', width: 1004, height: 771 };
 const dashboardMobile: Shot = { src: '/screenshots/dashboard-mobile.png', alt: 'Dashboard do Gigueiros aberto no celular, com navegação inferior de app', width: 478, height: 771 };
 
 const featureShots: (Shot & { caption: string })[] = [
-  { src: '/screenshots/agenda.jpg', alt: 'Agenda de shows do Gigueiros, com o calendário do mês e vários shows marcados', width: 1536, height: 639, caption: 'Agenda' },
-  { src: '/screenshots/financeiro.jpg', alt: 'Tela de um show no Gigueiros mostrando cachê bruto, custos e lucro líquido', width: 1536, height: 639, caption: 'Financeiro de cada show' },
+  { src: '/screenshots/agenda.jpg', alt: 'Agenda de gigs do Gigueiros, com o calendário do mês e várias gigs marcadas', width: 1536, height: 639, caption: 'Agenda' },
+  { src: '/screenshots/financeiro.jpg', alt: 'Tela de uma gig no Gigueiros mostrando cachê bruto, custos e lucro líquido', width: 1536, height: 639, caption: 'Financeiro de cada gig' },
   { src: '/screenshots/repertorio.jpg', alt: 'Catálogo de músicas do repertório no Gigueiros', width: 1536, height: 639, caption: 'Repertório' },
   { src: '/screenshots/relatorio.jpg', alt: 'Relatório financeiro mensal do Gigueiros, com faturamento, custos e lucro', width: 1536, height: 639, caption: 'Relatório financeiro' },
   { src: '/screenshots/musicos.jpg', alt: 'Lista de músicos do banco de talentos no Gigueiros', width: 1536, height: 639, caption: 'Músicos' },
@@ -97,7 +98,7 @@ const adminSees = [
   'Músicos, projetos e códigos de convite',
 ];
 
-const musicianSees = ['Só os shows em que está escalado', 'Só o próprio cachê', 'Nenhum valor dos colegas'];
+const musicianSees = ['Só as gigs em que está escalado', 'Só o próprio cachê', 'Nenhum valor dos colegas'];
 
 const priceItems = ['7 dias grátis, sem cartão', 'Músicos ilimitados na banda', 'Assinatura no cartão de crédito', 'Cancele quando quiser'];
 
@@ -126,7 +127,7 @@ export default async function Landing() {
               A agenda e o caixa da banda num lugar só.
             </h1>
             <p className="mt-6 max-w-md text-lg text-[var(--l-mute)]">
-              Shows, escala e cachê de cada músico. Chega de planilha e de grupo de WhatsApp.
+              Gigs, escala e cachê de cada músico. Chega de planilha e de grupo de WhatsApp.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3">
               <Link
@@ -305,6 +306,7 @@ export default async function Landing() {
             <a href={`mailto:${CONTACT_EMAIL}`} className="underline-offset-4 hover:text-[var(--l-fg)] hover:underline">
               Contato
             </a>
+            <InstagramLink className="underline-offset-4 hover:text-[var(--l-fg)]" iconClassName="h-5 w-5" />
             <span aria-label={`Versão ${APP_VERSION}`}>v{APP_VERSION}</span>
           </nav>
         </div>

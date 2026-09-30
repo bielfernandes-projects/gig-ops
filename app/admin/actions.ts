@@ -91,7 +91,7 @@ export async function previewUserDeletion(userId: string): Promise<DeletionImpac
 
 /**
  * Apaga a conta e, com ela, as bandas das quais era a única dona — o `on delete cascade` de `bands`
- * leva membros, assinatura, shows, escala, projetos, músicas e repertórios. Bandas com outro dono
+ * leva membros, assinatura, gigs, escala, projetos, músicas e repertórios. Bandas com outro dono
  * ficam de pé: a pessoa só deixa de ser membro (cascade de `band_members.user_id`).
  * Irreversível: a tela chama `previewUserDeletion` antes e mostra exatamente isso.
  */

@@ -123,7 +123,7 @@ export function GigSetlist({
   if (!setlist) {
     return (
       <section className="mb-10 rounded-xl border border-dashed border-zinc-800 p-6 text-center">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-200">Repertório do show</h2>
+        <h2 className="mb-1 text-sm font-semibold text-zinc-200">Repertório da gig</h2>
         {isOwner ? (
           <>
             <p className="mb-4 text-xs text-zinc-500">Anexe um repertório já existente da banda ou crie um novo.</p>
@@ -148,7 +148,7 @@ export function GigSetlist({
             </Link>
           </>
         ) : (
-          <p className="text-xs text-zinc-500">O repertório deste show ainda não foi montado.</p>
+          <p className="text-xs text-zinc-500">O repertório desta gig ainda não foi montado.</p>
         )}
       </section>
     );
@@ -166,7 +166,7 @@ export function GigSetlist({
     <section className="mb-10">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-1">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-200">Repertório do show</h2>
+          <h2 className="text-sm font-semibold text-zinc-200">Repertório da gig</h2>
           <p className="text-xs text-zinc-500">
             {blocks.length} {blocks.length === 1 ? 'bloco' : 'blocos'} · {total} {total === 1 ? 'música' : 'músicas'}
           </p>
@@ -185,15 +185,15 @@ export function GigSetlist({
 
       {isOwner && shared && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
-          <span>Este repertório é usado em {usageCount} shows — mudanças aqui afetam todos eles.</span>
+          <span>Este repertório é usado em {usageCount} gigs — mudanças aqui afetam todas elas.</span>
           <div className="flex flex-wrap gap-2">
             {gigId && (
               <button
                 type="button"
-                onClick={() => run(() => duplicateSetlistForGig(gigId, setlist.id), 'Repertório duplicado só para este show.')}
+                onClick={() => run(() => duplicateSetlistForGig(gigId, setlist.id), 'Repertório duplicado só para esta gig.')}
                 className="rounded-md border border-amber-400/40 px-3 py-1 font-semibold text-amber-100 hover:bg-amber-500/10"
               >
-                Duplicar para este show
+                Duplicar para esta gig
               </button>
             )}
           </div>
@@ -237,7 +237,7 @@ export function GigSetlist({
                         >
                           <p className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
                             <span className="truncate">{song?.title ?? 'Música removida'}</span>
-                            {keys.to && <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-bold text-zinc-900" title={keys.transposed ? `Tom neste show (original ${keys.from})` : 'Tom da música'}>{keys.to}</span>}
+                            {keys.to && <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-bold text-zinc-900" title={keys.transposed ? `Tom nesta gig (original ${keys.from})` : 'Tom da música'}>{keys.to}</span>}
                           </p>
                           <p className="truncate text-xs text-zinc-500">
                             {song?.artist}
@@ -288,7 +288,7 @@ export function GigSetlist({
                             if (!res?.error) setEditingItem(null);
                           }}
                         >
-                          <select name="requested_key" defaultValue={item.requested_key ?? ''} className={`${inputCls} appearance-none`} aria-label="Tom da música neste show">
+                          <select name="requested_key" defaultValue={item.requested_key ?? ''} className={`${inputCls} appearance-none`} aria-label="Tom da música nesta gig">
                             <option value="">Tom original{song?.original_key ? ` (${song.original_key})` : ''}</option>
                             {MUSICAL_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
                           </select>
@@ -370,7 +370,7 @@ export function GigSetlist({
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm('Desanexar o repertório deste show? O repertório continua existindo (e disponível em outros shows).')) run(() => detachSetlistFromGig(gigId), 'Repertório desanexado.');
+                  if (confirm('Desanexar o repertório desta gig? O repertório continua existindo (e disponível em outras gigs).')) run(() => detachSetlistFromGig(gigId), 'Repertório desanexado.');
                 }}
                 className="text-xs text-zinc-600 underline underline-offset-4 hover:text-red-400"
               >
@@ -381,7 +381,7 @@ export function GigSetlist({
                 <button
                   type="button"
                   onClick={() => {
-                    if (confirm(isCurrentDefault ? 'Este é o repertório principal da banda. Remover mesmo assim? Novos shows deixarão de receber um repertório automaticamente.' : 'Remover este repertório (não é usado por nenhum outro show)?')) run(() => deleteSetlist(setlist.id), 'Repertório removido.');
+                    if (confirm(isCurrentDefault ? 'Este é o repertório principal da banda. Remover mesmo assim? Novas gigs deixarão de receber um repertório automaticamente.' : 'Remover este repertório (não é usado por nenhuma outra gig)?')) run(() => deleteSetlist(setlist.id), 'Repertório removido.');
                   }}
                   className="text-xs text-zinc-600 underline underline-offset-4 hover:text-red-400"
                 >

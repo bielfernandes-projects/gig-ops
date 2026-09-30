@@ -56,7 +56,7 @@ export async function addPayment(formData: FormData) {
   const paidAt = String(formData.get('paid_at') ?? '') || undefined;
   const note = String(formData.get('note') ?? '').trim() || null;
 
-  if (!gigId) return { error: 'Show inválido.' };
+  if (!gigId) return { error: 'Gig inválida.' };
   if (amount === null || amount <= 0) return { error: 'Informe um valor maior que zero.' };
 
   const { error } = await ctx.supabase

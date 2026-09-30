@@ -77,7 +77,7 @@ export function Setlist() {
       </ul>
 
       <div className="mt-2 flex items-baseline justify-between gap-4 border-t-2 border-[var(--l-fg)] pt-4">
-        <span className="whitespace-nowrap text-sm font-medium text-[var(--l-mute)]">Cachês do show</span>
+        <span className="whitespace-nowrap text-sm font-medium text-[var(--l-mute)]">Cachês da gig</span>
         <span className="tot inline-grid justify-items-end tabular-nums">
           <span className="tot-due whitespace-nowrap text-xl font-black">{brl(total)} a pagar</span>
           <span className="tot-done whitespace-nowrap text-xl font-black">{brl(total)} pagos</span>

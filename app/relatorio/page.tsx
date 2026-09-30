@@ -148,7 +148,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 pb-32 md:p-10">
         {header}
         <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Kpi label="Shows no mês" value={String(inMonth.length)} />
+          <Kpi label="Gigs no mês" value={String(inMonth.length)} />
           <Kpi label="Cachê do mês" value={brl(received + pending)} />
           <Kpi label="Recebido" value={brl(received)} />
           <Kpi label="A receber" value={brl(pending)} tone={pending > 0 ? 'text-amber-300' : ''} />
@@ -160,7 +160,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         </section>
 
         <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-200">Cachês de shows passados ainda não pagos</h2>
+          <h2 className="mb-1 text-sm font-semibold text-zinc-200">Cachês de gigs passadas ainda não pagos</h2>
           <p className="mb-4 text-xs text-zinc-500">Nos últimos 6 meses. Total: <span className="font-semibold text-zinc-300">{brl(owedTotal)}</span></p>
           {owed.length === 0 ? (
             <p className="text-sm text-zinc-500">Nada pendente. Tudo pago.</p>
@@ -193,7 +193,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       .gte('start_time', seriesStart.toISOString())
       .lt('start_time', end.toISOString())
       .order('start_time', { ascending: true }) as unknown as Promise<{ data: GigRow[] | null }>,
-    // every show already played whose cachê is still (partly) unpaid, in any month
+    // every gig already played whose cachê is still (partly) unpaid, in any month
     supabase
       .from('go_gigs')
       .select('id, title, start_time, gross_value, band_id, gig_payments(amount)')
@@ -287,7 +287,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       {overdue.length > 0 && (
         <section className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-semibold text-zinc-200">A receber de shows já realizados</h2>
+            <h2 className="text-sm font-semibold text-zinc-200">A receber de gigs já realizadas</h2>
             <p className="text-2xl font-black tabular-nums text-amber-300">{brl(overdueTotal)}</p>
           </div>
           <ul className="mt-3 divide-y divide-zinc-800">
@@ -308,7 +308,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       )}
 
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi label="Shows" value={String(month.length)} />
+        <Kpi label="Gigs" value={String(month.length)} />
         <Kpi label="Faturamento" value={brl(revenue)} />
         <Kpi label="Recebido" value={brl(received)} />
         <Kpi label="Pendente" value={brl(pendingTotal)} tone={pendingTotal > 0 ? 'text-amber-300' : ''} />
@@ -338,7 +338,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       <div className="mb-6 grid gap-6 md:grid-cols-2">
         <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
           <h2 className="mb-4 text-sm font-semibold text-zinc-200">Faturamento por tipo de evento</h2>
-          <Bars rows={[...byType.entries()].map(([label, v]) => ({ label, value: v.value, extra: `${v.count} ${v.count === 1 ? 'show' : 'shows'}` })).sort((a, b) => b.value - a.value)} />
+          <Bars rows={[...byType.entries()].map(([label, v]) => ({ label, value: v.value, extra: `${v.count} ${v.count === 1 ? 'gig' : 'gigs'}` })).sort((a, b) => b.value - a.value)} />
         </section>
         <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
           <h2 className="mb-4 text-sm font-semibold text-zinc-200">Custos por categoria</h2>
@@ -365,7 +365,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       )}
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-        <h2 className="mb-4 text-sm font-semibold text-zinc-200">Shows com recebimento pendente</h2>
+        <h2 className="mb-4 text-sm font-semibold text-zinc-200">Gigs com recebimento pendente</h2>
         {pendingGigs.length === 0 ? (
           <p className="text-sm text-zinc-500">Nenhum recebimento pendente neste mês.</p>
         ) : (

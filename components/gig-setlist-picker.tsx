@@ -8,7 +8,7 @@ import { ListMusic } from 'lucide-react';
 import { attachSetlistToGig, detachSetlistFromGig } from '@/app/actions/setlist-actions';
 import type { BandSetlistOption } from '@/components/gig-setlist';
 
-/** Escolha do repertório do show; o repertório em si fica em /repertorio/lista/[id]. */
+/** Escolha do repertório da gig; o repertório em si fica em /repertorio/lista/[id]. */
 export function GigSetlistPicker({ gigId, currentId, options, isOwner }: { gigId: string; currentId: string | null; options: BandSetlistOption[]; isOwner: boolean }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -19,13 +19,13 @@ export function GigSetlistPicker({ gigId, currentId, options, isOwner }: { gigId
     const res = id ? await attachSetlistToGig(gigId, id) : await detachSetlistFromGig(gigId);
     setPending(false);
     if (res?.error) return toast.error(res.error);
-    toast.success(id ? 'Repertório do show atualizado.' : 'Repertório removido do show.');
+    toast.success(id ? 'Repertório da gig atualizado.' : 'Repertório removido da gig.');
     router.refresh();
   };
 
   return (
     <section className="mb-10">
-      <h2 className="mb-4 px-1 text-sm font-semibold text-zinc-200">Repertório do show</h2>
+      <h2 className="mb-4 px-1 text-sm font-semibold text-zinc-200">Repertório da gig</h2>
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
         <ListMusic className="h-5 w-5 shrink-0 text-zinc-500" />
         {isOwner ? (
@@ -33,7 +33,7 @@ export function GigSetlistPicker({ gigId, currentId, options, isOwner }: { gigId
             value={currentId ?? ''}
             disabled={pending}
             onChange={(e) => change(e.target.value)}
-            aria-label="Repertório usado no show"
+            aria-label="Repertório usado na gig"
             className="min-w-0 flex-1 appearance-none rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-600 focus:outline-none disabled:opacity-50"
           >
             <option value="">Qual repertório será usado?</option>

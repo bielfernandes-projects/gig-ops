@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, X, Loader2, Copy, Volume2, VolumeX, Users, Trash2, Bell } from 'lucide-react';
 import { DateTimePicker } from './date-time-picker';
 import { addQuickGig } from '@/app/actions/gig-actions';
+import { addProject } from '@/app/actions/project-actions';
 import { GoGig, GoProject, GoMember } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -19,9 +20,12 @@ interface LineupEntry {
 
 type BandChoice = { bandId: string; name: string };
 
+// Badge colors for projects created inline (editable later in Projetos).
+const PROJECT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+
 /**
- * New-show form. `bands` are the bands the person owns in the current view; with more than one
- * (the "Todas as bandas" view) the form asks which band the show belongs to, and projects/crew
+ * New-gig form. `bands` are the bands the person owns in the current view; with more than one
+ * (the "Todas as bandas" view) the form asks which band the gig belongs to, and projects/crew
  * follow that choice.
  */
 export function QuickAddGig({
@@ -39,7 +43,12 @@ export function QuickAddGig({
 }) {
   const router = useRouter();
   const [bandId, setBandId] = useState(() => (cloneData?.band_id && bands.some((b) => b.bandId === cloneData.band_id) ? cloneData.band_id : bands[0]?.bandId) ?? '');
-  const projects = allProjects.filter((p) => p.band_id === bandId);
+  const [createdProjects, setCreatedProjects] = useState<GoProject[]>([]);
+  const [projectId, setProjectId] = useState(cloneData?.project_id ?? '');
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [creatingProject, setCreatingProject] = useState(false);
+  const projects = [...allProjects, ...createdProjects].filter((p) => p.band_id === bandId);
   const members = allMembers.filter((m) => m.band_id === bandId);
   const defaultMemberIds = allDefaultMemberIds?.filter((id) => members.some((m) => m.id === id));
   const [isOpen, setIsOpen] = useState(false);
@@ -116,6 +125,27 @@ export function QuickAddGig({
     setLineup(prev => prev.map(l => l.member_id === memberId ? { ...l, fee_amount: fee } : l));
   };
 
+  const createProject = async () => {
+    const name = newProjectName.trim();
+    if (!name || creatingProject) return;
+    setCreatingProject(true);
+    const fd = new FormData();
+    fd.set('band_id', bandId);
+    fd.set('name', name);
+    fd.set('color_hex', PROJECT_COLORS[projects.length % PROJECT_COLORS.length]);
+    const res = await addProject(fd);
+    setCreatingProject(false);
+    if (res.error || !res.project) {
+      toast.error(`Erro ao criar projeto: ${res.error ?? 'tente novamente'}`);
+      return;
+    }
+    setCreatedProjects((prev) => [...prev, res.project]);
+    setProjectId(res.project.id);
+    setShowNewProject(false);
+    setNewProjectName('');
+    toast.success('Projeto criado.');
+  };
+
   const toggleReminder = (minutes: number) => {
     setReminderMinutes(prev => 
       prev.includes(minutes) 
@@ -170,10 +200,10 @@ export function QuickAddGig({
       <button 
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 md:bottom-10 right-4 md:right-10 z-40 flex items-center gap-2 px-4 h-14 bg-zinc-100 text-zinc-900 rounded-full hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl select-none"
-        aria-label="Novo Show"
+        aria-label="Nova Gig"
       >
         <Plus className="w-6 h-6 stroke-[2.5]" />
-        <span className="text-sm font-bold hidden sm:inline">Novo Show</span>
+        <span className="text-sm font-bold hidden sm:inline">Nova Gig</span>
       </button>
 
       {isOpen && (
@@ -189,7 +219,7 @@ export function QuickAddGig({
               <div className="flex items-center gap-2">
                 {isClone && <Copy className="w-4 h-4 text-emerald-400" />}
                 <h2 className="text-xl font-bold tracking-tight text-zinc-100">
-                  {isClone ? 'Duplicar Gig' : 'Novo Show'}
+                  {isClone ? 'Duplicar Gig' : 'Nova Gig'}
                 </h2>
               </div>
               <button 
@@ -216,6 +246,7 @@ export function QuickAddGig({
                     onChange={(e) => {
                       const next = e.target.value;
                       setBandId(next);
+                      setProjectId('');
                       // Crew belongs to a band: restart the lineup with the new band's fixed musicians.
                       const nextDefaults = (allDefaultMemberIds ?? [])
                         .map((id) => allMembers.find((m) => m.id === id && m.band_id === next))
@@ -244,7 +275,7 @@ export function QuickAddGig({
                   autoFocus={!isClone}
                   defaultValue={cloneData?.title ?? ''}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
-                  placeholder="Ex: Show Sesc Paulista"
+                  placeholder="Ex: Gig Sesc Paulista"
                 />
               </div>
 
@@ -253,11 +284,11 @@ export function QuickAddGig({
                   Projeto <span className="text-red-400">*</span>
                 </label>
                 <select
-                  key={`project-${bandId}`}
                   id="project_id"
                   name="project_id"
                   required
-                  defaultValue={cloneData?.project_id ?? ''}
+                  value={projectId}
+                  onChange={(e) => setProjectId(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none"
                 >
                   <option value="" disabled>Selecione o Projeto</option>
@@ -265,6 +296,43 @@ export function QuickAddGig({
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+                {showNewProject ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createProject(); } }}
+                      autoFocus
+                      placeholder="Nome do novo projeto"
+                      className="min-w-0 flex-1 bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 placeholder-zinc-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={createProject}
+                      disabled={creatingProject || !newProjectName.trim()}
+                      className="flex items-center justify-center rounded-md bg-zinc-100 px-3 text-sm font-bold text-zinc-950 hover:bg-white disabled:opacity-50"
+                    >
+                      {creatingProject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowNewProject(false); setNewProjectName(''); }}
+                      aria-label="Cancelar novo projeto"
+                      className="rounded-md p-2 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewProject(true)}
+                    className="self-start text-xs font-medium text-emerald-400 hover:text-emerald-300"
+                  >
+                    + Novo projeto
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">

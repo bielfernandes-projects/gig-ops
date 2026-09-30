@@ -29,7 +29,7 @@ export default async function DashboardPage() {
   ]);
   const allGigs = gigsData || [];
 
-  // Fetch lineups only for the Shows we already have.
+  // Fetch lineups only for the Gigs we already have.
   const gigIds = allGigs.map(g => g.id);
   const { data: lineupsData } = gigIds.length > 0
     ? await supabase

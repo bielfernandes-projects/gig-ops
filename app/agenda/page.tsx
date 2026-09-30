@@ -137,7 +137,7 @@ export default async function Home({
     .in('band_id', bandIds)
     .order('name', { ascending: true });
 
-  // Only owners create shows, so the new-show form only needs the crews of the bands they own.
+  // Only owners create gigs, so the new-gig form only needs the crews of the bands they own.
   const membersQuery = supabase
     .from('go_members')
     .select('*')
@@ -194,7 +194,7 @@ export default async function Home({
     visibleGigs = visibleGigs.filter(g => g.project_id === project);
   }
 
-  // Shows already played whose money is not settled yet.
+  // Gigs already played whose money is not settled yet.
   const pendingGigs = unsettledGigs(roles, visibleGigs, lineups);
 
   // Exclude pending gigs from the main timeline to avoid showing them twice
@@ -202,15 +202,15 @@ export default async function Home({
   const filtered = filterGigs(visibleGigs, tab, from, to).filter(g => !pendingGigIds.has(g.id));
   const grouped = groupByMonth(filtered);
 
-  // My cachê on the shows still to come (respects the current filter).
+  // My cachê on the gigs still to come (respects the current filter).
   const upcomingFee = filtered
     .filter((gig) => isUpcoming(gig))
     .reduce((acc, gig) => acc + myFee(roles, gig, lineups), 0);
 
-  // My cachê on shows already played that has not been paid to me yet.
+  // My cachê on gigs already played that has not been paid to me yet.
   const feeToReceive = pendingGigs.reduce((acc, gig) => acc + myUnpaidFee(roles, gig, lineups), 0);
 
-  // Owners: what their bands still owe the crew (musicians + sound) for shows already played.
+  // Owners: what their bands still owe the crew (musicians + sound) for gigs already played.
   const feeToPay = pendingGigs.reduce(
     (acc, gig) => acc + (ownsGig(roles, gig) ? owedByBand(gig, lineups) : 0),
     0
@@ -224,7 +224,7 @@ export default async function Home({
     <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:p-10 relative">
       {/* Header */}
       <header className="mb-8">
-        <PageHeader title="Agenda" description="Seus shows, escalas e cachês, em calendário ou em lista." />
+        <PageHeader title="Agenda" description="Suas gigs, escalas e cachês, em calendário ou em lista." />
 
         {/* Stats strip */}
         <div className="flex gap-3 overflow-x-auto pb-3 snap-x hide-scrollbar mb-6">
@@ -243,7 +243,7 @@ export default async function Home({
             </div>
           )}
           <div className="min-w-[120px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
-            <span className="text-xs font-medium text-zinc-500 block mb-1">Shows no total</span>
+            <span className="text-xs font-medium text-zinc-500 block mb-1">Gigs no total</span>
             <span className="text-xl font-bold text-zinc-100">{totalShows}</span>
           </div>
           {!calendarView && (
@@ -274,7 +274,7 @@ export default async function Home({
         <div className="p-4 text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">
           <h2 className="font-bold mb-2">Erro ao carregar agenda</h2>
           <p className="text-sm text-red-400/80 mb-3">
-            Não foi possível carregar seus shows. Verifique sua conexão e tente novamente.
+            Não foi possível carregar suas gigs. Verifique sua conexão e tente novamente.
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -293,12 +293,12 @@ export default async function Home({
       <main className={`flex flex-col gap-8 pb-32 ${calendarView ? 'hidden' : ''}`}>
         {filtered.length === 0 && !error ? (
           <div className="w-full py-20 flex flex-col items-center justify-center text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
-            <p className="text-zinc-400 font-medium tracking-wide">Nenhum show neste período.</p>
+            <p className="text-zinc-400 font-medium tracking-wide">Nenhuma gig neste período.</p>
             {tab !== 'all' && (
               <p className="text-zinc-500 text-sm mt-1">Tente a <span className="text-zinc-400 font-semibold">Agenda Completa</span>.</p>
             )}
             {owned.length > 0 && tab === 'all' && (
-              <p className="text-zinc-500 text-sm mt-1">Toque no + para agendar o primeiro show.</p>
+              <p className="text-zinc-500 text-sm mt-1">Toque no + para agendar a primeira gig.</p>
             )}
           </div>
         ) : (
@@ -311,14 +311,14 @@ export default async function Home({
                 </span>
                 <div className="flex-1 h-px bg-zinc-800" />
                 <span className="text-xs text-zinc-600 font-medium">
-                  {monthGigs.length} {monthGigs.length === 1 ? 'show' : 'shows'}
+                  {monthGigs.length} {monthGigs.length === 1 ? 'gig' : 'gigs'}
                 </span>
               </div>
 
               <div className="flex flex-col gap-3">
                 {monthGigs.map((gig) => {
                   const lineupData = lineups.filter((l) => l.gig_id === gig.id);
-                  // A played Show is dimmed once there is nothing left to settle on it.
+                  // A played Gig is dimmed once there is nothing left to settle on it.
                   const isFullyPaid =
                     !isUpcoming(gig) &&
                     lineupData.length > 0 &&

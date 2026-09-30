@@ -78,7 +78,7 @@ async function refresh(ctx: Pick<Ctx, 'supabase'>, sl: Pick<SetlistRow, 'id'>) {
   revalidatePath(`/repertorio/lista/${sl.id}`);
 }
 
-/** A reusable band setlist (library): created empty, then anexado a shows / marcado como principal. */
+/** A reusable band setlist (library): created empty, then anexado a gigs / marcado como principal. */
 export async function createBandSetlist(name: string, bandId?: string | null) {
   const ctx = await requireOwner('repertorio', bandId);
   if (!ctx.ok) return { error: ctx.error };

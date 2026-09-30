@@ -118,7 +118,7 @@ function LoginPageInner() {
               {isLogin
                 ? 'Bem-vindo ao Gigueiros. Faça login para gerenciar sua agenda.'
                 : isAdminSignup
-                  ? 'Crie sua própria banda e gerencie seus shows, músicos e projetos.'
+                  ? 'Crie sua própria banda e gerencie suas gigs, músicos e projetos.'
                   : 'Cadastre-se na banda da qual foi convidado.'}
             </p>
           </>

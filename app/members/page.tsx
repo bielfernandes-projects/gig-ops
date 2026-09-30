@@ -55,6 +55,13 @@ export default async function MembersPage() {
         </div>
       )}
 
+      {owned.length > 0 && (
+        <p className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
+          <strong className="font-semibold">Gig na agenda do músico:</strong> cadastre o músico com o mesmo e-mail que
+          ele usa para entrar no Gigueiros. Assim, quando você escalá-lo, a gig aparece na hora para ele.
+        </p>
+      )}
+
       <main className="pb-32 flex flex-col gap-10">
         {members.length === 0 && !error ? (
           <div className="w-full py-20 flex flex-col items-center justify-center text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">

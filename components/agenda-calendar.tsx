@@ -18,7 +18,7 @@ type Props = {
   monthHref: (year: number, month: number) => string;
 };
 
-/** Month grid: one cell per day, each show as a line that opens the gig. Days are Brasília days. */
+/** Month grid: one cell per day, each gig as a line that opens the gig. Days are Brasília days. */
 export function AgendaCalendar({ gigs, year, month, monthHref }: Props) {
   const byDay = new Map<string, GigWithProject[]>();
   for (const g of gigs) {
@@ -41,7 +41,7 @@ export function AgendaCalendar({ gigs, year, month, monthHref }: Props) {
     .reduce((s, [, v]) => s + v.length, 0);
 
   return (
-    <section aria-label="Calendário de shows" className="pb-32">
+    <section aria-label="Calendário de gigs" className="pb-32">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
           <Link href={monthHref(prev.y, prev.m)} aria-label="Mês anterior" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100">
@@ -56,7 +56,7 @@ export function AgendaCalendar({ gigs, year, month, monthHref }: Props) {
         </div>
         <div className="flex items-center gap-3 text-xs text-zinc-500">
           <span>
-            {total} {total === 1 ? 'show' : 'shows'}
+            {total} {total === 1 ? 'gig' : 'gigs'}
           </span>
           {(ty !== year || tm !== month) && (
             <Link href={monthHref(ty, tm)} className="font-semibold text-zinc-300 underline underline-offset-4 hover:text-white">

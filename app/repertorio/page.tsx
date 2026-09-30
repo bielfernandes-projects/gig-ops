@@ -61,7 +61,7 @@ export default async function RepertorioPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 pb-32 md:p-10">
-      <PageHeader title="Repertório" description="O catálogo de músicas da banda e os repertórios reutilizáveis em qualquer show." className="mb-8" />
+      <PageHeader title="Repertório" description="O catálogo de músicas da banda e os repertórios reutilizáveis em qualquer gig." className="mb-8" />
 
       <BandSetlists lists={bandLists} bands={ownedBands(info).filter((b) => repBandIds.includes(b.bandId))} />
 

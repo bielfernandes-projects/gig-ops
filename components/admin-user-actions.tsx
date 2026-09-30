@@ -47,7 +47,7 @@ export function AdminUserActions({ userId, email }: { userId: string; email: str
             <ul className="flex flex-col gap-0.5">
               {impact.bandsDestroyed.map((b) => (
                 <li key={b.id}>
-                  <strong className="text-zinc-100">{b.name}</strong> — {b.gigs} shows, {b.members} músicos, {b.songs} músicas
+                  <strong className="text-zinc-100">{b.name}</strong> — {b.gigs} gigs, {b.members} músicos, {b.songs} músicas
                 </li>
               ))}
             </ul>

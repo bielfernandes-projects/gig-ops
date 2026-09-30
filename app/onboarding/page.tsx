@@ -73,7 +73,7 @@ export default function OnboardingPage() {
 
         <section className="flex flex-col gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
           <h2 className="font-bold">Sou o responsável pela banda</h2>
-          <p className="text-xs text-zinc-400">Crie sua banda e gerencie shows, escala e cachês.</p>
+          <p className="text-xs text-zinc-400">Crie sua banda e gerencie gigs, escala e cachês.</p>
           <form onSubmit={handleCreate} className="mt-2 flex flex-col gap-2">
             <input name="bandName" required maxLength={60} autoComplete="off" placeholder="Nome da banda" className={inputCls} />
             {/* A code the owner invents, so the real 5-char limit applies here (the field in the

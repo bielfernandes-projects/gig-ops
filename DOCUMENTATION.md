@@ -786,3 +786,9 @@ verificado e descartado, para não ser re-investigado depois:
 * **Testes:** `scripts/check-import.ts` (tom, título, limpeza da resposta); `scripts/try-import.ts` roda a leitura real numa pasta de arquivos (manual, sem gravar no banco).
 * **Sync:** a landing tem uma **seção própria** ("Seu repertório já existe. Traga ele pra cá.", `importSteps` em `app/page.tsx`, com o aviso de que a IA não inventa tom/artista e que PDF escaneado não é lido) além do card "Repertório e cifras" e da meta description; o tour (passo do Repertório) e a Privacidade também foram atualizados. Ao mudar o comportamento da importação, revisar esses textos.
 * O `alias-hook.mjs` dos testes codificava duas vezes caminhos com espaço (o de OneDrive), o que fazia `check-gig-view` e `check-repertoire` falharem; corrigido.
+
+## 52. Gig no lugar de "show", Instagram e projeto na criação da gig
+* **Vocabulário:** todo texto visível ao usuário (app, landing, tour, notificações) diz **gig** em vez de "show" ("Nova Gig", "Próxima Gig"). O tipo de evento "Show em palco" (`lib/finance.ts`) foi mantido porque é um valor gravado no banco.
+* **Novo projeto na gig:** no formulário "Nova Gig" (`components/quick-add-gig.tsx`), o link "+ Novo projeto" abre um campo de nome, cria o projeto na banda selecionada (`addProject` agora devolve o projeto criado; cor escolhida de uma paleta e editável depois em Projetos) e já o seleciona.
+* **Instagram:** `components/instagram-link.tsx` (`@gigueirosapp`), ao lado do "Sair" no menu lateral (desktop e drawer mobile) e no rodapé da landing.
+* **Músicos:** aviso na página (visível ao Dono) e no modal explicando que cadastrar o músico com o mesmo e-mail do login dele faz a gig aparecer na agenda dele quando for escalado. O tour (`components/app-tour.tsx`) foi atualizado com isso e com o projeto criado na própria gig. A menção ao Google Agenda foi removida (a sincronização é via `.ics`).

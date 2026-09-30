@@ -113,7 +113,7 @@ export function AddNewMemberModal({ bands }: { bands: BandChoice[] }) {
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
                   placeholder="Ex: musico@banda.com"
                 />
-                <p className="text-xs font-medium text-zinc-500">O e-mail deve ser o mesmo do login e Google Agenda para sincronização futura.</p>
+                <p className="text-xs font-medium text-zinc-500">Use o mesmo e-mail com que o músico entra no Gigueiros: ao escalá-lo, a gig aparece na agenda dele.</p>
               </div>
 
               <button 
