@@ -24,13 +24,23 @@ const ICONS: Record<string, LucideIcon> = {
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<BellData | null>(null);
-  const [cleared, setCleared] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => getBellData().then(setData).catch(() => {}), []);
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // Keeps the badge fresh without a reload: when the app comes back to the foreground and every 5 minutes while visible.
+  useEffect(() => {
+    const refresh = () => document.visibilityState === 'visible' && void load();
+    const timer = setInterval(refresh, 5 * 60_000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, [load]);
 
   useEffect(() => {
@@ -48,13 +58,12 @@ export function NotificationBell() {
   async function toggle() {
     if (open) return setOpen(false);
     setOpen(true);
-    setCleared(false);
     await load();
-    setCleared(true);
     void markNotificationsRead();
   }
 
-  const badge = (cleared ? 0 : (data?.unread ?? 0)) + (data?.newUpdates ?? 0);
+  // While the panel is open the notifications count as read (they stay highlighted in the list).
+  const badge = (open ? 0 : (data?.unread ?? 0)) + (data?.newUpdates ?? 0);
 
   return (
     <div ref={box} className="relative">

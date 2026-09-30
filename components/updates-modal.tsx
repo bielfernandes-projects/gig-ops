@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { getUpdates, markUpdatesSeen } from '@/app/actions/notification-actions';
@@ -18,28 +18,41 @@ const BADGE: Record<UpdateKind, string> = {
 };
 
 /**
- * "Atualizações do app": opens by itself on the first app screen of each load when there is something
- * launched since the person last closed it (same pattern as `PremiumNotice`), and on demand from the bell,
- * which then shows the latest updates as history. Closing marks everything as seen. Mounted in the root layout.
+ * "Atualizações do app": opens by itself when there is something launched since the person last closed it.
+ * It checks on each app screen and whenever the app comes back to the foreground (people keep the app open
+ * and never log in again), at most once a minute. The bell opens it on demand, showing the latest updates
+ * as history. Closing marks everything as seen. Mounted in the root layout.
  */
+const CHECK_EVERY_MS = 60_000;
+
 export function UpdatesModal() {
   const pathname = usePathname();
-  const checked = useRef(false);
+  const lastCheck = useRef(0);
   const [state, setState] = useState<{ updates: AppUpdate[]; mode: 'new' | 'all' } | null>(null);
+
+  const check = useCallback(() => {
+    if (Date.now() - lastCheck.current < CHECK_EVERY_MS) return;
+    lastCheck.current = Date.now();
+    getUpdates('new')
+      .then(({ updates }) => updates.length > 0 && setState((s) => s ?? { updates, mode: 'new' }))
+      .catch(() => {
+        // Offline or session gone: nothing was marked as seen, so it comes back on the next check.
+      });
+  }, []);
 
   useEffect(() => {
     if (!shouldTrack(pathname)) {
-      checked.current = false;
+      lastCheck.current = 0; // outside the app (login): the next person to enter is checked right away
       return;
     }
-    if (checked.current) return;
-    checked.current = true;
-    getUpdates('new')
-      .then(({ updates }) => updates.length > 0 && setState({ updates, mode: 'new' }))
-      .catch(() => {
-        // Offline or session gone: nothing was marked as seen, so it comes back on the next load.
-      });
-  }, [pathname]);
+    check();
+  }, [pathname, check]);
+
+  useEffect(() => {
+    const onVisible = () => document.visibilityState === 'visible' && shouldTrack(window.location.pathname) && check();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [check]);
 
   useEffect(() => {
     const open = () =>

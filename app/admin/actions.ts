@@ -7,6 +7,7 @@ import { isElevated } from '@/lib/admin-session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { UPDATE_KINDS, type UpdateKind } from '@/lib/notification-model';
+import { sendPushToAll } from '@/lib/push';
 import { dayKey, toIso } from '@/lib/time';
 
 /**
@@ -193,7 +194,7 @@ export async function revokePremium(bandId: string) {
  * Lança uma atualização do app (aparece no pop-up de todos e na lista "Atualizações do app" do sino).
  * A data é a que aparece para as pessoas; quem já viu o pop-up é decidido por quando foi lançada.
  */
-export async function createAppUpdate(input: { kind: string; title: string; body: string; date: string }) {
+export async function createAppUpdate(input: { kind: string; title: string; body: string; date: string; notify: boolean }) {
   const gate = await requireSuperAdmin();
   if (!gate.ok) return { error: gate.error };
 
@@ -214,7 +215,10 @@ export async function createAppUpdate(input: { kind: string; title: string; body
     return { error: 'Não foi possível lançar a atualização.' };
   }
   revalidatePath('/admin/atualizacoes');
-  return { success: true };
+
+  // Quem mantém o app aberto não recarrega: o push avisa todos os aparelhos inscritos (abrir o app mostra o pop-up).
+  const pushed = input.notify ? await sendPushToAll({ title: 'Novidade no Gigueiros', body: title, url: '/dashboard' }) : 0;
+  return { success: true, pushed };
 }
 
 export async function deleteAppUpdate(id: string) {

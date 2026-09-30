@@ -2,6 +2,13 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.2.1] - 2026-09-30
+
+### Alterado
+- O pop-up de atualizações do app deixou de depender de login: o app checa sozinho a cada tela e sempre que volta para o primeiro plano (no máximo 1 vez por minuto), e o sino se atualiza ao voltar ao app e a cada 5 minutos.
+- Ao lançar uma atualização em `/admin/atualizacoes`, dá para enviar também um push para todos os aparelhos inscritos (opção marcada por padrão).
+- As mudanças da versão 1.2.0 foram lançadas como atualizações do app (dados, sem migration).
+
 ## [1.2.0] - 2026-09-30
 
 ### Adicionado
