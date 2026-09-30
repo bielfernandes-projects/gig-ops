@@ -78,6 +78,7 @@ export async function signup(formData: FormData) {
     // Notify the band owners (fire & forget: never blocks signup)
     try {
       await sendPushToBandOwners(joined.bandId, {
+        kind: 'entrada',
         title: 'Novo músico na banda',
         body: 'Um novo membro acabou de entrar usando o código de convite.',
       });

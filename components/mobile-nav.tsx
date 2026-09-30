@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { navItems, hideNav } from '@/components/navigation';
 import { signout } from '@/app/login/actions';
 import { InstagramLink } from '@/components/instagram-link';
+import { NotificationBell } from '@/components/notification-bell';
 import { BandFilter } from '@/components/band-switcher';
 
 export const NAV_EVENT = 'gg:nav';
@@ -41,6 +42,7 @@ export function MobileNav() {
         </button>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2 pl-3">
           <div className="min-w-0 max-w-[60%] flex-1"><BandFilter compact /></div>
+          {pathname === '/dashboard' && <NotificationBell />}
           <form action={signout}>
           <button type="submit" aria-label="Sair" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-900 hover:text-red-400">
             <LogOut className="h-5 w-5" />

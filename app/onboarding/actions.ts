@@ -61,6 +61,7 @@ export async function joinBand(formData: FormData) {
   if ('error' in joined) return { error: joined.error };
 
   await sendPushToBandOwners(joined.bandId, {
+    kind: 'entrada',
     title: 'Novo músico na banda',
     body: `${await nameOf(user.id, user.email)} entrou usando o código de convite.`,
   });

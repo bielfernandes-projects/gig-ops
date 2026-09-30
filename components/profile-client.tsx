@@ -137,7 +137,7 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
               ? 'Você está inscrito. Receberá alertas quando for escalado para uma gig.'
               : pushStatus === 'denied'
               ? 'Permissão bloqueada pelo dispositivo. Ative nas configurações do navegador.'
-              : 'Ative para receber alertas automáticos quando o admin te escalar para um nova gig.'}
+              : 'Ative para receber alertas automáticos quando o admin te escalar para uma nova gig.'}
           </p>
 
           {pushStatus === 'active' ? (

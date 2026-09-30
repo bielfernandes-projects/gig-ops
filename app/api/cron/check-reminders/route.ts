@@ -1,3 +1,4 @@
+import { recordNotification } from '@/lib/notifications';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { CONTACT_EMAIL } from '@/lib/contact';
 import { NextResponse } from 'next/server';
@@ -94,6 +95,14 @@ export async function GET(req: Request) {
           .single();
 
         if (!profile?.id) continue;
+
+        // In-app copy for the bell, even when the person has no push subscription.
+        await recordNotification([profile.id as string], {
+          kind: 'lembrete',
+          title: `Lembrete: ${projectName ? `${gig.title} [${projectName}]` : gig.title}`,
+          body: `${dateStr} às ${timeStr}. Não esqueça!`,
+          url: `/gigs/${gig.id}`,
+        });
 
         // Get push subscriptions
         const { data: subscriptions } = await supabase

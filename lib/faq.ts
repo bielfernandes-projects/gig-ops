@@ -35,6 +35,10 @@ export const FAQ: { title: string; items: FaqItem[] }[] = [
         a: 'Não. O músico vê apenas as gigs em que está escalado e o próprio cachê. Valores dos colegas e observações contratuais ficam só com o dono da banda.',
       },
       {
+        q: 'Onde vejo meus avisos e as novidades do app?',
+        a: 'No sino, no canto superior do Dashboard. Ali ficam os avisos (escala, pagamento, lembretes) e a linha "Atualizações do app", que mostra as novidades, melhorias e correções mais recentes. Quando há algo novo, um pop-up aparece no seu próximo login.',
+      },
+      {
         q: 'Como levo a agenda para o Google Agenda ou o Apple Calendário?',
         a: 'Na Agenda há o aviso de calendário com um link de assinatura (.ics). Basta adicioná-lo ao seu aplicativo de calendário; as novas gigs aparecem automaticamente.',
       },

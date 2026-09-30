@@ -1,6 +1,10 @@
 import webpush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { CONTACT_EMAIL } from '@/lib/contact';
+import { recordNotification } from '@/lib/notifications';
+import type { NotificationKind } from '@/lib/notification-model';
+
+type PushPayload = { title: string; body: string; url?: string; kind: NotificationKind };
 
 webpush.setVapidDetails(
   process.env.VAPID_ADMIN_EMAIL || `mailto:${CONTACT_EMAIL}`,
@@ -8,8 +12,8 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-/** Send a push notification to all subscriptions belonging to a member (by their member_id in go_members) */
-export async function sendPushToMember(memberId: string, payload: { title: string; body: string; url?: string }) {
+/** Send a push notification to all subscriptions belonging to a member (by their member_id in go_members). Also keeps an in-app copy for the bell. */
+export async function sendPushToMember(memberId: string, { kind, ...payload }: PushPayload) {
   const enrichedPayload = {
     ...payload,
     icon: '/icon-192x192.png',
@@ -34,6 +38,8 @@ export async function sendPushToMember(memberId: string, payload: { title: strin
       .single();
 
     if (!profile?.id) return; // No registered account for this member
+
+    await recordNotification([profile.id], { kind, ...payload });
 
     // 3. Fetch all push subscriptions for that profile
     const { data: subscriptions } = await createAdminClient()
@@ -65,8 +71,8 @@ export async function sendPushToMember(memberId: string, payload: { title: strin
     console.error('Error in sendPushToMember:', err);
   }
 }
-/** Send a push notification to every owner of a band */
-export async function sendPushToBandOwners(bandId: string, payload: { title: string; body: string; url?: string }) {
+/** Send a push notification to every owner of a band. Also keeps an in-app copy for the bell. */
+export async function sendPushToBandOwners(bandId: string, { kind, ...payload }: PushPayload) {
   const enrichedPayload = {
     ...payload,
     icon: '/icon-192x192.png',
@@ -82,6 +88,8 @@ export async function sendPushToBandOwners(bandId: string, payload: { title: str
       .eq('role', 'owner');
 
     if (!owners || owners.length === 0) return;
+
+    await recordNotification(owners.map((o) => o.user_id as string), { kind, ...payload });
 
     // 2. For each owner, fetch their subscriptions and send in parallel
     const payloadStr = JSON.stringify(enrichedPayload);

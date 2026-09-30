@@ -270,6 +270,7 @@ export async function cancelGig(gigId: string, reason: string, deleteMode: 'sing
       await Promise.allSettled(
         memberIds.map(memberId =>
           sendPushToMember(memberId, {
+            kind: 'cancelamento',
             title: `Gig Cancelada: ${gigTitle}`,
             body: `Motivo: ${reason}`,
           })
@@ -346,8 +347,9 @@ export async function addMemberToLineup(formData: FormData) {
   if (member_id) {
     try {
       await sendPushToMember(member_id, {
+        kind: 'escalado',
         title: 'Nova Gig Escalada! 🎸',
-        body: 'Você foi escalado para um nova gig. Abra o app para ver os detalhes e adicionar ao seu calendário.',
+        body: 'Você foi escalado para uma nova gig. Abra o app para ver os detalhes e adicionar ao seu calendário.',
         url: `/gigs/${gig_id}`,
       });
     } catch (e) {
@@ -396,6 +398,7 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
     
     try {
       await sendPushToMember(lineupData.member_id, {
+        kind: 'pagamento',
         title: 'Cachê na conta! 💸',
         body: `Seu pagamento da gig ${gigTitle} foi confirmado no Gigueiros.`,
         url: `/gigs/${lineupData.gig_id}`,

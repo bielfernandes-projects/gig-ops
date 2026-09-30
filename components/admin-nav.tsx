@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 const ITEMS = [
   { href: '/admin', label: 'Visão geral' },
   { href: '/admin/usuarios', label: 'Usuários' },
+  { href: '/admin/atualizacoes', label: 'Atualizações' },
 ];
 
 export function AdminNav() {

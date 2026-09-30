@@ -9,6 +9,7 @@ import { OfflineSetup } from '@/components/offline-setup';
 import { ThemeToaster } from '@/components/theme-toaster';
 import { ScreenTracker } from '@/components/screen-tracker';
 import { PremiumNotice } from '@/components/premium-notice';
+import { UpdatesModal } from '@/components/updates-modal';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -88,6 +89,7 @@ export default function RootLayout({
         <ThemeToaster />
         <ScreenTracker />
         <PremiumNotice />
+        <UpdatesModal />
         <OfflineSetup />
         <Analytics />
         <SpeedInsights />
