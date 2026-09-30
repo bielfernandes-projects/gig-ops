@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
-import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3, Music, Gift, LogOut, type LucideIcon } from 'lucide-react';
+import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3, Music, Gift, LifeBuoy, LogOut, type LucideIcon } from 'lucide-react';
 import { signout } from '@/app/login/actions';
 import { BandFilter } from '@/components/band-switcher';
 import { InstagramLink } from '@/components/instagram-link';
@@ -19,9 +19,10 @@ export const navItems: NavItem[] = [
   { name: 'Relatório', href: '/relatorio', icon: BarChart3 },
   { name: 'Indicações', href: '/indicacoes', icon: Gift, disabled: true },
   { name: 'Perfil', href: '/profile', icon: UserRound },
+  { name: 'Ajuda', href: '/suporte', icon: LifeBuoy },
 ];
 
-export const HIDE_NAV_PATHS = ['/', '/login', '/onboarding', '/termos', '/privacidade'];
+export const HIDE_NAV_PATHS = ['/', '/login', '/onboarding', '/termos', '/privacidade', '/suporte'];
 export const hideNav = (pathname: string) => HIDE_NAV_PATHS.includes(pathname) || pathname.startsWith('/auth') || pathname.startsWith('/s/');
 
 /** Desktop sidebar. The phone layout lives in MobileNav. */

@@ -38,7 +38,7 @@ const OWNER_STEPS: Step[] = [
   nav('/agenda', 'Crie as gigs', 'Toque em "Nova Gig" (dá até pra criar o projeto ali mesmo), escale os músicos e defina o cachê de cada um. O lucro da gig é calculado na hora.'),
   nav('/repertorio', 'Monte o repertório', 'Catálogo com links de cifra e letra, tom, tom que começa, observações e PDF e repertórios reutilizáveis: marque um como principal e ele já entra nas gigs novas. Já tem o repertório pronto? Use "Importar repertório" para trazer de um PDF, Word ou TXT.'),
   nav('/relatorio', 'Acompanhe o caixa', 'Faturamento, custos e lucro de cada mês, e o que ainda falta receber ou pagar.'),
-  nav('/profile', 'Chame a banda', 'No Perfil fica o código de convite pros músicos entrarem, a assinatura (é lá que você assina e gerencia o cartão) e o botão pra rever este tour.'),
+  nav('/profile', 'Chame a banda', 'No Perfil fica o código de convite pros músicos entrarem, a assinatura (é lá que você assina e gerencia o cartão) e o botão pra rever este tour. Precisou de ajuda? Em "Ajuda" tem o FAQ e um formulário pra falar com a gente.'),
 ];
 
 const MUSICIAN_STEPS: Step[] = [

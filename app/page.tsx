@@ -6,7 +6,6 @@ import { Setlist } from '@/components/landing-setlist';
 import { ClickableShot, FeatureCarousel, type Shot } from '@/components/screenshot-lightbox';
 import { FOUNDER_LIMIT } from '@/lib/pricing';
 import { countFounders } from '@/lib/founders';
-import { CONTACT_EMAIL } from '@/lib/contact';
 import { APP_VERSION } from '@/lib/version';
 
 export const revalidate = 3600;
@@ -296,16 +295,16 @@ export default async function Landing() {
       <footer className="border-t-2 border-[var(--l-fg)]">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-10 px-5 py-14 sm:px-8 md:flex-row md:items-end">
           <Logo className="h-auto w-64 sm:w-80" />
-          <nav className="flex gap-6 text-sm font-medium text-[var(--l-mute)]">
+          <nav className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-medium text-[var(--l-mute)]">
             <Link href="/termos" className="underline-offset-4 hover:text-[var(--l-fg)] hover:underline">
               Termos de uso
             </Link>
             <Link href="/privacidade" className="underline-offset-4 hover:text-[var(--l-fg)] hover:underline">
               Privacidade
             </Link>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="underline-offset-4 hover:text-[var(--l-fg)] hover:underline">
-              Contato
-            </a>
+            <Link href="/suporte" className="underline-offset-4 hover:text-[var(--l-fg)] hover:underline">
+              Ajuda e suporte
+            </Link>
             <InstagramLink className="underline-offset-4 hover:text-[var(--l-fg)]" iconClassName="h-5 w-5" />
             <span aria-label={`Versão ${APP_VERSION}`}>v{APP_VERSION}</span>
           </nav>
