@@ -9,6 +9,7 @@ import { login, signup, forgotPassword, adminSignup } from './actions';
 import { createClient } from '@/lib/supabase/client';
 import { PasswordStrengthIndicator, isPasswordValid } from '@/components/password-strength-indicator';
 import { APP_VERSION } from '@/lib/version';
+import { PENDING_BAND_COOKIE, PENDING_BAND_MAX_AGE } from '@/lib/pending-band';
 
 /** Codes GoTrue returns when an OAuth email collides with an account under another provider (linking is off). */
 const GOOGLE_EMAIL_CONFLICT_CODES = new Set([
@@ -29,8 +30,11 @@ export default function LoginPage() {
 
 function LoginPageInner() {
   const searchParams = useSearchParams();
-  const [isLogin, setIsLogin] = useState(true);
-  const [isAdminSignup, setIsAdminSignup] = useState(false);
+  // `?cadastro=1` (botões "Testar 7 dias" e "Criar conta" da landing) abre direto o cadastro de banda.
+  const startsSignup = searchParams.get('cadastro') === '1';
+  const [isLogin, setIsLogin] = useState(!startsSignup);
+  const [isAdminSignup, setIsAdminSignup] = useState(startsSignup);
+  const [bandName, setBandName] = useState('');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState(() => {
@@ -76,6 +80,17 @@ function LoginPageInner() {
 
   const handleGoogle = async () => {
     setErrorMsg('');
+    // Criando banda: só o nome basta. Ele vai num cookie e o /auth/callback cria a banda na volta.
+    if (!isLogin && isAdminSignup) {
+      const name = bandName.trim();
+      if (!name) {
+        setErrorMsg('Digite o nome da banda antes de continuar com o Google.');
+        return;
+      }
+      document.cookie = `${PENDING_BAND_COOKIE}=${encodeURIComponent(name)}; path=/; max-age=${PENDING_BAND_MAX_AGE}; samesite=lax`;
+    } else {
+      document.cookie = `${PENDING_BAND_COOKIE}=; path=/; max-age=0`;
+    }
     const { error } = await createClient().auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -200,6 +215,23 @@ function LoginPageInner() {
             ) : (
               <>
                 <form onSubmit={handleSubmit} className="w-full flex flex-col gap-2.5">
+                  {/* Primeiro campo: é o único que o "Continuar com Google" precisa. */}
+                  {!isLogin && isAdminSignup && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-zinc-400">Nome da banda (ou o seu, se toca sozinho)</label>
+                      <input
+                        type="text"
+                        name="bandName"
+                        required
+                        maxLength={60}
+                        value={bandName}
+                        onChange={(e) => setBandName(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
+                        placeholder="Ex: Banda Horizonte"
+                      />
+                    </div>
+                  )}
+
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-400">
                       E-mail
@@ -239,20 +271,6 @@ function LoginPageInner() {
                     </div>
                     {!isLogin && <PasswordStrengthIndicator password={password} />}
                   </div>
-
-                  {!isLogin && isAdminSignup && (
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-zinc-400">Nome da banda</label>
-                      <input
-                        type="text"
-                        name="bandName"
-                        required
-                        maxLength={60}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
-                        placeholder="Ex: Banda Horizonte"
-                      />
-                    </div>
-                  )}
 
                   {!isLogin && !isAdminSignup && (
                     <div className="flex flex-col gap-1 mt-1 p-2.5 bg-zinc-950/50 border border-zinc-800/80 rounded-lg">
@@ -301,6 +319,11 @@ function LoginPageInner() {
                   </svg>
                   Continuar com Google
                 </button>
+                {!isLogin && isAdminSignup && (
+                  <p className="mt-1.5 text-center text-[11px] leading-tight text-zinc-500">
+                    Com o Google, basta o nome da banda acima. A banda é criada na hora.
+                  </p>
+                )}
 
                 {isLogin && (
                   <button

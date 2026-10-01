@@ -1,5 +1,10 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { BAND_COOKIE } from '@/lib/auth';
+import { createBandFor } from '@/lib/bands';
+import { logAction } from '@/lib/telemetry';
+import { PENDING_BAND_COOKIE } from '@/lib/pending-band';
 
 // OAuth (Google) return URL: swaps the code for a session, then sends brand-new
 // accounts (no band yet) to /onboarding and everyone else to the dashboard.
@@ -16,6 +21,22 @@ export async function GET(request: Request) {
       const { count } = user
         ? await supabase.from('band_members').select('band_id', { count: 'exact', head: true }).eq('user_id', user.id)
         : { count: 0 };
+
+      // Quem veio de "Criar minha banda" + Google já digitou o nome da banda em /login: cria a
+      // banda aqui e pula o /onboarding. Qualquer falha cai no /onboarding, que pergunta de novo.
+      const jar = await cookies();
+      const pendingName = decodeURIComponent(jar.get(PENDING_BAND_COOKIE)?.value ?? '').trim();
+      if (pendingName) jar.delete(PENDING_BAND_COOKIE);
+      if (user && !count && pendingName) {
+        const created = await createBandFor(user.id, pendingName.slice(0, 60));
+        if (!('error' in created)) {
+          await logAction('banda_criada', user.id, created.bandId);
+          jar.set(BAND_COOKIE, created.bandId, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
+          return NextResponse.redirect(`${origin}/dashboard`);
+        }
+        console.error('OAuth callback: could not create band from pending name:', created.error);
+      }
+
       return NextResponse.redirect(`${origin}${count ? '/dashboard' : '/onboarding'}`);
     }
     return NextResponse.redirect(`${origin}/login?erro=google&motivo=${encodeURIComponent(error.code ?? '')}`);

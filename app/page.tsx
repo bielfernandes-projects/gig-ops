@@ -110,12 +110,20 @@ export default async function Landing() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <header className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <Logo className="h-auto w-32 sm:w-36" priority />
-        <Link
-          href="/login"
-          className="rounded-md px-3 py-2 text-sm font-semibold underline decoration-2 underline-offset-4 transition-opacity hover:opacity-70"
-        >
-          Entrar
-        </Link>
+        <nav className="flex items-center gap-1 sm:gap-3">
+          <Link
+            href="/login"
+            className="rounded-md px-3 py-2 text-sm font-semibold underline decoration-2 underline-offset-4 transition-opacity hover:opacity-70"
+          >
+            Entrar
+          </Link>
+          <Link
+            href="/login?cadastro=1"
+            className="rounded-md bg-[var(--l-fg)] px-4 py-2 text-sm font-bold text-[var(--l-bg)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
+          >
+            Criar conta
+          </Link>
+        </nav>
       </header>
 
       <main>
@@ -130,7 +138,7 @@ export default async function Landing() {
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3">
               <Link
-                href="/login"
+                href="/login?cadastro=1"
                 className="inline-flex items-center rounded-md bg-[var(--l-fg)] px-6 py-3.5 text-base font-bold text-[var(--l-bg)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
               >
                 Testar 7 dias grátis
@@ -274,7 +282,7 @@ export default async function Landing() {
               )}
               <p className="mt-4 text-sm text-[var(--l-mute)]">Prefere pagar de uma vez? Plano anual: R$ 499,00 (cerca de R$ 41,60 por mês).</p>
               <Link
-                href="/login"
+                href="/login?cadastro=1"
                 className="mt-8 inline-flex items-center rounded-md bg-[var(--l-fg)] px-6 py-3.5 text-base font-bold text-[var(--l-bg)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
               >
                 Testar 7 dias grátis
