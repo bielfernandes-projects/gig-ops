@@ -54,7 +54,7 @@ export function Setlist() {
   return (
     <div
       ref={ref}
-      className="setlist w-full max-w-md border-2 border-[var(--l-fg)] bg-[var(--l-card)] p-6 text-[var(--l-fg)] shadow-[8px_8px_0_var(--l-fg)] transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] lg:-rotate-2 lg:hover:rotate-0 sm:p-7"
+      className="setlist w-full max-w-md border-2 border-[var(--l-fg)] bg-[var(--l-card)] p-6 text-[var(--l-fg)] shadow-[5px_5px_0_var(--l-fg)] transition-transform sm:shadow-[8px_8px_0_var(--l-fg)] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] lg:-rotate-2 lg:hover:rotate-0 sm:p-7"
     >
       <div className="flex items-baseline justify-between gap-4 border-b-2 border-dashed border-[var(--l-fg)] pb-4">
         <p className="whitespace-nowrap text-3xl font-black tracking-[-0.03em] sm:text-4xl">Sábado, 26</p>

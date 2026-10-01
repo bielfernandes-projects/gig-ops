@@ -146,7 +146,7 @@ export default async function Landing() {
               <span className="text-sm text-[var(--l-mute)]">Sem cartão de crédito.</span>
             </div>
           </div>
-          <div className="flex justify-center lg:justify-end lg:pr-3">
+          <div className="flex justify-center pr-2 sm:pr-0 lg:justify-end lg:pr-3">
             <Setlist />
           </div>
         </section>
@@ -205,7 +205,7 @@ export default async function Landing() {
             </h2>
             <p className="mt-3 max-w-xl text-base text-[var(--l-mute)] sm:text-lg">Clique em qualquer print para ver em tamanho grande.</p>
 
-            <div className="mt-12 grid gap-8 lg:grid-cols-[2fr_1fr_0.75fr] lg:items-end lg:gap-6">
+            <div className="mt-12 grid gap-8 lg:grid-cols-[2fr_1fr_0.75fr] lg:items-center lg:gap-6">
               <ClickableShot shot={dashboardDesktop} device="laptop" sizes="(min-width: 1024px) 50vw, 100vw" />
               <ClickableShot shot={dashboardTablet} device="tablet" sizes="(min-width: 1024px) 20vw, 60vw" />
               <ClickableShot shot={dashboardMobile} device="phone" sizes="(min-width: 1024px) 14vw, 45vw" />
@@ -214,17 +214,17 @@ export default async function Landing() {
               Computador, tablet ou celular: o mesmo app, sempre com você. Funciona como PWA — instala na tela inicial e abre igual um aplicativo nativo.
             </p>
 
-            <div className="mt-16 max-w-3xl">
+            <div className="mt-16 w-full">
               <FeatureCarousel shots={featureShots} />
             </div>
           </div>
         </section>
 
         {/* Quem vê o quê */}
-        <section className="pb-24 lg:pb-36">
+        <section className="pb-16 lg:pb-24">
           <div className="mx-auto grid w-full max-w-6xl gap-6 px-5 sm:px-8 lg:grid-cols-2">
             <div className="border-2 border-[var(--l-fg)] p-7 sm:p-9">
-              <h2 className="text-balance text-2xl font-black tracking-[-0.02em] sm:text-3xl">Quem administra a banda vê tudo.</h2>
+              <h2 className="text-balance text-2xl font-black tracking-[-0.02em] sm:text-3xl lg:min-h-[2.4em]">Quem administra a banda vê tudo.</h2>
               <ul className="mt-6 space-y-3 text-base text-[var(--l-mute)] sm:text-lg">
                 {adminSees.map((item) => (
                   <li key={item} className="flex gap-3">
@@ -235,7 +235,7 @@ export default async function Landing() {
               </ul>
             </div>
             <div className="border-2 border-dashed border-[var(--l-fg)] p-7 sm:p-9">
-              <h2 className="text-balance text-2xl font-black tracking-[-0.02em] sm:text-3xl">Quem toca vê só o que é seu.</h2>
+              <h2 className="text-balance text-2xl font-black tracking-[-0.02em] sm:text-3xl lg:min-h-[2.4em]">Quem toca vê só o que é seu.</h2>
               <ul className="mt-6 space-y-3 text-base text-[var(--l-mute)] sm:text-lg">
                 {musicianSees.map((item) => (
                   <li key={item} className="flex gap-3">
@@ -250,9 +250,9 @@ export default async function Landing() {
 
         {/* Preço */}
         <section className="border-t-2 border-[var(--l-fg)]">
-          <div className="mx-auto grid w-full max-w-6xl items-end gap-10 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:py-32">
+          <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:gap-16 lg:py-28">
             <div>
-              <p className="text-[clamp(4.5rem,15vw,9rem)] font-black leading-[0.85] tracking-[-0.04em] tabular-nums">R$ 49,90</p>
+              <p className="whitespace-nowrap text-[clamp(4rem,15vw,9rem)] font-black leading-[0.85] tracking-[-0.04em] tabular-nums lg:text-[clamp(4rem,7.5vw,7rem)]">R$ 49,90</p>
               <p className="mt-4 text-xl font-semibold sm:text-2xl">por mês, por banda.</p>
               {left > 0 && (
                 <div className="mt-6 border-2 border-[var(--l-fg)] p-4 sm:p-5">
