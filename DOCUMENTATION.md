@@ -371,7 +371,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Bucket privado `song-pdfs` no Supabase Storage (10MB, só `application/pdf`), arquivo salvo como `{song_id}.pdf`.
 - Permissão do arquivo espelha a permissão de editar a música (`songs_update`/`songs_delete`): dono da banda ou quem criou a música, ou dono no caso de música pessoal — reaproveita `private.is_band_member`/`is_band_owner`.
 - `songs.pdf_path` guarda o path do arquivo. Upload/remoção pelo formulário de música em `/repertorio` (`catalog-client.tsx`); a mesma música pode ter cifra colada, link e PDF ao mesmo tempo.
-- Visualização via `getSongPdfUrl` (`app/actions/song-actions.ts`): gera signed URL sob demanda (5 min) e abre em nova aba. Botão "Abrir PDF" aparece no catálogo, no `SongViewer` (repertório de show e catálogo) e no modo palco.
+- Visualização via `getSongPdfUrl` (`app/actions/song-actions.ts`): gera signed URL sob demanda (5 min) e abre em nova aba. No texto visível o campo se chama **"Arquivos (partitura, cifra)"** e o botão é "Abrir arquivo" (o upload continua só PDF, um por música; aceitar outros formatos/vários arquivos exigiria mudar schema e storage). O botão aparece no catálogo, no `SongViewer` (repertório de show e catálogo) e no modo palco.
 - Ao apagar uma música, o PDF é removido do storage antes da linha ser apagada (a policy de Storage depende da música ainda existir).
 - O link público de repertório (`/s/[token]`) não expunha PDF nem cifra na época; hoje expõe (ver §35).
 
@@ -391,7 +391,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Fora do escopo por enquanto: convite (Invite) e magic link, que o app não usa hoje (login é por senha ou Google OAuth).
 
 ## 26. SEO e Analytics
-- `app/robots.ts` e `app/sitemap.ts`: geram `/robots.txt` e `/sitemap.xml`. Rotas internas do app (dashboard, agenda, etc.) ficam bloqueadas pro crawler — não têm valor de indexação e a maioria já exige login.
+- `app/robots.ts` e `app/sitemap.ts`: geram `/robots.txt` e `/sitemap.xml`. Rotas internas do app (dashboard, agenda, etc.) ficam bloqueadas pro crawler — não têm valor de indexação e a maioria já exige login. `/sitemap.xml` e `/robots.txt` estão **excluídos do matcher do `proxy.ts`**: crawler não tem sessão, então se passassem pelo proxy seriam redirecionados pra `/login` (HTML) e o Search Console reclamaria que o sitemap não está num formato válido.
 - `app/opengraph-image.tsx`: imagem de Open Graph gerada dinamicamente (sem arquivo estático), no visual da LP, usada em compartilhamentos (WhatsApp, LinkedIn, etc.) para todas as páginas.
 - Metadados: `metadataBase`, Open Graph e Twitter Card configurados em `app/layout.tsx` (padrão) e sobrescritos na LP (`app/page.tsx`) com título/descrição específicos e `alternates.canonical`.
 - Dados estruturados: JSON-LD `SoftwareApplication` na LP (nome, descrição, preço).
@@ -643,6 +643,10 @@ rodada moveu cada regra para o módulo que a possui.
    recorre no dia 28/30 nos meses curtos, nunca no dia 1º do mês seguinte.
 5. **O horário escolhido no formulário.** O `DateTimePicker` montava o instante a partir do relógio do
    navegador e rotulava em Brasília. Agora trabalha em ano/mês/dia brasileiros e emite `toIso`.
+   O horário agora é escolhido num **relógio circular** (`components/time-dial-modal.tsx`, no estilo do
+   Google Agenda: 24h, horas e depois minutos, qualquer minuto 00–59 arrastando, modo teclado, Cancelar/OK).
+   Antes eram dois `<select>` nativos com minutos só 00/15/30/45 (impedia 20:10 e exibia o minuto errado
+   numa gig salva com esse horário) e, no modo escuro, o popup nativo abria com fundo branco.
 6. **Dinheiro mal formatado.** A Agenda e a tela do Show usavam `toFixed(2)` com um `R$` na mão, o que
    renderiza `R$ 1234.5`; `brl()` existia e era chamado só pelo Relatório. Todo dinheiro passa por
    `brl`/`brlRound` agora (uma declaração, não quatro).
