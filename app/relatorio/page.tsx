@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ChevronDown } from 'lucide-react';
 import { ownedBands, requireMembership } from '@/lib/auth';
 import { PageHeader } from '@/components/page-header';
 import { BandTag } from '@/components/band-tag';
@@ -333,12 +334,21 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       {header}
 
       {overdue.length > 0 && (
-        <section className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-semibold text-zinc-200">A receber de gigs já realizadas</h2>
-            <p className="text-2xl font-black tabular-nums text-amber-300">{brl(overdueTotal)}</p>
-          </div>
-          <ul className="mt-3 divide-y divide-zinc-800">
+        // Acordeão nativo: fechado mostra só o total; aberto, uma linha por gig.
+        <details className="group mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
+            <span className="flex min-w-0 flex-col">
+              <span className="text-sm font-semibold text-zinc-200">A receber de gigs já realizadas</span>
+              <span className="text-xs text-zinc-500">
+                {overdue.length} {overdue.length === 1 ? 'gig' : 'gigs'} · toque para ver o detalhe
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              <span className="text-2xl font-black tabular-nums text-amber-300">{brl(overdueTotal)}</span>
+              <ChevronDown className="h-5 w-5 text-amber-300/80 transition-transform group-open:rotate-180" aria-hidden />
+            </span>
+          </summary>
+          <ul className="divide-y divide-zinc-800 px-5 pb-4">
             {overdue.map(({ g, owed }) => (
               <li key={g.id}>
                 <Link href={`/gigs/${g.id}`} className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-white">
@@ -352,7 +362,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
 
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
