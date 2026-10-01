@@ -2,6 +2,25 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.3.0] - 2026-10-01
+
+### Adicionado
+- Cadastro pela landing: o botão "Criar conta" na barra superior e os botões "Testar 7 dias grátis" abrem direto o cadastro em `/login?cadastro=1`.
+- "Continuar com Google" ao criar uma banda precisa só do nome da banda: ela é criada na volta do Google, sem passar pelo onboarding.
+- Relatório: rosca de valores por projeto e linhas de gigs por projeto nos últimos 6 meses (as mesmas visões do Dashboard), com botões para ocultar projetos.
+- Relógio circular para escolher o horário da gig (24h, qualquer minuto, modo teclado), no estilo do Google Agenda.
+- Links de cifra (Cifra Club) e de letra (Letras.mus.br) sugeridos automaticamente a partir da música e do artista.
+
+### Alterado
+- Em `/login`, "Não tem conta?" abre primeiro "Criar minha banda"; "Fui convidado por uma banda" fica logo abaixo.
+- Relatório mais colorido (KPIs, barras e gráficos) e o card "A receber de gigs já realizadas" virou um acordeão com o total e o detalhe de cada gig.
+- "PDF da cifra" virou "Arquivos (partitura, cifra)" no texto do app, da landing e do tour (o envio continua só em PDF).
+- Landing: alinhamentos e espaços ajustados (preço em uma linha, prints centralizados, carrossel em largura total) e folga à direita do quadro do topo no celular.
+
+### Corrigido
+- `sitemap.xml` e `robots.txt` eram redirecionados para o login (HTML) e o Search Console recusava o sitemap.
+- O seletor de horário só aceitava minutos 00/15/30/45 e abria com fundo branco no modo escuro.
+
 ## [1.2.1] - 2026-09-30
 
 ### Alterado
