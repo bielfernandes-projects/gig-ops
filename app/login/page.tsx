@@ -118,7 +118,7 @@ function LoginPageInner() {
               {isLogin
                 ? 'Bem-vindo ao Gigueiros. Faça login para gerenciar sua agenda.'
                 : isAdminSignup
-                  ? 'Crie sua própria banda e gerencie suas gigs, músicos e projetos.'
+                  ? 'Crie sua banda (ou sua agenda, se você toca sozinho) e gerencie suas gigs, músicos e cachês.'
                   : 'Cadastre-se na banda da qual foi convidado.'}
             </p>
           </>
@@ -281,18 +281,6 @@ function LoginPageInner() {
                     {isLoading ? 'Autenticando...' : isLogin ? 'Entrar' : isAdminSignup ? 'Criar minha banda' : 'Registrar'}
                   </button>
 
-                  {isAdminSignup && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAdminSignup(false);
-                        setErrorMsg('');
-                      }}
-                      className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 font-medium transition-colors"
-                    >
-                      Voltar para cadastro com convite
-                    </button>
-                  )}
                 </form>
 
                 <div className="w-full flex items-center gap-3 my-4">
@@ -331,36 +319,38 @@ function LoginPageInner() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (isAdminSignup) {
-                      setIsAdminSignup(false);
-                      setIsLogin(true);
-                    } else {
-                      setIsLogin(!isLogin);
-                    }
+                    // Quem escolhe "Não tem conta?" cai primeiro em "Criar minha banda"; o cadastro por
+                    // convite é a alternativa logo abaixo.
+                    setIsAdminSignup(isLogin);
+                    setIsLogin(!isLogin);
                     setErrorMsg('');
                     setForgotMessage('');
                   }}
                   className="mt-4 text-xs text-zinc-500 hover:text-zinc-300 font-medium transition-colors"
                 >
-                  {isAdminSignup ? 'Já tem conta? Faça login.' : isLogin ? 'Não tem conta? Crie uma aqui.' : 'Já tem conta? Faça login.'}
+                  {isLogin ? 'Não tem conta? Crie uma aqui.' : 'Já tem conta? Faça login.'}
                 </button>
 
-                {!isLogin && !isAdminSignup && (
+                {!isLogin && (
                   <div className="w-full flex flex-col items-center mt-4 pt-4 border-t border-zinc-800/80">
                     <span className="text-xs text-zinc-500 mb-3 font-medium">ou</span>
                     <button
                       type="button"
                       onClick={() => {
-                        setIsAdminSignup(true);
+                        setIsAdminSignup(!isAdminSignup);
                         setErrorMsg('');
                         setForgotMessage('');
                       }}
-                      className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-md text-sm transition-all active:scale-[0.98]"
+                      className={
+                        isAdminSignup
+                          ? 'w-full py-2.5 px-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 font-bold rounded-lg flex items-center justify-center gap-2 text-sm transition-all active:scale-[0.98]'
+                          : 'w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-md text-sm transition-all active:scale-[0.98]'
+                      }
                     >
-                      Criar minha banda
+                      {isAdminSignup ? 'Fui convidado por uma banda' : 'Criar minha banda'}
                     </button>
                     <p className="text-[11px] text-zinc-500 font-medium text-center mt-1.5 max-w-[220px] leading-tight">
-                      Seja o administrador da sua própria agenda.
+                      {isAdminSignup ? 'Tenho um código de convite do responsável.' : 'Seja o administrador da sua própria agenda.'}
                     </p>
                   </div>
                 )}
