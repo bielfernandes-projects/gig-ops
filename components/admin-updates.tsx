@@ -18,7 +18,7 @@ export function AdminUpdateForm() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [date, setDate] = useState(() => dayKey());
-  const [notify, setNotify] = useState(true);
+  const [notify, setNotify] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,10 +58,13 @@ export function AdminUpdateForm() {
         Descrição
         <textarea value={body} onChange={(e) => setBody(e.target.value)} required maxLength={2000} rows={4} className={field} placeholder="Conte o que mudou, em linguagem simples." />
       </label>
-      <label className="flex items-center gap-2 text-xs font-medium text-zinc-300">
-        <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="h-4 w-4 accent-emerald-500" />
-        Avisar por push (notificação no celular de quem ativou)
-      </label>
+      <div className="flex flex-col gap-1">
+        <label className="flex items-center gap-2 text-xs font-medium text-zinc-300">
+          <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="h-4 w-4 accent-emerald-500" />
+          Enviar push agora (só para urgência)
+        </label>
+        <p className="text-[11px] text-zinc-500">Desmarcado, o push sai sozinho amanhã às 8h, um só para todas as atualizações lançadas até lá.</p>
+      </div>
       <button type="submit" disabled={pending} className="flex items-center justify-center gap-2 self-start rounded-md bg-zinc-100 px-4 py-2 text-sm font-bold text-zinc-950 hover:bg-white disabled:opacity-60">
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lançar atualização'}
       </button>
