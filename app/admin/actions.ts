@@ -209,14 +209,18 @@ export async function createAppUpdate(input: { kind: string; title: string; body
   // Hoje = agora (mantém a ordem entre lançamentos do mesmo dia); outro dia = meio-dia em Brasília.
   const publishedAt = input.date === dayKey() ? new Date().toISOString() : toIso(Number(m[1]), Number(m[2]), Number(m[3]), 12, 0);
 
-  const { error } = await createAdminClient().from('app_updates').insert({ kind: input.kind, title, body, published_at: publishedAt });
+  // Sem "enviar agora", o push sai no cron diário das 8h (/api/cron/updates-push). Com ele, já nasce
+  // como avisada para o cron não repetir o aviso no dia seguinte.
+  const { error } = await createAdminClient()
+    .from('app_updates')
+    .insert({ kind: input.kind, title, body, published_at: publishedAt, push_sent_at: input.notify ? new Date().toISOString() : null });
   if (error) {
     console.error('admin: falha ao lançar atualização:', error.message);
     return { error: 'Não foi possível lançar a atualização.' };
   }
   revalidatePath('/admin/atualizacoes');
 
-  // Quem mantém o app aberto não recarrega: o push avisa todos os aparelhos inscritos (abrir o app mostra o pop-up).
+  // Urgente (ex.: um bug grave): avisa agora todos os aparelhos inscritos (abrir o app mostra o pop-up).
   const pushed = input.notify ? await sendPushToAll({ title: 'Novidade no Gigueiros', body: title, url: '/dashboard' }) : 0;
   return { success: true, pushed };
 }

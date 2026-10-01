@@ -2,6 +2,12 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.4.0] - 2026-10-01
+
+### Alterado
+- O push das "Atualizações do app" passou a ser **um por dia, às 8h de Brasília**, em vez de um por atualização lançada. Se nenhuma atualização foi lançada desde o último envio, nada é enviado. O texto do push muda de um dia para o outro (5 frases em rodízio). No painel `/admin/atualizacoes`, "Enviar push agora (só para urgência)" ficou desmarcado por padrão.
+- Requer um job novo no agendador externo chamando `/api/cron/updates-push` às 8h de Brasília (11:00 UTC) com `Authorization: Bearer <CRON_SECRET>`. Migration `20261001000000_app_updates_push_diario.sql` (coluna `app_updates.push_sent_at`), já aplicada em homologação e produção.
+
 ## [1.3.0] - 2026-10-01
 
 ### Adicionado
