@@ -11,6 +11,6 @@ begin
     where table_schema = 'public' and table_name = 'app_updates' and column_name = 'push_sent_at'
   ) then
     alter table public.app_updates add column push_sent_at timestamptz;
-    update public.app_updates set push_sent_at = now();
+    update public.app_updates set push_sent_at = now() where push_sent_at is null;
   end if;
 end $$;
