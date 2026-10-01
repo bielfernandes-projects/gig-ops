@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { fmtDate, fmtWeekday, toIso, wallClock, ymd } from '@/lib/time';
+import { TimeDialModal } from './time-dial-modal';
 
 interface DateTimePickerProps {
   /** Field name for the hidden input (form submission) */
@@ -61,6 +62,7 @@ export function DateTimePicker({ name, label, defaultValue, required, onChange }
   const [viewMonth, setViewMonth] = useState((initial.date?.month ?? todayMonth) - 1);
   const [hour, setHour] = useState(initial.hour);
   const [minute, setMinute] = useState(initial.minute);
+  const [clockOpen, setClockOpen] = useState(false);
 
   const isoFor = (date: typeof selectedDate, h: string, m: string) =>
     date ? toIso(date.year, date.month, date.day, Number(h), Number(m)) : '';
@@ -177,33 +179,30 @@ export function DateTimePicker({ name, label, defaultValue, required, onChange }
         )}
       </div>
 
-      {/* Time selectors */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2">
-          <span className="text-xs font-medium text-zinc-500">Hora</span>
-          <select
-            value={hour}
-            onChange={e => { setHour(e.target.value); emitChange(selectedDate, e.target.value, minute); }}
-            className="flex-1 bg-transparent text-sm text-zinc-100 font-medium focus:outline-none appearance-none text-center"
-          >
-            {Array.from({ length: 24 }).map((_, h) => (
-              <option key={h} value={String(h).padStart(2, '0')}>
-                {String(h).padStart(2, '0')}
-              </option>
-            ))}
-          </select>
-          <span className="text-zinc-500 font-bold">:</span>
-          <select
-            value={minute}
-            onChange={e => { setMinute(e.target.value); emitChange(selectedDate, hour, e.target.value); }}
-            className="flex-1 bg-transparent text-sm text-zinc-100 font-medium focus:outline-none appearance-none text-center"
-          >
-            {['00', '15', '30', '45'].map(m => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      {/* Time: opens the round clock (any minute, dark theme) */}
+      <button
+        type="button"
+        onClick={() => setClockOpen(true)}
+        className="flex items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-left transition-colors hover:border-zinc-700"
+      >
+        <span className="flex items-center gap-2 text-xs font-medium text-zinc-500">
+          <Clock className="h-4 w-4" /> Horário
+        </span>
+        <span className="text-sm font-semibold tabular-nums text-zinc-100">{hour}:{minute}</span>
+      </button>
+      {clockOpen && (
+        <TimeDialModal
+          hour={Number(hour)}
+          minute={Number(minute)}
+          onCancel={() => setClockOpen(false)}
+          onConfirm={(h, m) => {
+            setHour(pad2(h));
+            setMinute(pad2(m));
+            setClockOpen(false);
+            emitChange(selectedDate, pad2(h), pad2(m));
+          }}
+        />
+      )}
 
       {/* Validation feedback */}
       {required && !selectedDate && (
