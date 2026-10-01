@@ -141,10 +141,10 @@ function SongForm({ song, bandId, onDone }: { song: CatalogSong | null; bandId: 
         <input name="lyrics_url" type="url" defaultValue={song?.lyrics_url ?? ''} placeholder="https://..." className={inputCls} />
       </label>
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
-        PDF da cifra (opcional, até 10MB)
+        Arquivos (partitura, cifra) em PDF (opcional, até 10MB)
         {song?.pdf_path && !removePdf ? (
           <span className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
-            <span className="flex items-center gap-2"><Paperclip className="h-4 w-4" /> PDF anexado</span>
+            <span className="flex items-center gap-2"><Paperclip className="h-4 w-4" /> Arquivo anexado</span>
             <button type="button" onClick={() => setRemovePdf(true)} className="text-xs font-semibold text-red-400 hover:text-red-300">
               Remover
             </button>
@@ -240,7 +240,7 @@ export function CatalogClient({ songs, userId, isOwner, bandId }: { songs: Catal
                   </a>
                 )}
                 {s.pdf_path && (
-                  <button type="button" onClick={() => openSongPdf(s.id)} title="Abrir PDF" className="p-2 text-zinc-500 hover:text-zinc-200">
+                  <button type="button" onClick={() => openSongPdf(s.id)} title="Abrir arquivo (partitura, cifra)" className="p-2 text-zinc-500 hover:text-zinc-200">
                     <Paperclip className="h-4 w-4" />
                   </button>
                 )}

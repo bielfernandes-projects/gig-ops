@@ -36,7 +36,7 @@ const OWNER_STEPS: Step[] = [
   welcome('Em menos de 1 minuto te mostro o caminho pra tirar a banda da planilha e do grupo de WhatsApp.'),
   nav('/members', 'Comece pela equipe', 'Cadastre os músicos com instrumento. Use o mesmo e-mail com que cada um entra no Gigueiros: ao escalar o músico numa gig, a gig aparece na hora na agenda dele, com o cachê.'),
   nav('/agenda', 'Crie as gigs', 'Toque em "Nova Gig" (dá até pra criar o projeto ali mesmo), escale os músicos e defina o cachê de cada um. O lucro da gig é calculado na hora. Já tem uma lista? Use "Importar gigs" para trazer de uma planilha ou texto.'),
-  nav('/repertorio', 'Monte o repertório', 'Catálogo com links de cifra e letra, tom, tom que começa, observações e PDF e repertórios reutilizáveis: marque um como principal e ele já entra nas gigs novas. Já tem o repertório pronto? Use "Importar repertório" para trazer de um PDF, Word ou TXT.'),
+  nav('/repertorio', 'Monte o repertório', 'Catálogo com links de cifra e letra, tom, tom que começa, observações, arquivos anexados (partitura, cifra) e repertórios reutilizáveis: marque um como principal e ele já entra nas gigs novas. Já tem o repertório pronto? Use "Importar repertório" para trazer de um PDF, Word ou TXT.'),
   nav('/relatorio', 'Acompanhe o caixa', 'Faturamento, custos e lucro de cada mês, e o que ainda falta receber ou pagar.'),
   nav('/profile', 'Chame a banda', 'No Perfil fica o código de convite pros músicos entrarem, a assinatura (é lá que você assina e gerencia o cartão) e o botão pra rever este tour. Precisou de ajuda? Em "Ajuda" tem o FAQ e um formulário pra falar com a gente. No sino do Dashboard ficam seus avisos e as novidades do app.'),
 ];

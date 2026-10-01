@@ -56,7 +56,7 @@ const features = [
   },
   {
     title: 'Repertório e cifras',
-    text: 'Catálogo de músicas da banda com links de cifra e letra, tom, tom que começa, observações e PDF anexado. Já tem o repertório em PDF, Word ou TXT? Importe: o app lê o arquivo, cria as músicas e os blocos e você revisa antes de salvar. Monte repertórios reutilizáveis, marque um como principal e compartilhe por link ou WhatsApp. Na gig, abra o repertório com blocos, tons pedidos e observações.',
+    text: 'Catálogo de músicas da banda com links de cifra e letra, tom, tom que começa, observações e arquivos anexados (partitura, cifra). Já tem o repertório em PDF, Word ou TXT? Importe: o app lê o arquivo, cria as músicas e os blocos e você revisa antes de salvar. Monte repertórios reutilizáveis, marque um como principal e compartilhe por link ou WhatsApp. Na gig, abra o repertório com blocos, tons pedidos e observações.',
   },
   {
     title: 'Financeiro e rateio',

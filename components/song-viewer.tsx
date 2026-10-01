@@ -29,7 +29,7 @@ type PdfUrlFetcher = (songId: string) => Promise<{ url?: string; error?: string 
  * defaults to the band-membership-gated action; the public (no-login) setlist view passes a
  * token-scoped one instead, since the caller there has no authenticated session.
  */
-export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMessage = 'Esta música não tem texto salvo. Use os links de cifra e letra ou o PDF.' }: { song: SongView; onClose: () => void; fetchPdfUrl?: PdfUrlFetcher; emptyMessage?: string }) {
+export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMessage = 'Esta música não tem texto salvo. Use os links de cifra e letra ou o arquivo anexado.' }: { song: SongView; onClose: () => void; fetchPdfUrl?: PdfUrlFetcher; emptyMessage?: string }) {
   const keys = resolveSongKeys(song);
   const key = keys.to;
   const changed = keys.transposed;
@@ -78,7 +78,7 @@ export function SongViewer({ song, onClose, fetchPdfUrl = getSongPdfUrl, emptyMe
                 }}
                 className="inline-flex items-center gap-1 underline underline-offset-4 hover:text-zinc-200"
               >
-                Abrir PDF <Paperclip className="h-3.5 w-3.5" />
+                Abrir arquivo <Paperclip className="h-3.5 w-3.5" />
               </button>
             )}
           </p>
