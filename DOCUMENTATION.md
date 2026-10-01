@@ -139,7 +139,7 @@ O app possui alternância manual entre modo escuro e claro, com persistência vi
 * **Conceito:** As tabelas `go_gigs`, `go_members` e `go_projects` possuem a coluna `admin_id` (FK para `go_profiles.id`). Todo INSERT carimba o UUID do admin logado.
 * **Filtro obrigatório:** SELECTs de admin são SEMPRE filtrados por `.eq('admin_id', userId)`. Viewers continuam vendo dados via `go_lineup`.
 * **Server Actions:** Todas as actions de criação, atualização e exclusão verificam `admin_id` para garantir ownership.
-* **Fluxo "Criar minha banda":** Novo admin se cadastra e já ganha um perfil com `role='admin'` em `go_profiles`, entrando em ambiente isolado.
+* **Fluxo "Criar minha banda":** Novo admin se cadastra e já ganha um perfil com `role='admin'` em `go_profiles`, entrando em ambiente isolado. Em `/login`, "Não tem conta? Crie uma aqui" abre **primeiro "Criar minha banda"** (serve para banda ou para quem toca sozinho); o cadastro com código de convite é a alternativa logo abaixo ("Fui convidado por uma banda"), e dá para alternar entre os dois. É a mesma ordem do `/onboarding` (login pelo Google).
 
 ### 6.5. Multi-Tenant Seam (`tenantAdminId`)
 
@@ -325,7 +325,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * **Tipo de evento** (`go_gigs.event_type`, texto livre com sugestões em `lib/finance.ts`): escolhido ao criar e editar o show, usado no relatório.
 * **Despesas do show** (`gig_expenses`): categoria, descrição e valor, visíveis só aos donos. O lucro do show passa a descontar músicos, som **e** despesas.
 * **Recebimento do contratante** (`gig_payments`, `go_gigs.track_receipts`): opcional por show. Sem o controle, o cachê bruto conta como recebido por inteiro (comportamento anterior). Com o controle, registra sinal e restante e calcula o pendente. Regra em `gigFinance()` (`lib/finance.ts`).
-* **Relatório** (`/relatorio`): para donos, faturamento, recebido, pendente, custos e lucro por mês, gráfico dos últimos 6 meses, faturamento por tipo de evento, custos por categoria e shows com recebimento pendente. Para músicos, "Meus cachês" somando o que têm a receber em todas as bandas (donos alternam entre as duas visões).
+* **Relatório** (`/relatorio`): para donos, faturamento, recebido, pendente, custos e lucro por mês, gráfico dos últimos 6 meses, faturamento por tipo de evento, custos por categoria e shows com recebimento pendente. Para músicos, "Meus cachês" somando o que têm a receber em todas as bandas (donos alternam entre as duas visões). Os gráficos são coloridos (paleta em `lib/chart-colors.ts`) e as duas visões do Dashboard também aparecem aqui (`components/report-charts.tsx`, recharts): **rosca por projeto** (Banda: faturamento do mês; Meus cachês: cachê pago do mês) e **linhas de gigs por projeto** nos últimos 6 meses, com botões para ocultar projetos. As cores dos projetos são as mesmas do Dashboard (`go_projects.color_hex`; sem projeto, cinza).
 * **Confirmação de presença** (`go_lineup.confirmation`): o músico confirma ou recusa na página do show; o dono vê o status na escala e recebe push quando alguém recusa. Só a ação do servidor altera o campo.
 * **Conflito de agenda** (`lib/conflicts.ts`): ao escalar, avisa quando o músico já tem outro show no mesmo horário. Na mesma banda mostra o título; em outra banda só informa que há compromisso, para uma banda nunca ver os detalhes da outra.
 
