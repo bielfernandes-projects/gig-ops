@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Plus, Search, Pencil, Trash2, FileText, AlignLeft, Paperclip } from 'lucide-react';
 import { addSong, updateSong, deleteSong, getSongPdfUrl } from '@/app/actions/song-actions';
 import { MUSICAL_KEYS } from '@/lib/keys';
+import { cifraClubUrl, letrasUrl } from '@/lib/song-links';
 import { SongViewer } from '@/components/song-viewer';
 import { ImportRepertoire } from '@/components/import-repertoire';
 
@@ -48,6 +49,19 @@ function SongForm({ song, bandId, onDone }: { song: CatalogSong | null; bandId: 
   const [artist, setArtist] = useState(song?.artist ?? '');
   const [pending, setPending] = useState(false);
   const [removePdf, setRemovePdf] = useState(false);
+  const [sourceUrl, setSourceUrl] = useState(song?.source_url ?? '');
+  const [lyricsUrl, setLyricsUrl] = useState(song?.lyrics_url ?? '');
+  // Os links vêm preenchidos pelo nome e artista até a pessoa mexer neles (ou se já estavam salvos).
+  // Esvaziar o campo devolve o preenchimento automático.
+  const [sourceManual, setSourceManual] = useState(!!song?.source_url);
+  const [lyricsManual, setLyricsManual] = useState(!!song?.lyrics_url);
+
+  const changeSong = (nextTitle: string, nextArtist: string) => {
+    setTitle(nextTitle);
+    setArtist(nextArtist);
+    if (!sourceManual) setSourceUrl(cifraClubUrl(nextTitle, nextArtist));
+    if (!lyricsManual) setLyricsUrl(letrasUrl(nextTitle, nextArtist));
+  };
 
   return (
     <form
@@ -69,11 +83,11 @@ function SongForm({ song, bandId, onDone }: { song: CatalogSong | null; bandId: 
       <div className="grid gap-3 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
           Música
-          <input name="title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Trem-Bala" className={inputCls} />
+          <input name="title" required value={title} onChange={(e) => changeSong(e.target.value, artist)} placeholder="Ex: Trem-Bala" className={inputCls} />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
           Artista
-          <input name="artist" value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Ex: Ana Vilela" className={inputCls} />
+          <input name="artist" value={artist} onChange={(e) => changeSong(title, e.target.value)} placeholder="Ex: Ana Vilela" className={inputCls} />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
           Tom original
@@ -123,7 +137,14 @@ function SongForm({ song, bandId, onDone }: { song: CatalogSong | null; bandId: 
             Procurar no Cifra Club
           </a>
         </span>
-        <input name="source_url" type="url" defaultValue={song?.source_url ?? ''} placeholder="https://..." className={inputCls} />
+        <input
+          name="source_url"
+          type="url"
+          value={sourceUrl}
+          onChange={(e) => { setSourceUrl(e.target.value); setSourceManual(e.target.value !== ''); }}
+          placeholder="https://..."
+          className={inputCls}
+        />
       </label>
 
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
@@ -138,8 +159,18 @@ function SongForm({ song, bandId, onDone }: { song: CatalogSong | null; bandId: 
             Procurar no Letras.mus.br
           </a>
         </span>
-        <input name="lyrics_url" type="url" defaultValue={song?.lyrics_url ?? ''} placeholder="https://..." className={inputCls} />
+        <input
+          name="lyrics_url"
+          type="url"
+          value={lyricsUrl}
+          onChange={(e) => { setLyricsUrl(e.target.value); setLyricsManual(e.target.value !== ''); }}
+          placeholder="https://..."
+          className={inputCls}
+        />
       </label>
+      <p className="-mt-1 text-[11px] leading-snug text-zinc-500">
+        Os links dos dois sites são sugeridos pelo nome e artista. Se abrir 404, procure a música no site e cole o endereço certo aqui.
+      </p>
       <label className="flex flex-col gap-1 text-xs font-medium text-zinc-400">
         Arquivos (partitura, cifra) em PDF (opcional, até 10MB)
         {song?.pdf_path && !removePdf ? (
