@@ -139,7 +139,9 @@ O app possui alternância manual entre modo escuro e claro, com persistência vi
 * **Conceito:** As tabelas `go_gigs`, `go_members` e `go_projects` possuem a coluna `admin_id` (FK para `go_profiles.id`). Todo INSERT carimba o UUID do admin logado.
 * **Filtro obrigatório:** SELECTs de admin são SEMPRE filtrados por `.eq('admin_id', userId)`. Viewers continuam vendo dados via `go_lineup`.
 * **Server Actions:** Todas as actions de criação, atualização e exclusão verificam `admin_id` para garantir ownership.
-* **Fluxo "Criar minha banda":** Novo admin se cadastra e já ganha um perfil com `role='admin'` em `go_profiles`, entrando em ambiente isolado.
+* **Fluxo "Criar minha banda":** Novo admin se cadastra e já ganha um perfil com `role='admin'` em `go_profiles`, entrando em ambiente isolado. Em `/login`, "Não tem conta? Crie uma aqui" abre **primeiro "Criar minha banda"** (serve para banda ou para quem toca sozinho); o cadastro com código de convite é a alternativa logo abaixo ("Fui convidado por uma banda"), e dá para alternar entre os dois. É a mesma ordem do `/onboarding` (login pelo Google).
+  * **Entrada pela landing:** "Testar 7 dias grátis" (hero e preço) e o botão **"Criar conta"** da barra superior levam a `/login?cadastro=1`, que abre direto nesse cadastro. "Entrar" segue indo a `/login` (login).
+  * **Google só com o nome da banda:** em "Criar minha banda" o campo "Nome da banda" é o primeiro; o "Continuar com Google" exige só ele. O nome vai num cookie de 10 min (`gig_pending_band`, `lib/pending-band.ts`) e o `/auth/callback`, se a conta ainda não tem banda, cria a banda (`createBandFor`), registra `banda_criada` e vai direto ao Dashboard, sem passar pelo `/onboarding`. Se algo falhar, cai no `/onboarding`, que pergunta de novo. No cadastro por e-mail e senha o nome da banda continua obrigatório junto do e-mail e da senha.
 
 ### 6.5. Multi-Tenant Seam (`tenantAdminId`)
 
@@ -325,7 +327,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 * **Tipo de evento** (`go_gigs.event_type`, texto livre com sugestões em `lib/finance.ts`): escolhido ao criar e editar o show, usado no relatório.
 * **Despesas do show** (`gig_expenses`): categoria, descrição e valor, visíveis só aos donos. O lucro do show passa a descontar músicos, som **e** despesas.
 * **Recebimento do contratante** (`gig_payments`, `go_gigs.track_receipts`): opcional por show. Sem o controle, o cachê bruto conta como recebido por inteiro (comportamento anterior). Com o controle, registra sinal e restante e calcula o pendente. Regra em `gigFinance()` (`lib/finance.ts`).
-* **Relatório** (`/relatorio`): para donos, faturamento, recebido, pendente, custos e lucro por mês, gráfico dos últimos 6 meses, faturamento por tipo de evento, custos por categoria e shows com recebimento pendente. Para músicos, "Meus cachês" somando o que têm a receber em todas as bandas (donos alternam entre as duas visões).
+* **Relatório** (`/relatorio`): para donos, faturamento, recebido, pendente, custos e lucro por mês, gráfico dos últimos 6 meses, faturamento por tipo de evento, custos por categoria e shows com recebimento pendente. Para músicos, "Meus cachês" somando o que têm a receber em todas as bandas (donos alternam entre as duas visões). Os gráficos são coloridos (paleta em `lib/chart-colors.ts`) e as duas visões do Dashboard também aparecem aqui (`components/report-charts.tsx`, recharts): **rosca por projeto** (Banda: faturamento do mês; Meus cachês: cachê pago do mês) e **linhas de gigs por projeto** nos últimos 6 meses, com botões para ocultar projetos. As cores dos projetos são as mesmas do Dashboard (`go_projects.color_hex`; sem projeto, cinza). O card amarelo "A receber de gigs já realizadas" (visão Banda) é um **acordeão** (`<details>`): fechado mostra só o total e a quantidade de gigs; aberto, o valor de cada gig.
 * **Confirmação de presença** (`go_lineup.confirmation`): o músico confirma ou recusa na página do show; o dono vê o status na escala e recebe push quando alguém recusa. Só a ação do servidor altera o campo.
 * **Conflito de agenda** (`lib/conflicts.ts`): ao escalar, avisa quando o músico já tem outro show no mesmo horário. Na mesma banda mostra o título; em outra banda só informa que há compromisso, para uma banda nunca ver os detalhes da outra.
 
@@ -333,7 +335,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
 ## 16. Módulo Repertório (Fase 2 do plano unificado)
 
-* **Sem raspagem.** O app não busca cifra em site nenhum. O músico cola o texto da cifra ou da letra (campo `songs.chart_text`, visível só à banda) e pode guardar o link da fonte; o formulário oferece um atalho "Procurar no Cifra Club" que apenas abre a busca do site.
+* **Sem raspagem.** O app não busca cifra em site nenhum. O músico cola o texto da cifra ou da letra (campo `songs.chart_text`, visível só à banda) e pode guardar o link da fonte; o formulário oferece um atalho "Procurar no Cifra Club" que apenas abre a busca do site. Os campos **Link da cifra** e **Link da letra** vêm **pré-preenchidos** ao digitar música e artista (`lib/song-links.ts`): `cifraclub.com.br/<artista>/<musica>/` e `letras.mus.br/<artista>/<musica>/`, com minúsculas, sem acento, sem apóstrofo e hífen no lugar de espaços e símbolos; o que vem entre parênteses/colchetes no título ("(Ao Vivo)") é ignorado. É só um palpite (nenhuma requisição é feita): se o site abrir 404, a pessoa procura lá e cola o endereço certo. Ao editar o campo à mão, ou numa música que já tem link salvo, o preenchimento automático para; esvaziar o campo o religa.
 * **Catálogo da banda** (`songs`, página `/repertorio`): qualquer membro adiciona; edita e apaga quem criou ou um dono. Tom original, "Tom que começa" (acorde/tom pedido à harmonia para iniciar, ex: música em C que começa em Am), observações da música (início da letra, solo etc.), BPM, link da cifra, link da letra (busca no Letras.mus.br, coluna `lyrics_url`) e PDF. O campo de texto colado da cifra saiu do formulário (músicas antigas mantêm o texto já salvo). O "Tom que começa" acompanha a transposição (música subiu 1 tom, o "tom que começa" também). Aparecem no visualizador, na lista do show e no modo palco.
 * **Repertório do show** (`setlists`, `blocks`, `block_songs`): montado só por donos na página do show ou em `/repertorio` (desde o §35 não é mais um por show: vários shows podem usar o mesmo repertório) (blocos, ordem, tom da música neste repertório (o lápis muda esse tom e o "tom que começa" acompanha), observação e nota de passagem). Desde o §35, qualquer membro da banda lê os repertórios da banda; só donos editam.
 * **Abrir repertório no show**: na página do show (`/gigs/[id]`) há só um seletor compacto do repertório usado (`components/gig-setlist-picker.tsx`; donos escolhem, ao selecionar já salva; os demais só leem) e o botão "Abrir repertório", habilitado quando há repertório, que leva a `/repertorio/lista/[id]` (blocos, tons, "tom que começa" em amarelo, tons pedidos e observações). O antigo modo palco (`/palco/[id]`) foi removido por enquanto (recuperável pelo histórico do git).
@@ -371,7 +373,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Bucket privado `song-pdfs` no Supabase Storage (10MB, só `application/pdf`), arquivo salvo como `{song_id}.pdf`.
 - Permissão do arquivo espelha a permissão de editar a música (`songs_update`/`songs_delete`): dono da banda ou quem criou a música, ou dono no caso de música pessoal — reaproveita `private.is_band_member`/`is_band_owner`.
 - `songs.pdf_path` guarda o path do arquivo. Upload/remoção pelo formulário de música em `/repertorio` (`catalog-client.tsx`); a mesma música pode ter cifra colada, link e PDF ao mesmo tempo.
-- Visualização via `getSongPdfUrl` (`app/actions/song-actions.ts`): gera signed URL sob demanda (5 min) e abre em nova aba. Botão "Abrir PDF" aparece no catálogo, no `SongViewer` (repertório de show e catálogo) e no modo palco.
+- Visualização via `getSongPdfUrl` (`app/actions/song-actions.ts`): gera signed URL sob demanda (5 min) e abre em nova aba. No texto visível o campo se chama **"Arquivos (partitura, cifra)"** e o botão é "Abrir arquivo" (o upload continua só PDF, um por música; aceitar outros formatos/vários arquivos exigiria mudar schema e storage). O botão aparece no catálogo, no `SongViewer` (repertório de show e catálogo) e no modo palco.
 - Ao apagar uma música, o PDF é removido do storage antes da linha ser apagada (a policy de Storage depende da música ainda existir).
 - O link público de repertório (`/s/[token]`) não expunha PDF nem cifra na época; hoje expõe (ver §35).
 
@@ -383,6 +385,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Seção "O app de verdade, sem enrolação": Dashboard em destaque com moldura de dispositivo (notebook maior, tablet e celular ao lado), mostrando responsividade e o esquema de PWA. Componente `DeviceChrome` em `components/screenshot-lightbox.tsx` desenha as molduras com CSS puro (sem imagens de bezel).
 - Qualquer print é clicável e abre em tamanho grande num lightbox (`ClickableShot`, com Esc/clique fora pra fechar).
 - Abaixo, `FeatureCarousel` (mesmo arquivo) alterna automaticamente entre Agenda, Financeiro, Repertório, Relatório e Músicos a cada 4s, com transição de slide; para no hover e para permanentemente após qualquer clique (inclusive nos indicadores), continuando clicável pro lightbox.
+- **Ajuste de layout (card #21):** os três aparelhos agora ficam centralizados na vertical (antes colados pela base, deixando vazio acima do notebook e do tablet) e o carrossel ocupa a largura toda (antes `max-w-3xl`, com um vazio à direita). Na seção de preço, "R$ 49,90" não quebra mais em duas linhas no desktop e a lista da direita se alinha ao centro (antes ia pro fim da coluna, com um buraco no topo). Em "Quem vê o quê", os dois títulos têm a mesma altura mínima pra as listas começarem alinhadas, e o respiro antes do preço diminuiu. No celular, o quadro do topo (`landing-setlist.tsx`) usa sombra menor e ganhou folga à direita, porque a sombra dura encostava na borda.
 - Os prints ficam em `public/screenshots/` (dashboard-desktop/tablet/mobile, agenda, repertorio, financeiro, relatorio, musicos) — capturados com dados fictícios numa banda de teste renomeada, para não expor identidade da conta nem dados reais.
 
 ## 25. Resend para e-mails transacionais (Auth)
@@ -391,7 +394,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Fora do escopo por enquanto: convite (Invite) e magic link, que o app não usa hoje (login é por senha ou Google OAuth).
 
 ## 26. SEO e Analytics
-- `app/robots.ts` e `app/sitemap.ts`: geram `/robots.txt` e `/sitemap.xml`. Rotas internas do app (dashboard, agenda, etc.) ficam bloqueadas pro crawler — não têm valor de indexação e a maioria já exige login.
+- `app/robots.ts` e `app/sitemap.ts`: geram `/robots.txt` e `/sitemap.xml`. Rotas internas do app (dashboard, agenda, etc.) ficam bloqueadas pro crawler — não têm valor de indexação e a maioria já exige login. `/sitemap.xml` e `/robots.txt` estão **excluídos do matcher do `proxy.ts`**: crawler não tem sessão, então se passassem pelo proxy seriam redirecionados pra `/login` (HTML) e o Search Console reclamaria que o sitemap não está num formato válido.
 - `app/opengraph-image.tsx`: imagem de Open Graph gerada dinamicamente (sem arquivo estático), no visual da LP, usada em compartilhamentos (WhatsApp, LinkedIn, etc.) para todas as páginas.
 - Metadados: `metadataBase`, Open Graph e Twitter Card configurados em `app/layout.tsx` (padrão) e sobrescritos na LP (`app/page.tsx`) com título/descrição específicos e `alternates.canonical`.
 - Dados estruturados: JSON-LD `SoftwareApplication` na LP (nome, descrição, preço).
@@ -643,6 +646,10 @@ rodada moveu cada regra para o módulo que a possui.
    recorre no dia 28/30 nos meses curtos, nunca no dia 1º do mês seguinte.
 5. **O horário escolhido no formulário.** O `DateTimePicker` montava o instante a partir do relógio do
    navegador e rotulava em Brasília. Agora trabalha em ano/mês/dia brasileiros e emite `toIso`.
+   O horário agora é escolhido num **relógio circular** (`components/time-dial-modal.tsx`, no estilo do
+   Google Agenda: 24h, horas e depois minutos, qualquer minuto 00–59 arrastando, modo teclado, Cancelar/OK).
+   Antes eram dois `<select>` nativos com minutos só 00/15/30/45 (impedia 20:10 e exibia o minuto errado
+   numa gig salva com esse horário) e, no modo escuro, o popup nativo abria com fundo branco.
 6. **Dinheiro mal formatado.** A Agenda e a tela do Show usavam `toFixed(2)` com um `R$` na mão, o que
    renderiza `R$ 1234.5`; `brl()` existia e era chamado só pelo Relatório. Todo dinheiro passa por
    `brl`/`brlRound` agora (uma declaração, não quatro).

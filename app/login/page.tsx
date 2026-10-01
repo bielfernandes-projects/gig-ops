@@ -9,6 +9,7 @@ import { login, signup, forgotPassword, adminSignup } from './actions';
 import { createClient } from '@/lib/supabase/client';
 import { PasswordStrengthIndicator, isPasswordValid } from '@/components/password-strength-indicator';
 import { APP_VERSION } from '@/lib/version';
+import { PENDING_BAND_COOKIE, PENDING_BAND_MAX_AGE } from '@/lib/pending-band';
 
 /** Codes GoTrue returns when an OAuth email collides with an account under another provider (linking is off). */
 const GOOGLE_EMAIL_CONFLICT_CODES = new Set([
@@ -29,8 +30,11 @@ export default function LoginPage() {
 
 function LoginPageInner() {
   const searchParams = useSearchParams();
-  const [isLogin, setIsLogin] = useState(true);
-  const [isAdminSignup, setIsAdminSignup] = useState(false);
+  // `?cadastro=1` (botões "Testar 7 dias" e "Criar conta" da landing) abre direto o cadastro de banda.
+  const startsSignup = searchParams.get('cadastro') === '1';
+  const [isLogin, setIsLogin] = useState(!startsSignup);
+  const [isAdminSignup, setIsAdminSignup] = useState(startsSignup);
+  const [bandName, setBandName] = useState('');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState(() => {
@@ -76,6 +80,17 @@ function LoginPageInner() {
 
   const handleGoogle = async () => {
     setErrorMsg('');
+    // Criando banda: só o nome basta. Ele vai num cookie e o /auth/callback cria a banda na volta.
+    if (!isLogin && isAdminSignup) {
+      const name = bandName.trim();
+      if (!name) {
+        setErrorMsg('Digite o nome da banda antes de continuar com o Google.');
+        return;
+      }
+      document.cookie = `${PENDING_BAND_COOKIE}=${encodeURIComponent(name)}; path=/; max-age=${PENDING_BAND_MAX_AGE}; samesite=lax`;
+    } else {
+      document.cookie = `${PENDING_BAND_COOKIE}=; path=/; max-age=0`;
+    }
     const { error } = await createClient().auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -118,7 +133,7 @@ function LoginPageInner() {
               {isLogin
                 ? 'Bem-vindo ao Gigueiros. Faça login para gerenciar sua agenda.'
                 : isAdminSignup
-                  ? 'Crie sua própria banda e gerencie suas gigs, músicos e projetos.'
+                  ? 'Crie sua banda (ou sua agenda, se você toca sozinho) e gerencie suas gigs, músicos e cachês.'
                   : 'Cadastre-se na banda da qual foi convidado.'}
             </p>
           </>
@@ -200,6 +215,23 @@ function LoginPageInner() {
             ) : (
               <>
                 <form onSubmit={handleSubmit} className="w-full flex flex-col gap-2.5">
+                  {/* Primeiro campo: é o único que o "Continuar com Google" precisa. */}
+                  {!isLogin && isAdminSignup && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-zinc-400">Nome da banda (ou o seu, se toca sozinho)</label>
+                      <input
+                        type="text"
+                        name="bandName"
+                        required
+                        maxLength={60}
+                        value={bandName}
+                        onChange={(e) => setBandName(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
+                        placeholder="Ex: Banda Horizonte"
+                      />
+                    </div>
+                  )}
+
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-400">
                       E-mail
@@ -240,20 +272,6 @@ function LoginPageInner() {
                     {!isLogin && <PasswordStrengthIndicator password={password} />}
                   </div>
 
-                  {!isLogin && isAdminSignup && (
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-zinc-400">Nome da banda</label>
-                      <input
-                        type="text"
-                        name="bandName"
-                        required
-                        maxLength={60}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
-                        placeholder="Ex: Banda Horizonte"
-                      />
-                    </div>
-                  )}
-
                   {!isLogin && !isAdminSignup && (
                     <div className="flex flex-col gap-1 mt-1 p-2.5 bg-zinc-950/50 border border-zinc-800/80 rounded-lg">
                       <label className="text-xs font-medium text-zinc-400 flex justify-between">
@@ -281,18 +299,6 @@ function LoginPageInner() {
                     {isLoading ? 'Autenticando...' : isLogin ? 'Entrar' : isAdminSignup ? 'Criar minha banda' : 'Registrar'}
                   </button>
 
-                  {isAdminSignup && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAdminSignup(false);
-                        setErrorMsg('');
-                      }}
-                      className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 font-medium transition-colors"
-                    >
-                      Voltar para cadastro com convite
-                    </button>
-                  )}
                 </form>
 
                 <div className="w-full flex items-center gap-3 my-4">
@@ -313,6 +319,11 @@ function LoginPageInner() {
                   </svg>
                   Continuar com Google
                 </button>
+                {!isLogin && isAdminSignup && (
+                  <p className="mt-1.5 text-center text-[11px] leading-tight text-zinc-500">
+                    Com o Google, basta o nome da banda acima. A banda é criada na hora.
+                  </p>
+                )}
 
                 {isLogin && (
                   <button
@@ -331,36 +342,38 @@ function LoginPageInner() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (isAdminSignup) {
-                      setIsAdminSignup(false);
-                      setIsLogin(true);
-                    } else {
-                      setIsLogin(!isLogin);
-                    }
+                    // Quem escolhe "Não tem conta?" cai primeiro em "Criar minha banda"; o cadastro por
+                    // convite é a alternativa logo abaixo.
+                    setIsAdminSignup(isLogin);
+                    setIsLogin(!isLogin);
                     setErrorMsg('');
                     setForgotMessage('');
                   }}
                   className="mt-4 text-xs text-zinc-500 hover:text-zinc-300 font-medium transition-colors"
                 >
-                  {isAdminSignup ? 'Já tem conta? Faça login.' : isLogin ? 'Não tem conta? Crie uma aqui.' : 'Já tem conta? Faça login.'}
+                  {isLogin ? 'Não tem conta? Crie uma aqui.' : 'Já tem conta? Faça login.'}
                 </button>
 
-                {!isLogin && !isAdminSignup && (
+                {!isLogin && (
                   <div className="w-full flex flex-col items-center mt-4 pt-4 border-t border-zinc-800/80">
                     <span className="text-xs text-zinc-500 mb-3 font-medium">ou</span>
                     <button
                       type="button"
                       onClick={() => {
-                        setIsAdminSignup(true);
+                        setIsAdminSignup(!isAdminSignup);
                         setErrorMsg('');
                         setForgotMessage('');
                       }}
-                      className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-md text-sm transition-all active:scale-[0.98]"
+                      className={
+                        isAdminSignup
+                          ? 'w-full py-2.5 px-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 font-bold rounded-lg flex items-center justify-center gap-2 text-sm transition-all active:scale-[0.98]'
+                          : 'w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-md text-sm transition-all active:scale-[0.98]'
+                      }
                     >
-                      Criar minha banda
+                      {isAdminSignup ? 'Fui convidado por uma banda' : 'Criar minha banda'}
                     </button>
                     <p className="text-[11px] text-zinc-500 font-medium text-center mt-1.5 max-w-[220px] leading-tight">
-                      Seja o administrador da sua própria agenda.
+                      {isAdminSignup ? 'Tenho um código de convite do responsável.' : 'Seja o administrador da sua própria agenda.'}
                     </p>
                   </div>
                 )}

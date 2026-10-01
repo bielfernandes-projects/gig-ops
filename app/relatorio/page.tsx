@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ChevronDown } from 'lucide-react';
 import { ownedBands, requireMembership } from '@/lib/auth';
 import { PageHeader } from '@/components/page-header';
 import { BandTag } from '@/components/band-tag';
@@ -6,8 +7,11 @@ import { createClient } from '@/lib/supabase/server';
 import { brl, gigFinance, splitProfit } from '@/lib/finance';
 import { fmtDayMonth, fmtShortDate, monthKey, toInstant, ymd } from '@/lib/time';
 import { PAID } from '@/lib/gig-view';
+import { ProjectLine, ProjectPie } from '@/components/report-charts';
+import { colorAt, NO_PROJECT_COLOR } from '@/lib/chart-colors';
 
-type GigRow = { id: string; title: string; start_time: string; gross_value: number; bring_sound: boolean | null; sound_cost: number | null; event_type: string | null; track_receipts: boolean | null; band_id: string };
+type ProjectRef = { name: string; color_hex: string } | null;
+type GigRow = { id: string; title: string; start_time: string; gross_value: number; bring_sound: boolean | null; sound_cost: number | null; event_type: string | null; track_receipts: boolean | null; band_id: string; go_projects: ProjectRef };
 type OverdueRow = { id: string; title: string; start_time: string; gross_value: number; band_id: string; gig_payments: { amount: number }[] | null };
 
 export const revalidate = 0;
@@ -39,22 +43,53 @@ function Kpi({ label, value, tone = '' }: { label: string; value: string; tone?:
   );
 }
 
+const projectName = (p: ProjectRef | undefined) => p?.name || 'Sem projeto';
+const projectColor = (p: ProjectRef | undefined) => p?.color_hex || NO_PROJECT_COLOR;
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Soma `value` por projeto, na cor do projeto, do maior para o menor. */
+function sumByProject(items: { project: ProjectRef | undefined; value: number }[]) {
+  const map = new Map<string, { value: number; color: string }>();
+  for (const it of items) {
+    const name = projectName(it.project);
+    map.set(name, { value: (map.get(name)?.value ?? 0) + it.value, color: projectColor(it.project) });
+  }
+  return [...map].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.value - a.value);
+}
+
+/** Quantidade de gigs por projeto em cada um dos meses, no formato que o gráfico de linhas lê. */
+function gigsPerProject(items: { key: string; project: ProjectRef | undefined }[], months: { y: number; m: number }[]) {
+  const projects = new Map<string, string>();
+  for (const it of items) projects.set(projectName(it.project), projectColor(it.project));
+  const data = months.map(({ y, m }) => {
+    const key = asParam(y, m);
+    const row: Record<string, string | number> = { label: capitalize(MONTH_NAMES[m - 1].slice(0, 3)) };
+    for (const name of projects.keys()) row[name] = 0;
+    for (const it of items) if (it.key === key) row[projectName(it.project)] = Number(row[projectName(it.project)]) + 1;
+    return row;
+  });
+  return { data, projects: [...projects].map(([name, color]) => ({ name, color })) };
+}
+
 function Bars({ rows }: { rows: { label: string; value: number; extra?: string }[] }) {
   const max = Math.max(...rows.map((r) => r.value), 1);
   if (rows.length === 0) return <p className="text-sm text-zinc-500">Sem dados neste mês.</p>;
   return (
     <ul className="flex flex-col gap-3">
-      {rows.map((r) => (
+      {rows.map((r, i) => (
         <li key={r.label}>
           <div className="mb-1 flex justify-between gap-3 text-sm">
-            <span className="truncate text-zinc-300">{r.label}</span>
+            <span className="flex min-w-0 items-center gap-2 text-zinc-300">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: colorAt(i) }} />
+              <span className="truncate">{r.label}</span>
+            </span>
             <span className="shrink-0 font-semibold tabular-nums text-zinc-100">
               {brl(r.value)}
               {r.extra ? <span className="ml-2 font-normal text-zinc-500">{r.extra}</span> : null}
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
-            <div className="h-full rounded-full bg-zinc-200" style={{ width: `${(r.value / max) * 100}%` }} />
+            <div className="h-full rounded-full" style={{ width: `${(r.value / max) * 100}%`, backgroundColor: colorAt(i) }} />
           </div>
         </li>
       ))}
@@ -112,6 +147,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const start = monthStart(y, m);
   const end = monthStart(next.y, next.m);
   const seriesStart = monthStart(shift(y, m, -5).y, shift(y, m, -5).m);
+  const months6 = Array.from({ length: 6 }, (_, i) => shift(y, m, i - 5));
 
   // ───────────────────────── Meus cachês (todas as bandas) ─────────────────────────
   if (mode === 'meus') {
@@ -124,8 +160,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
 
     const gigIds = [...new Set((myLineup ?? []).map((l) => l.gig_id))];
     const { data: gigRows } = gigIds.length
-      ? await supabase.from('go_gigs').select('id, title, start_time, band_id').in('id', gigIds).gte('start_time', seriesStart.toISOString()).lt('start_time', end.toISOString())
-      : { data: [] as { id: string; title: string; start_time: string; band_id: string }[] };
+      ? await (supabase.from('go_gigs').select('id, title, start_time, band_id, go_projects ( name, color_hex )').in('id', gigIds).gte('start_time', seriesStart.toISOString()).lt('start_time', end.toISOString()) as unknown as Promise<{ data: { id: string; title: string; start_time: string; band_id: string; go_projects: ProjectRef }[] | null }>)
+      : { data: [] as { id: string; title: string; start_time: string; band_id: string; go_projects: ProjectRef }[] };
 
     const bandName = new Map(info.memberships.map((b) => [b.bandId, b.name]));
     const gigById = new Map((gigRows ?? []).map((g) => [g.id, g]));
@@ -136,6 +172,11 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     const inMonth = items.filter((l) => new Date(l.gig!.start_time) >= start && new Date(l.gig!.start_time) < end);
     const received = inMonth.filter((l) => l.status === PAID).reduce((s, l) => s + l.fee, 0);
     const pending = inMonth.filter((l) => l.status !== PAID).reduce((s, l) => s + l.fee, 0);
+
+    // Same two views as the Dashboard, but for the month on screen: what I was paid per project, and
+    // how many gigs I had per project over the last 6 months.
+    const myPie = sumByProject(inMonth.filter((l) => l.status === PAID).map((l) => ({ project: l.gig!.go_projects, value: l.fee })).filter((l) => l.value > 0));
+    const myLine = gigsPerProject(items.map((l) => ({ key: monthKey(new Date(l.gig!.start_time)), project: l.gig!.go_projects })), months6);
 
     const byBand = new Map<string, number>();
     for (const l of inMonth) byBand.set(bandName.get(l.gig!.band_id) ?? 'Banda', (byBand.get(bandName.get(l.gig!.band_id) ?? 'Banda') ?? 0) + l.fee);
@@ -150,8 +191,13 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Kpi label="Gigs no mês" value={String(inMonth.length)} />
           <Kpi label="Cachê do mês" value={brl(received + pending)} />
-          <Kpi label="Recebido" value={brl(received)} />
+          <Kpi label="Recebido" value={brl(received)} tone="text-emerald-300" />
           <Kpi label="A receber" value={brl(pending)} tone={pending > 0 ? 'text-amber-300' : ''} />
+        </div>
+
+        <div className="mb-6 grid gap-6 md:grid-cols-2">
+          <ProjectPie title="Meu cachê pago por projeto" totalLabel="Total recebido" data={myPie} emptyText="Nenhum cachê pago neste mês." />
+          <ProjectLine title="Gigs por projeto: últimos 6 meses" data={myLine.data} projects={myLine.projects} emptyText="Nenhuma gig nos últimos 6 meses." />
         </div>
 
         <section className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
@@ -188,7 +234,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const [{ data: gigs }, { data: overdueRows }] = await Promise.all([
     supabase
       .from('go_gigs')
-      .select('id, title, start_time, gross_value, bring_sound, sound_cost, event_type, track_receipts, band_id')
+      .select('id, title, start_time, gross_value, bring_sound, sound_cost, event_type, track_receipts, band_id, go_projects ( name, color_hex )')
       .in('band_id', ownedIds)
       .gte('start_time', seriesStart.toISOString())
       .lt('start_time', end.toISOString())
@@ -262,7 +308,10 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     if (monthIds.has(e.gig_id)) add(e.category, Number(e.amount));
   }
 
-  const series = Array.from({ length: 6 }, (_, i) => shift(y, m, i - 5)).map(({ y: yy, m: mm }) => {
+  const bandPie = sumByProject(month.map((r) => ({ project: r.g.go_projects, value: r.gross })).filter((r) => r.value > 0));
+  const bandLine = gigsPerProject(rows.map((r) => ({ key: r.key, project: r.g.go_projects })), months6);
+
+  const series = months6.map(({ y: yy, m: mm }) => {
     const k = asParam(yy, mm);
     const inMonth = rows.filter((r) => r.key === k);
     return { label: MONTH_NAMES[mm - 1].slice(0, 3), billed: inMonth.reduce((s, r) => s + r.gross, 0), received: inMonth.reduce((s, r) => s + r.fin.received, 0) };
@@ -285,12 +334,21 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       {header}
 
       {overdue.length > 0 && (
-        <section className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-semibold text-zinc-200">A receber de gigs já realizadas</h2>
-            <p className="text-2xl font-black tabular-nums text-amber-300">{brl(overdueTotal)}</p>
-          </div>
-          <ul className="mt-3 divide-y divide-zinc-800">
+        // Acordeão nativo: fechado mostra só o total; aberto, uma linha por gig.
+        <details className="group mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
+            <span className="flex min-w-0 flex-col">
+              <span className="text-sm font-semibold text-zinc-200">A receber de gigs já realizadas</span>
+              <span className="text-xs text-zinc-500">
+                {overdue.length} {overdue.length === 1 ? 'gig' : 'gigs'} · toque para ver o detalhe
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              <span className="text-2xl font-black tabular-nums text-amber-300">{brl(overdueTotal)}</span>
+              <ChevronDown className="h-5 w-5 text-amber-300/80 transition-transform group-open:rotate-180" aria-hidden />
+            </span>
+          </summary>
+          <ul className="divide-y divide-zinc-800 px-5 pb-4">
             {overdue.map(({ g, owed }) => (
               <li key={g.id}>
                 <Link href={`/gigs/${g.id}`} className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-white">
@@ -304,16 +362,16 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
 
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Gigs" value={String(month.length)} />
         <Kpi label="Faturamento" value={brl(revenue)} />
-        <Kpi label="Recebido" value={brl(received)} />
+        <Kpi label="Recebido" value={brl(received)} tone="text-emerald-300" />
         <Kpi label="Pendente" value={brl(pendingTotal)} tone={pendingTotal > 0 ? 'text-amber-300' : ''} />
-        <Kpi label="Custos" value={brl(costs)} />
-        <Kpi label="Lucro previsto" value={brl(profit)} tone={profit < 0 ? 'text-red-400' : ''} />
+        <Kpi label="Custos" value={brl(costs)} tone="text-rose-300" />
+        <Kpi label="Lucro previsto" value={brl(profit)} tone={profit < 0 ? 'text-red-400' : 'text-emerald-300'} />
       </div>
 
       <section className="mb-6 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
@@ -322,18 +380,23 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           {series.map((s) => (
             <div key={s.label} className="flex flex-1 flex-col items-center gap-2">
               <div className="flex h-32 w-full items-end justify-center gap-1">
-                <div className="w-1/2 max-w-6 rounded-t bg-zinc-200" style={{ height: `${(s.billed / seriesMax) * 100}%` }} title={`Faturado ${brl(s.billed)}`} />
-                <div className="w-1/2 max-w-6 rounded-t border border-zinc-500 bg-zinc-700" style={{ height: `${(s.received / seriesMax) * 100}%` }} title={`Recebido ${brl(s.received)}`} />
+                <div className="w-1/2 max-w-6 rounded-t bg-sky-400" style={{ height: `${(s.billed / seriesMax) * 100}%` }} title={`Faturado ${brl(s.billed)}`} />
+                <div className="w-1/2 max-w-6 rounded-t bg-emerald-400" style={{ height: `${(s.received / seriesMax) * 100}%` }} title={`Recebido ${brl(s.received)}`} />
               </div>
               <span className="text-xs capitalize text-zinc-500">{s.label}</span>
             </div>
           ))}
         </div>
         <p className="mt-3 flex gap-4 text-xs text-zinc-500">
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-zinc-200" />Faturado</span>
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm border border-zinc-500 bg-zinc-700" />Recebido</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-sky-400" />Faturado</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-emerald-400" />Recebido</span>
         </p>
       </section>
+
+      <div className="mb-6 grid gap-6 md:grid-cols-2">
+        <ProjectPie title="Faturamento por projeto" totalLabel="Faturamento do mês" data={bandPie} emptyText="Nenhuma gig com valor neste mês." />
+        <ProjectLine title="Gigs por projeto: últimos 6 meses" data={bandLine.data} projects={bandLine.projects} emptyText="Nenhuma gig nos últimos 6 meses." />
+      </div>
 
       <div className="mb-6 grid gap-6 md:grid-cols-2">
         <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
