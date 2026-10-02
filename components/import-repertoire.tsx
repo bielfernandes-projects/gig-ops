@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { FileUp, Loader2, Trash2, TriangleAlert, X } from 'lucide-react';
+import { ReadProgress } from '@/components/read-progress';
 import { saveImportedRepertoire } from '@/app/actions/import-actions';
 import { MUSICAL_KEYS } from '@/lib/keys';
 import { missingFields, titleKey, type ImportResult } from '@/lib/import-model';
@@ -184,11 +185,7 @@ export function ImportRepertoire({ bandId, songs }: { bandId: string; songs: Cat
                   <li>PDF escaneado (foto) não é lido.</li>
                 </ul>
                 {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
-                {step === 'reading' && (
-                  <p className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm text-zinc-300">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Lendo {fileName || 'o documento'}... isso pode levar até um minuto.
-                  </p>
-                )}
+                {step === 'reading' && <ReadProgress what={fileName || 'o documento'} />}
                 <div className="flex justify-end gap-2">
                   <button type="button" onClick={close} disabled={step === 'reading'} className="rounded-md px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200 disabled:opacity-40">
                     Cancelar

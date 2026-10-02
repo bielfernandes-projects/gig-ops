@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { FileUp, Loader2, Trash2, TriangleAlert, X } from 'lucide-react';
+import { ReadProgress } from '@/components/read-progress';
 import { saveImportedGigs } from '@/app/actions/gig-import-actions';
 import { gigInstant, missingGigFields, type GigImportResult } from '@/lib/gig-import-model';
 import { dayKey, dayOffset } from '@/lib/time';
@@ -217,11 +218,7 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                   <li>Gigs de mais de uma semana atrás entram como já realizadas e com o cachê recebido. As da última semana ficam pendentes de recebimento.</li>
                 </ul>
                 {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
-                {step === 'reading' && (
-                  <p className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm text-zinc-300">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Lendo {fileName || 'a lista'}... isso pode levar até um minuto.
-                  </p>
-                )}
+                {step === 'reading' && <ReadProgress what={fileName || 'a lista'} />}
                 <div className="flex justify-end gap-2">
                   <button type="button" onClick={close} disabled={step === 'reading'} className="rounded-md px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200 disabled:opacity-40">
                     Cancelar

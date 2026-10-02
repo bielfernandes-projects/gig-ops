@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { navItems, hideNav } from '@/components/navigation';
 import { signout } from '@/app/login/actions';
 import { InstagramLink } from '@/components/instagram-link';
+import { InstallAppButton } from '@/components/install-app-button';
 import { NotificationBell } from '@/components/notification-bell';
 import { BandFilter } from '@/components/band-switcher';
 
@@ -43,6 +44,7 @@ export function MobileNav() {
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2 pl-3">
           <div className="min-w-0 max-w-[60%] flex-1"><BandFilter compact /></div>
           {pathname === '/dashboard' && <NotificationBell />}
+          <InstallAppButton className="shrink-0 rounded-lg p-2 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100" />
           <form action={signout}>
           <button type="submit" aria-label="Sair" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-900 hover:text-red-400">
             <LogOut className="h-5 w-5" />
@@ -104,6 +106,7 @@ export function MobileNav() {
                 <LogOut className="h-4 w-4" />
               </button>
             </form>
+            <InstallAppButton iconClassName="h-4 w-4" className="rounded-full border border-zinc-700 bg-zinc-800 p-2.5 text-zinc-300 hover:bg-zinc-700 hover:text-white" />
             <InstagramLink iconClassName="h-4 w-4" className="rounded-full border border-zinc-700 bg-zinc-800 p-2.5 text-zinc-300 hover:bg-zinc-700 hover:text-pink-400" />
           </div>
           <ThemeToggle />
