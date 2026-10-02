@@ -74,6 +74,8 @@ export async function generateJson(opts: {
   label: string;
   /** Models to try, in order, before the shared fallback chain. For a caller whose input needs more reading than copying. */
   models?: string[];
+  /** Sampling temperature. Default 0.2 — never 0: see the note on `temperature` below. */
+  temperature?: number;
 }): Promise<unknown> {
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: opts.instructions }] },
@@ -81,7 +83,11 @@ export async function generateJson(opts: {
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: opts.schema,
-      temperature: 0,
+      // NÃO volte para 0. Com temperatura 0 a decodificação é puramente gulosa e entra em laço de repetição: medido em
+      // homologação (2026-10-02), o `gemini-3.5-flash` escreveu `"time": "20:0020:00:00Z"` — "20:00" repetido — e
+      // encerrou o JSON ali mesmo, com finishReason STOP e 67 tokens, perdendo cachê, projeto e todas as gigs seguintes.
+      // Era esta a causa de "só vem título e data". Um pouco de temperatura quebra o laço sem inventar dado.
+      temperature: opts.temperature ?? 0.2,
       // Extracting a list needs no long "thinking"; without this the 3.x models take ~90s on a 200-song document.
       // `medium` was tried on the gig list (2026-10-01) and made it worse, not better: the thinking ate the answer
       // budget, so rows came back nearly empty and one run was truncated mid-JSON. Reading power comes from the model

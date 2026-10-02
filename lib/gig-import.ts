@@ -70,6 +70,9 @@ const RESPONSE_SCHEMA = {
           notes: { type: 'STRING', nullable: true },
         },
         required: ['title'],
+        // Ordem explícita: sem ela o decodificador escolhe a ordem a cada vez, e foi escrevendo o `time` que ele
+        // entrou em laço e abandonou o resto do JSON. Com a ordem fixa os campos saem sempre na mesma sequência.
+        propertyOrdering: ['title', 'date', 'time', 'endTime', 'fee', 'project', 'location', 'notes'],
       },
     },
   },
