@@ -8,7 +8,7 @@ import { ImportError } from '@/lib/gemini';
 export const maxDuration = 300;
 
 /** Same free Gemini quota as the repertoire import, so the same daily allowance per band. */
-const DAILY_LIMIT = 60; // TEMPORARIO: voltar para 8
+const DAILY_LIMIT = 8;
 const MAX_TEXT = 60_000;
 
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status });

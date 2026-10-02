@@ -115,7 +115,6 @@ export async function generateJson(opts: {
   let dailyQuota = 0; // models that answered 429 because their DAILY quota is gone (a wait of minutes won't help)
   let silent = 0; // models that timed out or failed to connect
   let tried = 0;
-  let usedModel = '';
   const deadline = Date.now() + CHAIN_BUDGET_MS;
   for (const model of chain) {
     if (Date.now() > deadline) {
@@ -123,7 +122,6 @@ export async function generateJson(opts: {
       break;
     }
     tried++;
-    usedModel = model;
     res = await call(model);
     if (!res || res.status === 503) {
       await new Promise((r) => setTimeout(r, 2000));
@@ -156,8 +154,6 @@ export async function generateJson(opts: {
   const candidate = data.candidates?.[0];
   const out = candidate?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
 
-  // TEMPORARIO (remover): a resposta do modelo, crua, para descobrir por que so titulo e data chegam.
-  console.log(`[DEBUG ${opts.label}] model=${usedModel} finish=${candidate?.finishReason} usage=${JSON.stringify(data.usageMetadata)} out=${out.slice(0, 1500)}`);
 
   // Why the answer is unusable matters: each reason needs a different move from the person, and the old code turned all
   // of them into "veio incompleta" with nothing in the logs.
