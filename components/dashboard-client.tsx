@@ -1,7 +1,6 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { NotificationBell } from '@/components/notification-bell';
 import { CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -67,8 +66,8 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
       <AppTour role={role === 'admin' ? 'admin' : 'viewer'} userId={userId} tourSeen={tourSeen} />
       <div className="relative">
         <PageHeader title="Dashboard" description="Visão geral da agenda e das finanças." className="mb-0" />
-        {/* Desktop only: on phones the theme toggle lives in the menu and the bell in the top bar */}
-        <div className="absolute right-0 top-0 hidden items-center gap-2 md:flex"><NotificationBell /><ThemeToggle /></div>
+        {/* Desktop only: on phones the bell lives in the top bar. The theme toggle is in the sidebar's "more" button */}
+        <div className="absolute right-0 top-0 hidden items-center gap-2 md:flex"><NotificationBell /></div>
       </div>
 
       {role === 'admin' && notice && (

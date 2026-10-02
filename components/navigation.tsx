@@ -6,8 +6,7 @@ import { Logo } from '@/components/logo';
 import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3, Music, Gift, LifeBuoy, LogOut, type LucideIcon } from 'lucide-react';
 import { signout } from '@/app/login/actions';
 import { BandFilter } from '@/components/band-switcher';
-import { InstagramLink } from '@/components/instagram-link';
-import { InstallAppButton } from '@/components/install-app-button';
+import { SidebarExtras } from '@/components/sidebar-extras';
 
 type NavItem = { name: string; href: string; icon: LucideIcon; disabled?: boolean };
 
@@ -83,8 +82,7 @@ export function Navigation() {
             Sair
           </button>
         </form>
-        <InstallAppButton className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-100" />
-        <InstagramLink className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-pink-400" />
+        <SidebarExtras />
       </div>
     </div>
   );
