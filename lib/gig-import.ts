@@ -23,9 +23,7 @@ A ORDEM DAS COLUNAS VARIA de lista para lista. Descubra cada coluna pelo conteú
 A primeira linha pode ser o cabeçalho das colunas ("Evento | Projeto | Data | Hora | Cachê"): não é uma gig, mas usa ela para saber qual coluna é qual campo.
 Uma coluna vazia ("Sunrise | | 20:00") não desloca as outras: o campo vazio é null e as demais colunas continuam no mesmo campo.
 
-EXEMPLO 3 — lista com rótulos antes do valor, em uma linha ou em várias:
-"Aniversário 50 anos — Projeto: Samba Raiz — Data: 22/11/2026 — Início: 20h30 — Cachê: R$ 900" vira title "Aniversário 50 anos", project "Samba Raiz", date "2026-11-22", time "20:30", fee 900.
-Rótulos como "cachê", "valor", "pagamento", "R$" indicam o fee; "projeto", "banda", "grupo", "com" indicam o project; "local", "endereço" indicam o location. O rótulo não entra no valor do campo.
+EXEMPLO 3 — com rótulos: "Aniversário 50 anos — Projeto: Samba Raiz — Data: 22/11/2026 — Início: 20h30 — Cachê: R$ 900" vira title "Aniversário 50 anos", project "Samba Raiz", date "2026-11-22", time "20:30", fee 900. Rótulos ("cachê", "valor" → fee; "projeto", "banda" → project; "local" → location) não entram no valor do campo.
 
 CADA GIG
 - title: o nome da gig como está escrito (evento, casa, local, contratante), SEM a parte da banda/projeto (veja project). Se só houver o local, use o local. Não invente.
@@ -37,18 +35,22 @@ CADA GIG
 - location: cidade, endereço ou nome do local, SOMENTE se estiver escrito e não for o próprio title. Senão null.
 - notes: outras informações úteis da linha (contratante, formato, observações). Senão null.
 
-OS EXEMPLOS ACIMA SÃO ILUSTRAÇÃO, NÃO FORMATO OBRIGATÓRIO
-Cada banda e cada contratante escreve do seu jeito, e quem importa quase sempre está colando a lista de outra pessoa, sem poder reescrever. Formato que não se parece com nenhum exemplo é o caso NORMAL, não um erro: entenda pelo significado de cada pedaço de texto.
-- NUNCA devolva uma lista vazia porque o formato é estranho. Se há qualquer coisa que pareça um compromisso com data, devolva.
-- Linha incompleta ENTRA do mesmo jeito, com null nos campos que faltam: é melhor devolver a gig com o nome e a data e deixar a pessoa completar o horário na tela do que não devolver nada.
-- Formatos que também precisam funcionar, entre muitos outros: uma data e um nome só ("12/07 Bar Central"); dia da semana com o lugar ("Sáb - Sunrise - 20h"); linhas de várias linhas (nome numa linha, data e cachê na seguinte); emoji, marcadores, numeração, negrito de WhatsApp (*Sunrise*), "dia 12", "hoje", "amanhã"; mês escrito ("12 de julho"); hora como "20h", "8pm", "20hrs", "às 20"; cachê como "150", "150 reais", "cento e cinquenta", "150 pix", "150 cada".
-- Quando dois pedaços de texto podem ser o nome e o projeto e você não tem certeza de qual é qual, ponha o lugar/evento no title e o nome do grupo no project; na dúvida real, deixe project null em vez de errar o title.
-- Não devolva a linha inteira como title. Tire do title a data, a hora, o cachê e o nome do grupo.
-
 REGRAS
+- UMA GIG POR OBJETO. Nunca divida uma gig em vários objetos (um com o nome, outro com a data): junte tudo o que é da mesma gig num só. Melhor devolver 8 gigs completas que 20 pela metade.
+- Os exemplos acima são ilustração, NÃO formato obrigatório. Quem importa quase sempre cola a lista de outra pessoa e não pode reescrever: formato diferente dos exemplos é o caso normal. Entenda pelo significado, aceite emoji, marcadores, dia da semana, "dia 12", "12 de julho", "20h"/"8pm", "150 reais"/"150 pix".
+- NUNCA devolva lista vazia porque o formato é estranho. Linha incompleta entra com null no que falta (melhor a pessoa completar o horário na tela do que perder a gig).
 - Nunca invente nada. Campo ausente é null.
+- Não devolva a linha inteira como title: tire dele a data, a hora, o cachê e o nome do grupo.
 - Não elimine repetidas: se a mesma gig aparece duas vezes, devolva as duas.
 - Ignore cabeçalhos de coluna, linhas de total e linhas vazias.`;
+
+/**
+ * A gig list is the opposite of a repertoire document: a few dozen short lines, but each one written however the band
+ * leader felt like — so the job is understanding, not copying. The "flash" models go first here (the shared chain starts
+ * with the "lite" ones, which have the daily quota a 200-song repertoire needs); the lite ones stay as the fallback, and
+ * a band's 8 reads a day never come close to the flash quota anyway.
+ */
+const GIG_MODELS = ['gemini-3.5-flash', 'gemini-3.7-flash'];
 
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
@@ -83,8 +85,6 @@ export async function parseGigs(input: { file: ImportFile } | { text: string }, 
   } else {
     text = input.text;
   }
-  // `medium` on purpose: a gig list is short but written freely (WhatsApp, a leader's own notation), and telling the
-  // columns apart is the whole job. The repertoire import stays on `low`, where the input really is a table.
-  const parsed = await generateJson({ ...opts, instructions: instructions(dayKey()), schema: RESPONSE_SCHEMA, text: tidy(text), label: 'gig import', thinkingLevel: 'medium' });
+  const parsed = await generateJson({ ...opts, instructions: instructions(dayKey()), schema: RESPONSE_SCHEMA, text: tidy(text), label: 'gig import', models: GIG_MODELS });
   return cleanGigImport(parsed);
 }
