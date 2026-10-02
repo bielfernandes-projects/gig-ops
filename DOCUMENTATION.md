@@ -866,3 +866,8 @@ Decisão e valores: `docs/decisao-planos-e-precos.md`. Como ficou no código:
 * **Cobrança:** com assinatura no cartão, o preço do Stripe é trocado primeiro pelo da Banda desta pessoa (`tierFor`: principal ou adesão, Fundador se couber), com `metadata` atualizada (`kind`, `tier`, `plan`) e a diferença **proporcional na próxima fatura** (`proration_behavior: 'create_prorations'`). Se o Stripe recusar, a conta continua Freela e nada muda. Depois, `reconcilePricing` reajusta as outras contas da pessoa (um Freela que era principal vira adesão). Sem cartão (teste, expirada ou cortesia), só muda o tipo e o estado da assinatura é mantido.
 * **Telemetria:** ação `conta_promovida`. **Não testado com cartão** (a homologação não tem `STRIPE_SECRET_KEY`); testar com cupom de 100% (§37).
 * **Resumo Financeiro da gig (correção):** os cinco valores (cachê bruto, músicos, som, despesas e seu cachê) ficavam numa linha só e o último passava da borda do cartão em telas médias. Agora a linha quebra (`flex-wrap`) e os separadores verticais saíram.
+
+## 60. Hardening: anon sem acesso a bands e go_members
+
+* **Migration** `20261002000200_revoke_anon_bands_go_members.sql`: `revoke all` do papel `anon` em `public.bands` e `public.go_members` (aplicada na homologação e na produção em 2026-10-02). Antes, o `anon` tinha `SELECT` de tabela inteira (incluindo `calendar_token`) e só o RLS impedia a leitura. Os acessos sem login (convite, iCal, push, cron) usam o service role e não são afetados.
+* **Admin `setBandKind`:** ao virar Freela, a escala criada para o dono nas gigs sem escala nasce `pago` se a gig já passou e está totalmente recebida (`gig_payments`), senão `pendente`.
