@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireOwner } from '@/lib/auth';
 import { logAction } from '@/lib/telemetry';
 import { endInstant, gigInstant } from '@/lib/gig-import-model';
+import { dayKey, startOfToday } from '@/lib/time';
 
 export type GigImportPayload = {
   bandId: string;
@@ -13,6 +14,13 @@ export type GigImportPayload = {
 };
 
 const MAX_GIGS = 300;
+
+/**
+ * A gig older than this on the day of the import is history being filled in, not an agenda being planned: its money is
+ * assumed already received, so it does not land in the band's "a receber" the moment the list is imported. Shows of the
+ * last week stay pending on purpose — that money may still be on its way.
+ */
+const SETTLED_AFTER_DAYS = 7;
 const cut = (v: string | null | undefined, n: number) => (v ?? '').trim().slice(0, n) || null;
 
 // Badge colors for projects created by the import (editable later in Projetos).
@@ -96,17 +104,30 @@ export async function saveImportedGigs(payload: GigImportPayload) {
       setlist_id: defaultSetlist?.id ?? null,
     }));
   const skipped = rows.length - toInsert.length;
-  if (toInsert.length === 0) return { created: 0, skipped, projectsCreated: 0 };
+  if (toInsert.length === 0) return { created: 0, skipped, projectsCreated: 0, settled: 0 };
 
-  const { error } = await supabase.from('go_gigs').insert(toInsert);
+  const { data: made, error } = await supabase.from('go_gigs').insert(toInsert).select('id, start_time, gross_value');
   if (error) {
     console.error('Error importing gigs:', error);
     return { error: error.message };
+  }
+
+  // Old gigs come in already settled: one receipt for the full cachê, dated the day of the show. A gig with no cachê
+  // has nothing to receive (`gig_payments.amount` must be > 0), so it is simply left alone.
+  const cutoff = startOfToday().getTime() - SETTLED_AFTER_DAYS * 86_400_000;
+  const receipts = (made ?? [])
+    .filter((g) => Date.parse(g.start_time as string) < cutoff && Number(g.gross_value) > 0)
+    .map((g) => ({ band_id: bandId, gig_id: g.id as string, amount: Number(g.gross_value), paid_at: dayKey(g.start_time as string), note: 'Recebido (importação da lista)' }));
+  if (receipts.length > 0) {
+    const { error: receiptError } = await supabase.from('gig_payments').insert(receipts);
+    // The gigs are already in the agenda: a receipt that fails is worth a log, not an import rolled back.
+    if (receiptError) console.error('Error settling imported gigs:', receiptError);
   }
 
   await logAction('gigs_importadas', ctx.userId, bandId);
   revalidatePath('/agenda');
   revalidatePath('/dashboard');
   revalidatePath('/projects');
-  return { created: toInsert.length, skipped, projectsCreated: missing.length };
+  revalidatePath('/relatorio');
+  return { created: toInsert.length, skipped, projectsCreated: missing.length, settled: receipts.length };
 }

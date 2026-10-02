@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   advance,
   dayKey,
+  dayOffset,
   daysInMonth,
   endOfDayKey,
   fmtDuration,
@@ -84,5 +85,12 @@ assert.equal(fmtDuration('2026-09-26T23:00:00Z', '2026-09-27T01:00:00Z'), '2h de
 assert.equal(fmtDuration('2026-09-26T23:00:00Z', '2026-09-26T23:45:00Z'), '45m de show');
 assert.equal(fmtDuration('2026-09-26T23:00:00Z', null), '');
 assert.equal(fmtDuration('2026-09-26T23:00:00Z', '2026-09-26T22:00:00Z'), '');
+
+// ── dayOffset: whole days on a YYYY-MM-DD key, across month and year ─────────
+assert.equal(dayOffset('2026-10-01', -7), '2026-09-24');
+assert.equal(dayOffset('2026-01-03', -7), '2025-12-27');
+assert.equal(dayOffset('2026-02-26', 3), '2026-03-01');
+assert.equal(dayOffset('2024-02-26', 3), '2024-02-29', 'ano bissexto');
+assert.equal(dayOffset('2026-10-01', 0), '2026-10-01');
 
 console.log('check-time: ok');

@@ -99,6 +99,15 @@ export function startOfDayKey(key: string): Date {
   return toInstant(y, m, d, 0, 0);
 }
 
+/**
+ * A `YYYY-MM-DD` key moved by whole days (`dayOffset('2026-10-01', -7)` is `'2026-09-24'`). Calendar-only, so it never
+ * reads the clock — a React render can call it.
+ */
+export function dayOffset(key: string, days: number): string {
+  const [y, m, d] = key.slice(0, 10).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
 /** 23:59:59.999 in Brasília of a `YYYY-MM-DD` string. */
 export function endOfDayKey(key: string): Date {
   return new Date(startOfDayKey(key).getTime() + 86_400_000 - 1);

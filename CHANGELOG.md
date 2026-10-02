@@ -2,6 +2,22 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.5.0] - 2026-10-01
+
+### Corrigido
+- **Importação de gigs: o cachê, o projeto e o horário não eram lidos** — e, em listas maiores, a maior parte das gigs simplesmente não aparecia. A leitura por IA era feita com temperatura zero, que trava o modelo num laço de repetição: ele escrevia `"20:0020:00:00Z"` no horário e encerrava a resposta ali, descartando todo o resto da lista. Verificado em homologação com lista em colunas e com lista solta de WhatsApp.
+- Lista copiada do Excel ou do Google Planilhas perdia as colunas antes de chegar à IA (a tabulação virava espaço), e o projeto acabava grudado no nome da gig.
+- Cachê escrito por extenso na célula (`R$ 1.500,00`, `Cachê: R$ 450`, `800,50`, `1,5k`, `1.200`) era descartado em silêncio por não ser um número puro.
+- Quando a leitura falhava, qualquer motivo virava a mesma mensagem ("a leitura veio incompleta"). Agora cada caso diz o que fazer: lista longa demais pede para dividir em partes, conteúdo recusado pede para tirar dados pessoais, e serviço fora do ar é identificado como tal.
+- A tela podia ficar carregando indefinidamente quando um modelo parava de responder. Cada tentativa agora tem prazo próprio e a busca inteira tem um teto.
+
+### Adicionado
+- Gigs com data de **mais de uma semana antes** da importação entram já como realizadas e com o cachê recebido, sem cair no "a receber" do Relatório. As da última semana continuam pendentes. A prévia marca essas linhas e o aviso final diz quantas foram.
+
+### Alterado
+- A tela de importação agora diz **"Cole do jeito que a lista vier"**: a leitura entende planilha, tabela, recado de WhatsApp e agenda em tópicos, em qualquer ordem de colunas. A ordem sugerida (`data | início | término | título | projeto | cachê`) ficou só como dica para quem digita do zero.
+- Arquivo `.xlsx` e imagem/print agora têm mensagem própria dizendo o caminho (copiar as células e colar, ou salvar como CSV), em vez de "formato não suportado".
+
 ## [1.4.0] - 2026-10-01
 
 ### Alterado
