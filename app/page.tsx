@@ -194,10 +194,10 @@ export default async function Landing() {
         <section id="para-quem" className="border-t-2 border-[var(--l-fg)]">
           <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
             <h2 className="max-w-3xl text-balance text-3xl font-black tracking-[-0.03em] sm:text-5xl">
-              Feito para músico. Do jeito que você toca.
+              De músico para músicos. Do jeito que você toca.
             </h2>
             <p className="mt-4 max-w-2xl text-pretty text-base text-[var(--l-mute)] sm:text-lg">
-              O Gigueiros é só para quem toca: quem tem uma banda para tocar e quem toca para várias. Cada um tem a sua conta, com o que precisa e nada a mais.
+              O Gigueiros é para quem vive música todo dia: quem tem uma banda para tocar e quem toca como freela para várias. Cada um tem a sua conta, com o que precisa e nada a mais.
             </p>
 
             <div className="mt-12 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start lg:gap-10">
