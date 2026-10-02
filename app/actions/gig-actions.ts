@@ -1,6 +1,7 @@
 'use server';
 
-import { bandOfLineup, requireOwner, requireOwnerFor } from '@/lib/auth';
+import { bandOfLineup, requireOwner, requireOwnerFor, requireTeamFor } from '@/lib/auth';
+import { freelaSelfId, isFreelaBand } from '@/lib/plan-limits';
 import { findConflicts } from '@/lib/conflicts';
 import { PAID } from '@/lib/gig-view';
 import { advance, daysInMonth, endOfDayKey, toInstant, wallClock, type Cadence } from '@/lib/time';
@@ -13,6 +14,8 @@ export async function addQuickGig(formData: FormData) {
   const ctx = await requireOwner(undefined, formData.get('band_id') as string | null);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
+  // Freela: one person, no sound crew. The owner is the whole lineup, paid the gig's cachê.
+  const freela = await isFreelaBand(bandId);
 
   const title = formData.get('title') as string;
   const project_id = formData.get('project_id') as string;
@@ -29,7 +32,7 @@ export async function addQuickGig(formData: FormData) {
   const custom_end_date = formData.get('custom_end_date') as string;
 
   // Sound equipment fields
-  const bring_sound = formData.get('bring_sound') === 'true';
+  const bring_sound = !freela && formData.get('bring_sound') === 'true';
   const sound_cost = bring_sound ? (parseFloat(formData.get('sound_cost') as string) || 0) : 0;
   const rawSoundPerson = formData.get('sound_person_id') as string;
   const sound_person_id = bring_sound && rawSoundPerson ? rawSoundPerson : null;
@@ -54,6 +57,10 @@ export async function addQuickGig(formData: FormData) {
 
   const gross_value = parseFloat(grossValueStr) || 0;
   let warnings: string[] = [];
+  if (freela) {
+    const selfId = await freelaSelfId(bandId, ctx.userId);
+    lineupData = selfId ? [{ member_id: selfId, fee_amount: gross_value }] : [];
+  }
 
   // Recupera propriedades completas da gig original em caso de clone profundo
   let originalGig = null;
@@ -133,7 +140,7 @@ export async function addQuickGig(formData: FormData) {
   }
 
   // Em caso de cópia (Duplicação), puxamos a Lineup Original e a replicamos para a(s) nova(s) Gig(s)
-  if (clone_id && insertedGigs) {
+  if (clone_id && insertedGigs && !freela) {
     const { data: lineups } = await supabase.from('go_lineup').select('*').eq('gig_id', clone_id);
     if (lineups && lineups.length > 0) {
       const newLineups = [];
@@ -154,7 +161,7 @@ export async function addQuickGig(formData: FormData) {
   }
 
   // Escala vinda do formulário — em TODAS as ocorrências, não só na primeira.
-  if (!clone_id && lineupData.length > 0 && insertedGigs && insertedGigs.length > 0) {
+  if ((!clone_id || freela) && lineupData.length > 0 && insertedGigs && insertedGigs.length > 0) {
     const newLineups = insertedGigs.flatMap(gig =>
       lineupData.map(l => ({
         gig_id: gig.id,
@@ -198,6 +205,7 @@ export async function updateGig(formData: FormData) {
   const ctx = await requireOwnerFor('go_gigs', formData.get('id') as string);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
+  const freela = await isFreelaBand(bandId);
 
   const id = formData.get('id') as string;
   const title = formData.get('title') as string;
@@ -206,7 +214,7 @@ export async function updateGig(formData: FormData) {
   const end_time = (formData.get('end_time') as string) || null;
   const location = formData.get('location') as string;
   const gross_value = parseFloat(formData.get('gross_value') as string) || 0;
-  const bring_sound = formData.get('bring_sound') === 'true';
+  const bring_sound = !freela && formData.get('bring_sound') === 'true';
   const sound_cost = bring_sound ? (parseFloat(formData.get('sound_cost') as string) || 0) : 0;
   const rawSoundPerson = formData.get('sound_person_id') as string;
   const sound_person_id = bring_sound && rawSoundPerson ? rawSoundPerson : null;
@@ -229,6 +237,9 @@ export async function updateGig(formData: FormData) {
     console.error('Error updating gig:', error);
     return { error: error.message };
   }
+
+  // Freela: the cachê is the one lineup row's fee, so it follows the gig's value.
+  if (freela) await supabase.from('go_lineup').update({ fee_amount: gross_value }).eq('gig_id', id);
 
   revalidatePath('/agenda');
   revalidatePath('/dashboard');
@@ -297,7 +308,7 @@ export async function cancelGig(gigId: string, reason: string, deleteMode: 'sing
 }
 
 export async function addMemberToLineup(formData: FormData) {
-  const ctx = await requireOwnerFor('go_gigs', formData.get('gig_id') as string);
+  const ctx = await requireTeamFor('go_gigs', formData.get('gig_id') as string);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase } = ctx;
 
@@ -416,7 +427,7 @@ export async function togglePaymentStatus(lineupId: string, targetIsPaid: boolea
 }
 
 export async function removeFromLineup(lineupId: string, gigId: string) {
-  const ctx = await requireOwnerFor('go_gigs', gigId);
+  const ctx = await requireTeamFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase } = ctx;
 
@@ -435,7 +446,7 @@ export async function removeFromLineup(lineupId: string, gigId: string) {
 }
 
 export async function updateLineupFee(formData: FormData) {
-  const ctx = await requireOwnerFor('go_gigs', formData.get('gig_id') as string);
+  const ctx = await requireTeamFor('go_gigs', formData.get('gig_id') as string);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase } = ctx;
 
@@ -464,7 +475,7 @@ export async function updateLineupFee(formData: FormData) {
 }
 
 export async function toggleSoundPayment(gigId: string, targetIsPaid: boolean) {
-  const ctx = await requireOwnerFor('go_gigs', gigId);
+  const ctx = await requireTeamFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 

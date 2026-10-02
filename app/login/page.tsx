@@ -9,7 +9,9 @@ import { login, signup, forgotPassword, adminSignup } from './actions';
 import { createClient } from '@/lib/supabase/client';
 import { PasswordStrengthIndicator, isPasswordValid } from '@/components/password-strength-indicator';
 import { APP_VERSION } from '@/lib/version';
-import { PENDING_BAND_COOKIE, PENDING_BAND_MAX_AGE } from '@/lib/pending-band';
+import { PENDING_BAND_COOKIE, PENDING_BAND_MAX_AGE, PENDING_KIND_COOKIE } from '@/lib/pending-band';
+import { PlanChoice } from '@/components/plan-choice';
+import type { BandKind } from '@/lib/plans';
 
 /** Codes GoTrue returns when an OAuth email collides with an account under another provider (linking is off). */
 const GOOGLE_EMAIL_CONFLICT_CODES = new Set([
@@ -35,6 +37,7 @@ function LoginPageInner() {
   const [isLogin, setIsLogin] = useState(!startsSignup);
   const [isAdminSignup, setIsAdminSignup] = useState(startsSignup);
   const [bandName, setBandName] = useState('');
+  const [kind, setKind] = useState<BandKind>('banda');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState(() => {
@@ -84,12 +87,14 @@ function LoginPageInner() {
     if (!isLogin && isAdminSignup) {
       const name = bandName.trim();
       if (!name) {
-        setErrorMsg('Digite o nome da banda antes de continuar com o Google.');
+        setErrorMsg(`Digite o nome ${kind === 'freela' ? 'da conta' : 'da banda'} antes de continuar com o Google.`);
         return;
       }
       document.cookie = `${PENDING_BAND_COOKIE}=${encodeURIComponent(name)}; path=/; max-age=${PENDING_BAND_MAX_AGE}; samesite=lax`;
+      document.cookie = `${PENDING_KIND_COOKIE}=${kind}; path=/; max-age=${PENDING_BAND_MAX_AGE}; samesite=lax`;
     } else {
       document.cookie = `${PENDING_BAND_COOKIE}=; path=/; max-age=0`;
+      document.cookie = `${PENDING_KIND_COOKIE}=; path=/; max-age=0`;
     }
     const { error } = await createClient().auth.signInWithOAuth({
       provider: 'google',
@@ -133,7 +138,7 @@ function LoginPageInner() {
               {isLogin
                 ? 'Bem-vindo ao Gigueiros. Faça login para gerenciar sua agenda.'
                 : isAdminSignup
-                  ? 'Crie sua banda (ou sua agenda, se você toca sozinho) e gerencie suas gigs, músicos e cachês.'
+                  ? 'Escolha o tipo de conta e comece a gerenciar suas gigs e cachês.'
                   : 'Cadastre-se na banda da qual foi convidado.'}
             </p>
           </>
@@ -216,9 +221,10 @@ function LoginPageInner() {
               <>
                 <form onSubmit={handleSubmit} className="w-full flex flex-col gap-2.5">
                   {/* Primeiro campo: é o único que o "Continuar com Google" precisa. */}
+                  {!isLogin && isAdminSignup && <PlanChoice value={kind} onChange={setKind} />}
                   {!isLogin && isAdminSignup && (
                     <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-zinc-400">Nome da banda (ou o seu, se toca sozinho)</label>
+                      <label className="text-xs font-medium text-zinc-400">{kind === 'freela' ? 'Nome da sua conta' : 'Nome da banda'}</label>
                       <input
                         type="text"
                         name="bandName"
@@ -227,7 +233,7 @@ function LoginPageInner() {
                         value={bandName}
                         onChange={(e) => setBandName(e.target.value)}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-700"
-                        placeholder="Ex: Banda Horizonte"
+                        placeholder={kind === 'freela' ? 'Ex: Meus freelas' : 'Ex: Banda Horizonte'}
                       />
                     </div>
                   )}
@@ -296,7 +302,7 @@ function LoginPageInner() {
                     disabled={isLoading || (!isLogin && !isPasswordValid(password))}
                     className="w-full bg-zinc-100 hover:bg-white text-zinc-900 font-bold py-2.5 mt-2 rounded-lg text-sm transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? 'Autenticando...' : isLogin ? 'Entrar' : isAdminSignup ? 'Criar minha banda' : 'Registrar'}
+                    {isLoading ? 'Autenticando...' : isLogin ? 'Entrar' : isAdminSignup ? (kind === 'freela' ? 'Criar minha conta Freela' : 'Criar minha banda') : 'Registrar'}
                   </button>
 
                 </form>
@@ -321,7 +327,7 @@ function LoginPageInner() {
                 </button>
                 {!isLogin && isAdminSignup && (
                   <p className="mt-1.5 text-center text-[11px] leading-tight text-zinc-500">
-                    Com o Google, basta o nome da banda acima. A banda é criada na hora.
+                    Com o Google, basta o nome acima. A conta é criada na hora.
                   </p>
                 )}
 

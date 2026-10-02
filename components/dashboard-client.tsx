@@ -41,9 +41,11 @@ type Props = {
   gigs: GigWithProject[];
   lineups: GoLineup[];
   subscription: { state: 'trial' | 'active' | 'expired'; daysLeft: number | null } | null;
+  /** The selected account is a Freela: the tour skips the team steps. */
+  freela?: boolean;
 };
 
-export default function DashboardClient({ role, userId, tourSeen, bandRoles, allBands, gigs, lineups, subscription }: Props) {
+export default function DashboardClient({ role, userId, tourSeen, bandRoles, allBands, gigs, lineups, subscription, freela }: Props) {
   const notice = subscriptionNotice(subscription);
 
   // 1. Visible Gigs — same rule as the Agenda, from the same module.
@@ -63,7 +65,7 @@ export default function DashboardClient({ role, userId, tourSeen, bandRoles, all
 
   return (
     <div className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 md:p-10 pb-32 flex flex-col gap-8">
-      <AppTour role={role === 'admin' ? 'admin' : 'viewer'} userId={userId} tourSeen={tourSeen} />
+      <AppTour role={role === 'admin' ? 'admin' : 'viewer'} userId={userId} tourSeen={tourSeen} freela={freela} />
       <div className="relative">
         <PageHeader title="Dashboard" description="Visão geral da agenda e das finanças." className="mb-0" />
         {/* Desktop only: on phones the bell lives in the top bar. The theme toggle is in the sidebar's "more" button */}

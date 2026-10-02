@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { grantPremium, revokePremium } from '@/app/admin/actions';
+import { grantPremium, revokePremium, setBandKind, setImportQuota } from '@/app/admin/actions';
+import { IMPORT_QUOTA, KIND_LABEL } from '@/lib/plans';
 import type { AdminUserBand } from '@/lib/admin-stats';
 import { fmtShortDate } from '@/lib/time';
 import { subscriptionPlan } from '@/lib/subscription';
@@ -42,9 +43,39 @@ export function AdminBandAccess({ band, canManage }: { band: AdminUserBand; canM
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
       <span className="text-zinc-300">{band.name}</span>
-      <span className="text-zinc-600">· {band.role === 'owner' ? 'dono' : 'músico'} ·</span>
+      <span className="text-zinc-600">· {band.role === 'owner' ? 'dono' : 'músico'} · {KIND_LABEL[band.kind]} ·</span>
       <span className={STATE_TONE[band.state]}>{STATE_LABEL[band.state]}</span>
 
+      {canManage && (
+        <>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => run(() => setBandKind(band.id, band.kind === 'banda' ? 'freela' : 'banda'), `"${band.name}" agora é ${band.kind === 'banda' ? 'Freela' : 'Banda'}.`)}
+            className="rounded border border-zinc-700 px-1.5 py-0.5 text-[11px] font-semibold text-zinc-400 hover:bg-zinc-800 disabled:opacity-50"
+          >
+            virar {band.kind === 'banda' ? 'Freela' : 'Banda'}
+          </button>
+          <label className="flex items-center gap-1 text-[11px] text-zinc-500" title="Importações por IA por mês. Vazio = padrão.">
+            cota
+            <input
+              type="number"
+              min={0}
+              max={1000}
+              defaultValue={band.importQuota ?? ''}
+              placeholder={String(IMPORT_QUOTA)}
+              disabled={pending}
+              onBlur={(e) => {
+                const raw = e.currentTarget.value.trim();
+                const value = raw === '' ? null : Number(raw);
+                if (value === band.importQuota) return;
+                run(() => setImportQuota(band.id, value), 'Cota salva.');
+              }}
+              className="w-14 rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5 text-right text-zinc-200"
+            />
+          </label>
+        </>
+      )}
       {band.hasStripe && <span className="text-zinc-600">· cartão (Stripe)</span>}
       {isComped && <span className="text-zinc-600">· liberada {band.paidUntil ? `até ${shortDate(band.paidUntil)}` : 'sem prazo'}</span>}
 

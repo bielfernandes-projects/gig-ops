@@ -281,6 +281,9 @@ export default async function Landing() {
                 </div>
               )}
               <p className="mt-4 text-sm text-[var(--l-mute)]">Prefere pagar de uma vez? Plano anual: R$ 499,00 (cerca de R$ 41,60 por mês).</p>
+              <p className="mt-2 text-sm text-[var(--l-mute)]">
+                Toca como freelancer, sem banda para gerenciar? O plano <strong>Freela</strong> custa <strong>R$ 14,90</strong> por mês (ou R$ 149,00 por ano): suas gigs, projetos e cachês, sem equipe nem escala.
+              </p>
               <Link
                 href="/login?cadastro=1"
                 className="mt-8 inline-flex items-center rounded-md bg-[var(--l-fg)] px-6 py-3.5 text-base font-bold text-[var(--l-bg)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"

@@ -44,6 +44,7 @@ export default async function DashboardPage() {
       role={info.role}
       userId={info.userId ?? ''}
       tourSeen={Boolean(profile?.tour_seen_at)}
+      freela={info.kind === 'freela'}
       bandRoles={toBandRoles(info.bands)}
       allBands={info.allBands}
       gigs={allGigs}

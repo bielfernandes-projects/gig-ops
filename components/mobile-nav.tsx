@@ -8,6 +8,7 @@ import { Logo } from '@/components/logo';
 import { navItems, hideNav } from '@/components/navigation';
 import { signout } from '@/app/login/actions';
 import { SidebarExtras } from '@/components/sidebar-extras';
+import { useShowTeam } from '@/components/use-show-team';
 import { NotificationBell } from '@/components/notification-bell';
 import { BandFilter } from '@/components/band-switcher';
 
@@ -17,6 +18,7 @@ export const NAV_EVENT = 'gg:nav';
 export function MobileNav() {
   const pathname = usePathname();
   const hidden = hideNav(pathname);
+  const showTeam = useShowTeam();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export function MobileNav() {
           </button>
         </div>
         <nav className="flex-1 space-y-1 px-3">
-          {navItems.map((item) => {
+          {navItems.filter((item) => showTeam || item.href !== '/members').map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
             if (item.disabled) {

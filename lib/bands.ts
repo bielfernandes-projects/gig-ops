@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { BandKind } from '@/lib/plans';
 
 /** Band lifecycle helpers. They use the service role: membership rows are never written from the browser. */
 
@@ -53,6 +54,8 @@ type CreateBandOptions = {
   inviteCode?: string;
   /** Invite code of the band that referred them — see `grantReferralCredit`. */
   referralCode?: string;
+  /** 'banda' (default) or 'freela' — see lib/plans. */
+  kind?: BandKind;
 };
 
 export async function createBandFor(userId: string, name: string, opts: CreateBandOptions = {}): Promise<{ bandId: string } | { error: string }> {
@@ -80,7 +83,7 @@ export async function createBandFor(userId: string, name: string, opts: CreateBa
 
   const { data: band, error } = await admin
     .from('bands')
-    .insert({ name: clean(name) || 'Minha banda', referred_by: referrerId, ...(ownCode ? { invite_code: ownCode } : {}) })
+    .insert({ name: clean(name) || (opts.kind === 'freela' ? 'Meus freelas' : 'Minha banda'), kind: opts.kind ?? 'banda', referred_by: referrerId, ...(ownCode ? { invite_code: ownCode } : {}) })
     .select('id')
     .single();
   if (error || !band) return { error: 'Não foi possível criar a banda. Tente novamente.' };
@@ -94,7 +97,26 @@ export async function createBandFor(userId: string, name: string, opts: CreateBa
     return { error: 'Não foi possível criar a banda. Tente novamente.' };
   }
   if (referrerId) await grantReferralCredit(referrerId);
+  if (opts.kind === 'freela') await addSelfAsMember(band.id, userId);
   return { bandId: band.id };
+}
+
+/**
+ * A Freela account has no team page, so the owner's own roster row is created for them: every gig
+ * is scheduled with this row (they are always the one on the lineup). Returns its id.
+ */
+export async function addSelfAsMember(bandId: string, userId: string): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data: existing } = await admin.from('go_members').select('id').eq('band_id', bandId).eq('user_id', userId).maybeSingle();
+  if (existing) return existing.id as string;
+  const { data: user } = await admin.auth.admin.getUserById(userId);
+  const email = user.user?.email ?? null;
+  const { data } = await admin
+    .from('go_members')
+    .insert({ band_id: bandId, user_id: userId, name: await nameOf(userId, email), instrument: 'Músico', email, is_fixed: true, calendar_token: crypto.randomUUID().replace(/-/g, '').slice(0, 32) })
+    .select('id')
+    .single();
+  return (data?.id as string | undefined) ?? null;
 }
 
 /** Adds the person to the band that owns this invite code (as a member; an existing role is kept). */
@@ -106,8 +128,9 @@ export async function joinBandByCode(
   if (!code) return { error: 'Informe o código de convite.' };
 
   const admin = createAdminClient();
-  const { data: band } = await admin.from('bands').select('id, name').ilike('invite_code', codeFilter(code)).maybeSingle();
+  const { data: band } = await admin.from('bands').select('id, name, kind').ilike('invite_code', codeFilter(code)).maybeSingle();
   if (!band) return { error: `Nenhuma banda usa o código "${code}". Confirme com o responsável da banda. ${CODE_FORMAT_HINT}` };
+  if (band.kind === 'freela') return { error: 'Este código é de uma conta Freela, que não aceita músicos. Peça o código de uma conta Banda.' };
 
   const { error } = await admin
     .from('band_members')

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { logAction } from '@/lib/telemetry';
 import { requireBand, requireOwner, requireOwnerFor } from '@/lib/auth';
+import { setlistLimitError } from '@/lib/plan-limits';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
@@ -85,6 +86,8 @@ export async function createBandSetlist(name: string, bandId?: string | null) {
 
   const clean = name.trim().slice(0, 80);
   if (!clean) return { error: 'Informe o nome do repertório.' };
+  const limit = await setlistLimitError(ctx.supabase, ctx.bandId);
+  if (limit) return { error: limit };
 
   const { data: setlist, error } = await ctx.supabase
     .from('setlists')
@@ -109,6 +112,8 @@ export async function createPersonalSetlist(name: string, bandId?: string | null
 
   const clean = name.trim().slice(0, 80);
   if (!clean) return { error: 'Informe o nome do repertório.' };
+  const limit = await setlistLimitError(ctx.supabase, ctx.bandId);
+  if (limit) return { error: limit };
 
   const { data: setlist, error } = await ctx.supabase
     .from('setlists')
@@ -331,6 +336,8 @@ export async function duplicateSetlistForGig(gigId: string, setlistId: string) {
     .eq('id', setlistId)
     .maybeSingle()) as unknown as { data: SourceSetlist | null };
   if (!source || source.band_id !== ctx.bandId || source.scope !== 'band') return { error: 'Repertório não encontrado.' };
+  const limit = await setlistLimitError(ctx.supabase, ctx.bandId);
+  if (limit) return { error: limit };
 
   const { data: copy, error } = await ctx.supabase
     .from('setlists')

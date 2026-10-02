@@ -76,6 +76,8 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
   const bandId = gigData.band_id ?? null;
   const band = bandId ? info.bands[bandId] : undefined;
   const role = band?.role ?? 'viewer';
+  // Freela account: one person, so no team, lineup or expenses on screen. Their cachê is the only lineup row.
+  const freela = band?.kind === 'freela';
   const userMemberId = band?.memberId ?? null;
   const showBandId = bandId ?? myBandIds[0];
 
@@ -195,7 +197,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               </Link>
             )}
             {role === 'admin' && (
-              <EditGigModal gig={gigData} projects={projects} members={members} />
+              <EditGigModal gig={gigData} projects={projects} members={members} freela={freela} />
             )}
           </div>
         </div>
@@ -299,7 +301,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               <span className="text-xl md:text-2xl font-bold text-zinc-50">{brl(Number(gigData.gross_value))}</span>
             </div>
 
-            {role === 'admin' && (
+            {role === 'admin' && !freela && (
               <>
                 <div className="hidden md:block w-px h-12 bg-zinc-800" />
                 <div className="flex flex-col gap-1.5">
@@ -371,7 +373,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
         <PresenceControl lineupId={myLineup.id} status={(myLineup.confirmation ?? 'pending') as 'pending' | 'confirmed' | 'declined'} />
       )}
 
-      {role === 'admin' && (
+      {role === 'admin' && !freela && (
         <GigFinance
           gigId={id}
           gross={gigData.gross_value}
@@ -403,7 +405,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
       {/* Lineup Section */}
       <section>
-        {role === 'admin' && (
+        {role === 'admin' && !freela && (
           <div className="flex items-end justify-between mb-4 px-1">
             <h2 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
               Escala de Músicos
@@ -431,7 +433,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
           ))}
 
           {/* Add Musician Button — visible to admins only */}
-          {role === 'admin' && <AddLineupMember gigId={id} members={members} />}
+          {role === 'admin' && !freela && <AddLineupMember gigId={id} members={members} />}
         </div>
       </section>
 

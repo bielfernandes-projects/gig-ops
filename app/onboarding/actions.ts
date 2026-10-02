@@ -40,6 +40,7 @@ export async function createBand(formData: FormData) {
 
   const created = await createBandFor(user.id, String(formData.get('bandName') ?? ''), {
     inviteCode: String(formData.get('inviteCode') ?? ''),
+    kind: formData.get('kind') === 'freela' ? 'freela' : 'banda',
   });
   if ('error' in created) return { error: created.error };
 

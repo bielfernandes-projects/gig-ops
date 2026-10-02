@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { switchBand } from '@/app/profile/actions';
 import { ALL_BANDS } from '@/lib/band-view';
 
-export type BandOption = { bandId: string; name: string; role: 'owner' | 'member' };
+export type BandOption = { bandId: string; name: string; role: 'owner' | 'member'; kind?: 'banda' | 'freela' };
 
 /** Fired after anything that changes the person's bands (join, create, leave) so the filter reloads. */
 export const BANDS_CHANGED = 'gg:bands-changed';

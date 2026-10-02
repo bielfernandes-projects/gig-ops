@@ -102,7 +102,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const { info } = await requireMembership();
 
   // Band report = the bands the person owns within the current view (all of them in "Todas as bandas").
-  const ownedIds = ownedBands(info).map((b) => b.bandId);
+  // The band report is for Banda accounts; a Freela's money is the "Meus cachês" view.
+  const ownedIds = ownedBands(info).filter((b) => b.kind === 'banda').map((b) => b.bandId);
   const isOwner = ownedIds.length > 0;
   const tagOf = (bandId: string) => (info.allBands ? <BandTag name={info.bands[bandId]?.name} className="ml-2" /> : null);
   const mode: 'banda' | 'meus' = isOwner && view !== 'meus' ? 'banda' : 'meus';

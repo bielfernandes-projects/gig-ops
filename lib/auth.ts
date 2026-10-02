@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { subscriptionState, type SubscriptionRow, type SubscriptionState } from '@/lib/subscription';
 import { memberRowsFilter } from '@/lib/identity';
+import { FREELA_NO_TEAM, IMPORT_QUOTA, type BandKind } from '@/lib/plans';
 export { ALL_BANDS } from '@/lib/band-view';
 
 export const BAND_COOKIE = 'gg_band';
@@ -22,7 +23,7 @@ export const NO_BAND = '00000000-0000-0000-0000-000000000000';
 export type UserRole = 'admin' | 'viewer';
 
 /** A row of `band_members`, in the database's own spelling. */
-export type Membership = { bandId: string; name: string; role: 'owner' | 'member' };
+export type Membership = { bandId: string; name: string; role: 'owner' | 'member'; kind: BandKind };
 
 export type PricePlan = 'standard' | 'founder' | 'solo';
 
@@ -31,6 +32,10 @@ export type BandScope = {
   bandId: string;
   name: string;
   role: UserRole;
+  /** 'banda' (equipe, escala, despesas) or 'freela' (uma pessoa, sem equipe). See lib/plans. */
+  kind: BandKind;
+  /** Importações por IA permitidas por mês nesta conta. */
+  importQuota: number;
   /** go_members.id of this person in that band (the first, when there is more than one). */
   memberId: string | null;
   /**
@@ -66,6 +71,8 @@ export type UserInfo = {
   /** True for one of the first 50 bands, locked into the founder price forever. */
   isFounder: boolean;
   pricePlan: PricePlan;
+  /** Tipo da banda selecionada ('banda' na visão "todas"). */
+  kind: BandKind;
 };
 
 const EMPTY: UserInfo = {
@@ -83,10 +90,12 @@ const EMPTY: UserInfo = {
   modules: { gestao: true, repertorio: true },
   isFounder: false,
   pricePlan: 'standard',
+  kind: 'banda',
 };
 
-type MembershipRow = { band_id: string; role: 'owner' | 'member'; bands: { name: string } | { name: string }[] | null };
-type SubRow = SubscriptionRow & { band_id: string; module_gestao: boolean; module_repertorio: boolean; price_plan: PricePlan };
+type BandRef = { name: string; kind: BandKind };
+type MembershipRow = { band_id: string; role: 'owner' | 'member'; bands: BandRef | BandRef[] | null };
+type SubRow = SubscriptionRow & { band_id: string; module_gestao: boolean; module_repertorio: boolean; price_plan: PricePlan; import_quota: number | null };
 
 /**
  * Single unified auth call (memoised per request).
@@ -104,15 +113,14 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
 
   const { data: rows } = await supabase
     .from('band_members')
-    .select('band_id, role, bands(name)')
+    .select('band_id, role, bands(name, kind)')
     .eq('user_id', userId);
 
   const memberships: Membership[] = ((rows ?? []) as unknown as MembershipRow[])
-    .map((r) => ({
-      bandId: r.band_id,
-      role: r.role,
-      name: (Array.isArray(r.bands) ? r.bands[0]?.name : r.bands?.name) ?? 'Banda',
-    }))
+    .map((r) => {
+      const band = Array.isArray(r.bands) ? r.bands[0] : r.bands;
+      return { bandId: r.band_id, role: r.role, name: band?.name ?? 'Banda', kind: band?.kind ?? 'banda' };
+    })
     .sort((a, b) => Number(b.role === 'owner') - Number(a.role === 'owner') || a.name.localeCompare(b.name));
 
   if (memberships.length === 0) return { ...EMPTY, email, userId };
@@ -126,7 +134,7 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
     memberQuery as unknown as Promise<{ data: { id: string; band_id: string }[] | null }>,
     supabase
       .from('subscriptions')
-      .select('band_id, status, trial_ends_at, paid_until, module_gestao, module_repertorio, price_plan')
+      .select('band_id, status, trial_ends_at, paid_until, module_gestao, module_repertorio, price_plan, import_quota')
       .in('band_id', ids) as unknown as Promise<{ data: SubRow[] | null }>,
   ]);
 
@@ -138,6 +146,8 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
       bandId: m.bandId,
       name: m.name,
       role: m.role === 'owner' ? 'admin' : 'viewer',
+      kind: m.kind,
+      importQuota: sub?.import_quota ?? IMPORT_QUOTA,
       memberId: myRows[0] ?? null,
       memberIds: myRows,
       subscription: subscriptionState(sub),
@@ -164,6 +174,7 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
       modules: { gestao: all.some((b) => b.modules.gestao), repertorio: all.some((b) => b.modules.repertorio) },
       isFounder: false,
       pricePlan: 'standard',
+      kind: 'banda',
     };
   }
 
@@ -180,6 +191,7 @@ export const getUserInfo = cache(async (): Promise<UserInfo> => {
     modules: current.modules,
     isFounder: current.pricePlan === 'founder',
     pricePlan: current.pricePlan,
+    kind: current.kind,
   };
 });
 
@@ -205,8 +217,8 @@ export async function requireMembership(): Promise<{ info: UserInfo; bandIds: st
 }
 
 /** Bands (in the current view) where the person is an owner — the ones they can create records in. */
-export function ownedBands(info: UserInfo): { bandId: string; name: string }[] {
-  return info.bandIds.filter((id) => info.bands[id]?.role === 'admin').map((id) => ({ bandId: id, name: info.bands[id].name }));
+export function ownedBands(info: UserInfo): { bandId: string; name: string; kind: BandKind }[] {
+  return info.bandIds.filter((id) => info.bands[id]?.role === 'admin').map((id) => ({ bandId: id, name: info.bands[id].name, kind: info.bands[id].kind }));
 }
 
 export type BandModule = 'gestao' | 'repertorio';
@@ -247,6 +259,22 @@ export async function requireOwner(module?: BandModule, bandId?: string | null):
   if (!ctx.ok) return ctx;
   if (ctx.role !== 'admin') return { ok: false, error: 'Sem permissão.' };
   return { ok: true, supabase: ctx.supabase, bandId: ctx.bandId, userId: ctx.userId };
+}
+
+/** Same as requireOwner, but only for features a one-person Freela account does not have (team, lineup, expenses). */
+export async function requireTeam(module?: BandModule, bandId?: string | null): Promise<OwnerContext> {
+  const ctx = await requireOwner(module, bandId);
+  if (!ctx.ok) return ctx;
+  const info = await getUserInfo();
+  if (info.bands[ctx.bandId]?.kind === 'freela') return { ok: false, error: FREELA_NO_TEAM };
+  return ctx;
+}
+
+/** requireTeam scoped to the band an existing record belongs to. */
+export async function requireTeamFor(table: BandTable, id: string, module?: BandModule): Promise<OwnerContext> {
+  const bandId = await bandOf(table, id);
+  if (!bandId) return { ok: false, error: 'Registro não encontrado.' };
+  return requireTeam(module, bandId);
 }
 
 type BandTable = 'go_gigs' | 'go_members' | 'go_projects' | 'songs' | 'setlists' | 'gig_expenses' | 'gig_payments';

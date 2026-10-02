@@ -10,7 +10,8 @@ import { toast } from 'sonner';
 import { updatePassword, setDisplayName, renameBand } from '@/app/profile/actions';
 import { savePushSubscription, removePushSubscription } from '@/app/actions/push-actions';
 import { signout } from '@/app/login/actions';
-import { BandSections, type BandMemberView, type BillingView } from '@/components/band-sections';
+import { BandSections, type BandMemberView, type BillingView, type NewAccountQuotes } from '@/components/band-sections';
+import type { BandKind } from '@/lib/plans';
 import type { BandOption } from '@/components/band-switcher';
 import type { SubscriptionState } from '@/lib/subscription';
 
@@ -39,12 +40,14 @@ type Props = {
   members: BandMemberView[];
   subscription: SubscriptionState | null;
   pricePlan: 'standard' | 'founder' | 'solo';
+  kind: BandKind;
+  newAccountQuotes: NewAccountQuotes | null;
   billing: BillingView | null;
   founderWhatsappUrl: string | null;
   appVersion: string;
 };
 
-export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, billing, founderWhatsappUrl, appVersion }: Props) {
+export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, billing, founderWhatsappUrl, appVersion }: Props) {
   // The browser's permission is the starting point; `override` is what this screen's own
   // buttons set while subscribing/unsubscribing.
   const permission = useSyncExternalStore(subscribePermission, readPermission, serverPermission);
@@ -75,9 +78,9 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
             <EditableLine label="E-mail" value={email ?? null} placeholder="" maxLength={0} editable={false} onSave={async () => {}} />
             {bandName && (
               <EditableLine
-                label="Banda"
+                label={kind === 'freela' ? 'Conta' : 'Banda'}
                 value={bandName}
-                placeholder="Nome da banda"
+                placeholder={kind === 'freela' ? 'Nome da conta' : 'Nome da banda'}
                 maxLength={60}
                 editable={role === 'admin'}
                 onSave={async (v) => {
@@ -97,7 +100,7 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
               : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
           }`}>
             {role === 'admin' ? (
-              <><ShieldCheck className="w-3.5 h-3.5" /> Dono da banda</>
+              <><ShieldCheck className="w-3.5 h-3.5" /> {kind === 'freela' ? 'Conta Freela' : 'Dono da banda'}</>
             ) : (
               <><ShieldAlert className="w-3.5 h-3.5" /> Músico da banda</>
             )}
@@ -247,6 +250,8 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
         members={members}
         subscription={subscription}
         pricePlan={pricePlan}
+        kind={kind}
+        newAccountQuotes={newAccountQuotes}
         billing={billing}
         founderWhatsappUrl={founderWhatsappUrl}
       />

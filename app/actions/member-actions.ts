@@ -1,11 +1,11 @@
 'use server';
 
-import { requireOwner, requireOwnerFor } from '@/lib/auth';
+import { requireTeam, requireTeamFor } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { logAction } from '@/lib/telemetry';
 
 export async function addMember(formData: FormData) {
-  const ctx = await requireOwner(undefined, formData.get('band_id') as string | null);
+  const ctx = await requireTeam(undefined, formData.get('band_id') as string | null);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -47,7 +47,7 @@ export async function addMember(formData: FormData) {
 }
 
 export async function updateMember(formData: FormData) {
-  const ctx = await requireOwnerFor('go_members', formData.get('id') as string);
+  const ctx = await requireTeamFor('go_members', formData.get('id') as string);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -86,7 +86,7 @@ export async function updateMember(formData: FormData) {
 }
 
 export async function toggleMemberFixed(memberId: string, isFixed: boolean) {
-  const ctx = await requireOwnerFor('go_members', memberId);
+  const ctx = await requireTeamFor('go_members', memberId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 
@@ -107,7 +107,7 @@ export async function toggleMemberFixed(memberId: string, isFixed: boolean) {
 }
 
 export async function deleteMember(memberId: string) {
-  const ctx = await requireOwnerFor('go_members', memberId);
+  const ctx = await requireTeamFor('go_members', memberId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, bandId } = ctx;
 

@@ -49,10 +49,11 @@ export async function signup(formData: FormData) {
   if (!inviteCode) return { error: 'Informe o código de convite da banda.' };
 
   // Validate the invite code before creating the account
-  const { data: band } = await createAdminClient().from('bands').select('id').ilike('invite_code', codeFilter(inviteCode)).maybeSingle();
+  const { data: band } = await createAdminClient().from('bands').select('id, kind').ilike('invite_code', codeFilter(inviteCode)).maybeSingle();
   if (!band) {
     return { error: `Nenhuma banda usa o código "${inviteCode}". Confirme com o responsável da banda. ${CODE_FORMAT_HINT}` };
   }
+  if (band.kind === 'freela') return { error: 'Este código é de uma conta Freela, que não aceita músicos. Peça o código de uma conta Banda.' };
 
   const origin = (formData.get('origin') as string) || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
@@ -98,6 +99,7 @@ export async function adminSignup(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
   const bandName = ((formData.get('bandName') as string) || '').trim();
+  const kind = formData.get('kind') === 'freela' ? 'freela' : 'banda';
   const origin = (formData.get('origin') as string) || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
   const { data, error } = await supabase.auth.signUp({
@@ -111,7 +113,7 @@ export async function adminSignup(formData: FormData) {
   if (error) return { error: error.message };
   if (!data.user) return { error: 'Erro ao criar usuário.' };
 
-  const created = await createBandFor(data.user.id, bandName);
+  const created = await createBandFor(data.user.id, bandName, { kind });
   if ('error' in created) {
     // The auth user already exists; onboarding lets them finish creating the band on first login.
     return { error: 'Conta criada, mas houve um erro ao criar a banda. Entre e crie a banda pelo Perfil.' };

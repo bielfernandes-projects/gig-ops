@@ -4,6 +4,7 @@ import { CatalogClient, type CatalogSong } from '@/components/catalog-client';
 import { PersonalSetlists } from '@/components/personal-setlists';
 import { BandSetlists } from '@/components/band-setlists';
 import { PageHeader } from '@/components/page-header';
+import { importsUsed } from '@/lib/import-quota';
 
 export const revalidate = 0;
 
@@ -24,7 +25,8 @@ export default async function RepertorioPage() {
   }
 
   const supabase = await createClient();
-  const [songsResult, bandListsResult, personalResult] = await Promise.all([
+  const [used, songsResult, bandListsResult, personalResult] = await Promise.all([
+    importsUsed(repBandIds),
     supabase
       .from('songs')
       .select('id, title, artist, original_key, start_key, notes, bpm, source_url, lyrics_url, chart_text, pdf_path, created_by, scope, band_id')
@@ -79,7 +81,7 @@ export default async function RepertorioPage() {
                 </h2>
                 <span className="text-xs text-zinc-500">{bandSongs.length} {bandSongs.length === 1 ? 'música' : 'músicas'}</span>
               </div>
-              <CatalogClient songs={bandSongs} userId={info.userId!} isOwner={info.bands[bandId]?.role === 'admin'} bandId={bandId} />
+              <CatalogClient songs={bandSongs} userId={info.userId!} isOwner={info.bands[bandId]?.role === 'admin'} bandId={bandId} usage={{ used: used[bandId] ?? 0, limit: info.bands[bandId]?.importQuota ?? 0 }} />
             </div>
           );
         })}

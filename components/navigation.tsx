@@ -7,6 +7,7 @@ import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3,
 import { signout } from '@/app/login/actions';
 import { BandFilter } from '@/components/band-switcher';
 import { SidebarExtras } from '@/components/sidebar-extras';
+import { useShowTeam } from '@/components/use-show-team';
 
 type NavItem = { name: string; href: string; icon: LucideIcon; disabled?: boolean };
 
@@ -28,6 +29,7 @@ export const hideNav = (pathname: string) => HIDE_NAV_PATHS.includes(pathname) |
 /** Desktop sidebar. The phone layout lives in MobileNav. */
 export function Navigation() {
   const pathname = usePathname();
+  const showTeam = useShowTeam();
 
   if (hideNav(pathname)) return null;
 
@@ -39,7 +41,7 @@ export function Navigation() {
       </div>
       <div className="px-4"><BandFilter /></div>
       <nav className="flex-1 px-4 space-y-2 mt-3">
-        {navItems.map((item) => {
+        {navItems.filter((item) => showTeam || item.href !== '/members').map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           if (item.disabled) {
