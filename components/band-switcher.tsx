@@ -48,7 +48,10 @@ export function BandFilter({ compact = false }: { compact?: boolean }) {
         startTransition(async () => {
           const res = await switchBand(bandId);
           if (res?.error) toast.error(res.error);
-          else router.refresh();
+          else {
+            window.dispatchEvent(new Event(BANDS_CHANGED)); // the menu (e.g. "Músicos") depends on the accounts in view
+            router.refresh();
+          }
         });
       }}
       className={`rounded-lg border border-zinc-700 bg-zinc-950 font-semibold text-zinc-100 focus:border-zinc-500 focus:outline-none ${

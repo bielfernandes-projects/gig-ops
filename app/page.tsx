@@ -89,16 +89,17 @@ const importSteps = [
   },
 ];
 
-const dashboardDesktop: Shot = { src: '/screenshots/dashboard-desktop.jpg', alt: 'Dashboard do Gigueiros no computador, com próxima gig e gráficos financeiros', width: 1568, height: 652 };
-const dashboardTablet: Shot = { src: '/screenshots/dashboard-tablet.png', alt: 'Dashboard do Gigueiros aberto em um tablet', width: 1004, height: 771 };
-const dashboardMobile: Shot = { src: '/screenshots/dashboard-mobile.png', alt: 'Dashboard do Gigueiros aberto no celular, com navegação inferior de app', width: 478, height: 771 };
+const dashboardDesktop: Shot = { src: '/screenshots/dashboard-desktop.jpg', alt: 'Dashboard do Gigueiros no computador, com a próxima gig, gigs pendentes e os cachês a receber e a pagar', width: 1568, height: 652 };
+const dashboardTablet: Shot = { src: '/screenshots/dashboard-tablet.png', alt: 'Dashboard do Gigueiros aberto em um tablet', width: 1004, height: 640 };
+const dashboardMobile: Shot = { src: '/screenshots/dashboard-mobile.png', alt: 'Dashboard do Gigueiros aberto no celular, com o menu no topo', width: 390, height: 640 };
 
 const slides: Slide[] = [
-  { src: '/screenshots/agenda.jpg', alt: 'Agenda de gigs do Gigueiros, com o calendário do mês e várias gigs marcadas', width: 1536, height: 639, caption: 'Agenda', blurb: 'O mês inteiro de gigs, em calendário ou em lista, com o seu cachê em cada uma.' },
-  { src: '/screenshots/financeiro.jpg', alt: 'Tela de uma gig no Gigueiros mostrando cachê bruto, custos e lucro líquido', width: 1536, height: 639, caption: 'Financeiro de cada gig', blurb: 'Cachê, custos e lucro da gig, e quem já recebeu.' },
-  { src: '/screenshots/repertorio.jpg', alt: 'Catálogo de músicas do repertório no Gigueiros', width: 1536, height: 639, caption: 'Repertório', blurb: 'Catálogo com tom, cifra e letra, e repertórios prontos para qualquer gig.' },
-  { src: '/screenshots/relatorio.jpg', alt: 'Relatório financeiro mensal do Gigueiros, com faturamento, custos e lucro', width: 1536, height: 639, caption: 'Relatório', blurb: 'Faturamento, custos e lucro por mês. No Freela, quanto cada banda te pagou.' },
-  { src: '/screenshots/musicos.jpg', alt: 'Lista de músicos do banco de talentos no Gigueiros', width: 1536, height: 639, caption: 'Músicos', blurb: 'A equipe da banda com instrumento e contato, para escalar em dois toques.' },
+  { src: '/screenshots/agenda.jpg', alt: 'Agenda de gigs do Gigueiros, com o calendário de outubro e as gigs marcadas por projeto', width: 1568, height: 652, caption: 'Agenda', blurb: 'O mês inteiro de gigs, em calendário ou em lista, com o seu cachê em cada uma.' },
+  { src: '/screenshots/financeiro.jpg', alt: 'Tela de uma gig no Gigueiros com cachê bruto, escala, custo do som, despesas e o recebimento do contratante', width: 1568, height: 652, caption: 'Financeiro de cada gig', blurb: 'Cachê, custos e lucro da gig, e quanto o contratante já pagou.' },
+  { src: '/screenshots/repertorio.jpg', alt: 'Catálogo de músicas do Gigueiros, com tom, tom que começa e os repertórios da banda', width: 1568, height: 652, caption: 'Repertório', blurb: 'Catálogo com tom, cifra e letra, e repertórios prontos para qualquer gig.' },
+  { src: '/screenshots/relatorio.jpg', alt: 'Relatório mensal da banda no Gigueiros, com faturamento, custos, lucro previsto e o que falta receber', width: 1568, height: 652, caption: 'Relatório da banda', blurb: 'Faturamento, custos e lucro mês a mês, para o dono da banda.' },
+  { src: '/screenshots/freela.jpg', alt: 'Tela Meus cachês da conta Freela, com cachê recebido e a receber e o total por projeto', width: 1568, height: 652, caption: 'Meus cachês (Freela)', blurb: 'Para quem toca em várias bandas: quanto cada uma já pagou e quanto ainda deve.' },
+  { src: '/screenshots/musicos.jpg', alt: 'Lista de músicos da banda no Gigueiros, com instrumento e músicos fixos', width: 1568, height: 652, caption: 'Músicos', blurb: 'A equipe da banda com instrumento e contato, para escalar em dois toques.' },
 ];
 
 const bandaFeatures = [
