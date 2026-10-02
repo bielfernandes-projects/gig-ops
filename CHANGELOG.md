@@ -2,6 +2,28 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.6.0] - 2026-10-02
+
+### Adicionado
+- **Conta Freela**, para quem toca em várias bandas: sem equipe, escala, despesas nem divisão de lucro; com agenda, projetos (um por banda que chama), Relatório "Meus cachês", Google Agenda e até 150 músicas em 3 repertórios. O tipo da conta (Banda ou Freela) é escolhido no cadastro e no onboarding. Banda continua sendo o padrão das contas existentes.
+- **Criar outra conta** no Perfil, como adesão: a conta mais cara que a pessoa paga fica com o preço cheio e as demais custam menos (Banda extra R$ 29,90 e Freela extra R$ 9,90 por mês), sem teste grátis. O webhook do Stripe reajusta o preço das outras contas quando a principal muda.
+- **Cota de importação por IA**: 20 por conta por mês, somando gigs e repertório; só leitura bem-sucedida conta e a tela mostra quantas foram usadas. Ajustável por conta no `/admin`.
+- Barra de progresso na leitura da importação de gigs e de repertório.
+- Botão "Mais opções" na barra lateral (instalar o app, Instagram e tema). A barra de cima do celular ficou só com o sino e o Sair.
+- Painel `/admin`: virar uma conta Freela ou Banda e ajustar a cota; o MRR passou a usar o plano de cada assinatura.
+- Landing: posicionamento para músicos, seção "para quem é", plano Freela e adesão na seção de preço, carrossel de telas com bolinhas e prints novos. FAQ e tour (Freela) atualizados.
+
+### Alterado
+- O Dashboard trocou os gráficos pelos cards Próximos cachês, A receber e A pagar à equipe; os gráficos ficam no Relatório.
+- Plano Banda: Fundador continua só na Banda principal de cada pessoa, mensal, enquanto durarem as 50 vagas.
+
+### Removido
+- O grupo de WhatsApp dos Fundadores (card no Perfil e texto na landing). O preço de Fundador continua.
+
+### Migrations
+- `20261002000000_tipos_de_plano.sql` (`bands.kind`, `subscriptions.import_quota`, `import_usage`, `bump_import_usage`) e `20261002000100_price_tier.sql` (`subscriptions.price_tier`). Aplicar em produção antes de subir o código.
+- Novas envs de preço do Stripe (`STRIPE_PRICE_FREELA`, `_FREELA_ANNUAL`, `_ADESAO_BANDA`, `_ADESAO_BANDA_ANNUAL`, `_ADESAO_FREELA`, `_ADESAO_FREELA_ANNUAL`), já em Preview e Production.
+
 ## [1.5.0] - 2026-10-01
 
 ### Corrigido
