@@ -25,7 +25,8 @@ export type ActionName =
   | 'gigs_lidas'
   | 'gigs_importadas'
   | 'banda_criada'
-  | 'entrou_na_banda';
+  | 'entrou_na_banda'
+  | 'conta_promovida';
 
 type LogInput = {
   kind: EventKind;

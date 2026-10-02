@@ -12,6 +12,7 @@ import {
   leaveBand,
   joinAnotherBand,
   createAnotherBand,
+  upgradeToBanda,
   switchBand,
   setProfitShare,
   cancelSubscription,
@@ -29,6 +30,9 @@ import { brl } from '@/lib/finance';
 /** What a new account of each type would cost this person (principal or adesão), for the creation form. */
 export type NewAccountQuotes = Record<BandKind, { tier: PriceTier; founder: boolean; monthly: number; annual: number }>;
 
+/** What this Freela account would cost as a Banda. */
+export type UpgradeQuote = { tier: PriceTier; founder: boolean; monthly: number; annual: number };
+
 export type BandMemberView = { userId: string; email: string; label: string; role: 'owner' | 'member'; isSelf: boolean; share: number | null };
 
 /** Owner-only billing data for the subscription card. */
@@ -45,6 +49,7 @@ type Props = {
   pricePlan: 'standard' | 'founder' | 'solo';
   kind: BandKind;
   newAccountQuotes: NewAccountQuotes | null;
+  upgradeQuote: UpgradeQuote | null;
   billing: BillingView | null;
 };
 
@@ -72,7 +77,7 @@ function subscriptionDateLine(s: Props['subscription']) {
   return null;
 }
 
-export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, billing }: Props) {
+export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, upgradeQuote, billing }: Props) {
   const router = useRouter();
   const [paying, setPaying] = useState(false);
   const [editingInvite, setEditingInvite] = useState(false);
@@ -293,6 +298,32 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
                   Cancelar assinatura
                 </button>
               )}
+            </div>
+          )}
+
+          {isFreela && upgradeQuote && (
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 flex flex-col gap-2">
+              <p className="text-sm font-semibold text-zinc-100">Montou uma banda? Suba para o plano Banda.</p>
+              <p className="text-xs text-zinc-500">
+                A conta continua a mesma, com as suas gigs, projetos e repertório, e ganha equipe, escala, despesas, som e divisão de lucro. Não tem volta: uma conta Banda guarda dados de equipe que a Freela não comporta.
+              </p>
+              <p className="text-xs text-zinc-400">
+                Plano Banda{upgradeQuote.tier === 'adesao' ? ' (adesão)' : ''}: <strong className="text-zinc-200">{brl(upgradeQuote.monthly)}/mês</strong> ou <strong className="text-zinc-200">{brl(upgradeQuote.annual)}/ano</strong>
+                {upgradeQuote.founder ? ', preço de Fundador' : ''}. Quem já paga no cartão tem a diferença cobrada na próxima fatura; quem está no teste continua nele.
+              </p>
+              <button
+                type="button"
+                disabled={paying}
+                onClick={() => {
+                  if (confirm('Subir esta conta para o plano Banda? Não dá para voltar para Freela.')) {
+                    setPaying(true);
+                    run(() => upgradeToBanda(), 'Agora é uma conta Banda.').finally(() => setPaying(false));
+                  }
+                }}
+                className={`${primaryBtn} self-start disabled:opacity-60`}
+              >
+                Subir para Banda
+              </button>
             </div>
           )}
 
