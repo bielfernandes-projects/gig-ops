@@ -1,8 +1,7 @@
 import { getUserInfo } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { monthlyPlan, PRICES } from '@/lib/pricing';
-import { countFounders } from '@/lib/founders';
+import { quoteFor } from '@/lib/billing';
 import ProfileClient from '@/components/profile-client';
 import { APP_VERSION } from '@/lib/version';
 import type { BandMemberView, BillingView } from '@/components/band-sections';
@@ -17,10 +16,14 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   let inviteCode: string | null = null;
   let members: BandMemberView[] = [];
   let billing: BillingView | null = null;
+  // What a new account would cost this person, per type (shown in the "create another account" form).
+  const [bandaQuote, freelaQuote] = info.userId
+    ? await Promise.all([quoteFor(info.userId, null, 'banda'), quoteFor(info.userId, null, 'freela')])
+    : [null, null];
 
   if (info.bandId) {
     const isOwner = info.role === 'admin';
-    const [bandResult, membersResult, stripeRow, founders] = await Promise.all([
+    const [bandResult, membersResult, stripeRow, quote] = await Promise.all([
       supabase.from('bands').select('invite_code').eq('id', info.bandId).maybeSingle(),
       isOwner
         ? supabase.from('band_members').select('user_id, role, profit_share').eq('band_id', info.bandId)
@@ -28,13 +31,16 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       isOwner
         ? (createAdminClient().from('subscriptions').select('stripe_customer_id').eq('band_id', info.bandId).maybeSingle() as unknown as Promise<{ data: { stripe_customer_id: string | null } | null }>)
         : Promise.resolve({ data: null }),
-      isOwner ? countFounders() : Promise.resolve(0),
+      isOwner ? quoteFor(info.userId!, info.bandId, info.kind, info.isFounder) : Promise.resolve(null),
     ]);
 
     inviteCode = bandResult.data?.invite_code ?? null;
     if (isOwner) {
       billing = {
-        monthlyPrice: PRICES[monthlyPlan(info.isFounder, founders)],
+        monthlyPrice: quote!.monthly,
+        annualPrice: quote!.annual,
+        tier: quote!.tier,
+        founder: quote!.founder,
         hasStripe: Boolean(stripeRow.data?.stripe_customer_id),
         justPaid: (await searchParams).assinatura === 'ok',
       };
@@ -74,9 +80,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       members={members}
       subscription={info.subscription}
       pricePlan={info.pricePlan}
+      kind={info.kind}
+      newAccountQuotes={bandaQuote && freelaQuote ? { banda: bandaQuote, freela: freelaQuote } : null}
       billing={billing}
       appVersion={APP_VERSION}
-      founderWhatsappUrl={info.isFounder ? process.env.FOUNDER_WHATSAPP_URL || null : null}
     />
   );
 }

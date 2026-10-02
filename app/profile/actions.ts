@@ -4,12 +4,14 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { ALL_BANDS, BAND_COOKIE, getUserInfo, requireOwner } from '@/lib/auth';
+import { ALL_BANDS, BAND_COOKIE, getUserInfo, requireOwner, requireTeam } from '@/lib/auth';
 import { createBandFor, joinBandByCode, nameOf, validateInviteCode } from '@/lib/bands';
 import { sendPushToBandOwners } from '@/lib/push';
-import { monthlyPlan, type BillingPeriod } from '@/lib/pricing';
+import { FOUNDER_LIMIT, type BillingPeriod } from '@/lib/pricing';
 import { countFounders } from '@/lib/founders';
 import { priceIdFor, stripe } from '@/lib/stripe';
+import { ownedAccounts, tierFor } from '@/lib/billing';
+import type { BandKind } from '@/lib/plans';
 
 const revalidateAll = () => revalidatePath('/', 'layout');
 
@@ -42,17 +44,29 @@ export async function switchBand(bandId: string) {
   return { success: true };
 }
 
-/** Creates an additional band for the current user (they become its owner). */
-export async function createAnotherBand(formData: FormData) {
+/**
+ * Creates an additional account (Banda or Freela) for the current user. Someone who already owns an
+ * account is paying for it, so the new one is an "adesão": no free trial, locked (read-only) until
+ * the checkout the caller starts next (`startCheckout(period, bandId)`) is paid.
+ */
+export async function createAnotherBand(formData: FormData): Promise<{ error?: string; success?: boolean; bandId?: string; needsPayment?: boolean }> {
   const info = await getUserInfo();
   if (!info.userId) return { error: 'Não autenticado.' };
 
-  const created = await createBandFor(info.userId, String(formData.get('bandName') ?? ''));
+  const kind: BandKind = formData.get('kind') === 'freela' ? 'freela' : 'banda';
+  const ownsOne = (await ownedAccounts(info.userId)).length > 0;
+
+  const created = await createBandFor(info.userId, String(formData.get('bandName') ?? ''), { kind });
   if ('error' in created) return { error: created.error };
+
+  if (ownsOne) {
+    const { error } = await createAdminClient().from('subscriptions').update({ status: 'expired', trial_ends_at: new Date().toISOString() }).eq('band_id', created.bandId);
+    if (error) return { error: 'A conta foi criada, mas não foi possível preparar o pagamento. Abra o Perfil e tente assinar.' };
+  }
 
   await rememberBand(created.bandId);
   revalidateAll();
-  return { success: true };
+  return { success: true, bandId: created.bandId, needsPayment: ownsOne };
 }
 
 /** Joins another band with its invite code (the user keeps the bands they already belong to). */
@@ -89,7 +103,7 @@ export async function renameBand(formData: FormData) {
 }
 
 export async function saveInviteCode(formData: FormData) {
-  const ctx = await requireOwner();
+  const ctx = await requireTeam();
   if (!ctx.ok) return { error: ctx.error };
 
   // Same rule as picking a code when the band is created (format + nobody else using it).
@@ -108,7 +122,7 @@ export async function saveInviteCode(formData: FormData) {
 
 /** Owners can promote a member to owner (same rights) or demote another owner, keeping at least one owner. */
 export async function setMemberRole(userId: string, role: 'owner' | 'member') {
-  const ctx = await requireOwner();
+  const ctx = await requireTeam();
   if (!ctx.ok) return { error: ctx.error };
 
   const admin = createAdminClient();
@@ -125,7 +139,7 @@ export async function setMemberRole(userId: string, role: 'owner' | 'member') {
 
 /** Percentage of the band's profit an owner receives in the report (null = split equally with the others). */
 export async function setProfitShare(userId: string, percent: number | null) {
-  const ctx = await requireOwner();
+  const ctx = await requireTeam();
   if (!ctx.ok) return { error: ctx.error };
   if (percent !== null && (!Number.isFinite(percent) || percent < 0 || percent > 100)) return { error: 'Informe um percentual entre 0 e 100.' };
 
@@ -145,7 +159,7 @@ export async function setProfitShare(userId: string, percent: number | null) {
 
 /** Owner removes someone from the band (their account is untouched; the band data stays). */
 export async function removeMember(userId: string) {
-  const ctx = await requireOwner();
+  const ctx = await requireTeam();
   if (!ctx.ok) return { error: ctx.error };
   if (userId === ctx.userId) return { error: 'Use "Sair da banda" para sair.' };
 
@@ -210,20 +224,20 @@ export async function updatePassword(formData: FormData) {
  * lapsed trial). Writes go through the service role: `subscriptions` revokes direct writes from
  * the session client (see supabase/migrations/20260922000000_fase0_bands.sql).
  */
-/** Owner of the selected band. Unlike requireOwner it also lets an expired band through: that is exactly who needs to pay. */
-async function billingOwner() {
+/** Owner of the given band (default: the selected one). Unlike requireOwner it also lets an expired band through: that is exactly who needs to pay. */
+async function billingOwner(bandId?: string | null) {
   const info = await getUserInfo();
-  const band = info.bandId ? info.bands[info.bandId] : null;
+  const band = bandId ? info.bands[bandId] : info.bandId ? info.bands[info.bandId] : null;
   if (!info.userId || !band || band.role !== 'admin') return null;
   return { info, band };
 }
 
 type BillingRow = { stripe_customer_id: string | null; status: string; trial_ends_at: string | null };
 
-/** Starts a Stripe Checkout for the selected band. The founder price is decided here, on the server. */
-export async function startCheckout(period: BillingPeriod): Promise<{ error?: string; url?: string }> {
+/** Starts a Stripe Checkout for a band (default: the selected one). Plan, adesão and founder price are decided here, on the server. */
+export async function startCheckout(period: BillingPeriod, bandId?: string | null): Promise<{ error?: string; url?: string }> {
   if (period !== 'monthly' && period !== 'annual') return { error: 'Plano inválido.' };
-  const owner = await billingOwner();
+  const owner = await billingOwner(bandId);
   if (!owner) return { error: 'Só o dono da banda pode assinar.' };
   const { info, band } = owner;
 
@@ -239,7 +253,10 @@ export async function startCheckout(period: BillingPeriod): Promise<{ error?: st
   const trialEnd = sub?.status === 'trial' && sub.trial_ends_at ? Math.floor(new Date(sub.trial_ends_at).getTime() / 1000) : 0;
   const keepTrial = trialEnd > Date.now() / 1000 + 2 * 86400 + 3600;
 
-  const plan = period === 'monthly' ? monthlyPlan(band.pricePlan === 'founder', founders) : 'standard';
+  const { tier, founder: mayBeFounder } = await tierFor(info.userId!, band.bandId, band.kind);
+  // Founder price: only on a person's principal Banda, monthly, while slots remain (or if it already is one).
+  const founder = period === 'monthly' && mayBeFounder && (band.pricePlan === 'founder' || founders < FOUNDER_LIMIT);
+  const plan = founder ? 'founder' : 'standard';
   try {
     let customer = sub?.stripe_customer_id;
     if (!customer) {
@@ -251,8 +268,8 @@ export async function startCheckout(period: BillingPeriod): Promise<{ error?: st
     const session = await stripe().checkout.sessions.create({
       mode: 'subscription',
       customer,
-      line_items: [{ price: priceIdFor(period, plan), quantity: 1 }],
-      subscription_data: { metadata: { band_id: band.bandId, plan }, ...(keepTrial ? { trial_end: trialEnd } : {}) },
+      line_items: [{ price: priceIdFor(band.kind, tier, period, founder), quantity: 1 }],
+      subscription_data: { metadata: { band_id: band.bandId, owner_id: info.userId!, plan, tier, kind: band.kind }, ...(keepTrial ? { trial_end: trialEnd } : {}) },
       allow_promotion_codes: true,
       locale: 'pt-BR',
       success_url: `${site}/profile?assinatura=ok`,

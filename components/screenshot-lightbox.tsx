@@ -103,32 +103,3 @@ function DeviceChrome({ device, children }: { device: Device; children: React.Re
     </div>
   );
 }
-
-/**
- * Continuously scrolling carousel (CSS marquee, no step-then-pause jumps). Hovering (desktop) or
- * touching-and-holding (mobile) pauses the motion; a plain click/tap still opens the lightbox.
- */
-export function FeatureCarousel({ shots }: { shots: (Shot & { caption: string })[] }) {
-  const [paused, setPaused] = useState(false);
-  const track = [...shots, ...shots];
-  const durationSeconds = shots.length * 6;
-
-  const pause = () => setPaused(true);
-  const resume = () => setPaused(false);
-
-  return (
-    <div className="overflow-hidden border-2 border-[var(--l-fg)]" onMouseEnter={pause} onMouseLeave={resume} onTouchStart={pause} onTouchEnd={resume}>
-      <div
-        className="gg-marquee-track flex w-max"
-        style={{ animationDuration: `${durationSeconds}s`, animationPlayState: paused ? 'paused' : 'running' }}
-      >
-        {track.map((s, i) => (
-          <div key={`${s.src}-${i}`} className="w-[min(85vw,42rem)] shrink-0 px-2">
-            <ClickableShot shot={s} bare sizes="(min-width: 640px) 42rem, 85vw" />
-            <p className="mt-3 text-center text-sm font-bold sm:text-base">{s.caption}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { logAction } from '@/lib/telemetry';
 import { requireBand, requireBandFor, type BandContext } from '@/lib/auth';
+import { songLimitError } from '@/lib/plan-limits';
 
 const PDF_BUCKET = 'song-pdfs';
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
@@ -55,6 +56,8 @@ export async function addSong(formData: FormData) {
   const song = readSong(formData);
   const problem = invalid(song);
   if (problem) return { error: problem };
+  const limit = await songLimitError(ctx.supabase, ctx.bandId);
+  if (limit) return { error: limit };
 
   // "Só eu vejo": a personal song, visible only to its creator (used in personal setlists)
   const personal = formData.get('scope') === 'personal';

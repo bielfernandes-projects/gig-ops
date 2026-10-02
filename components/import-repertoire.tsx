@@ -4,9 +4,11 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { FileUp, Loader2, Trash2, TriangleAlert, X } from 'lucide-react';
+import { ReadProgress } from '@/components/read-progress';
 import { saveImportedRepertoire } from '@/app/actions/import-actions';
 import { MUSICAL_KEYS } from '@/lib/keys';
 import { missingFields, titleKey, type ImportResult } from '@/lib/import-model';
+import type { ImportUsage } from '@/lib/import-quota';
 
 type CatalogRef = { id: string; title: string };
 
@@ -44,7 +46,7 @@ function toBlocks(result: ImportResult, catalog: CatalogRef[]): Blk[] {
 /** Rows that still miss a required field. A song reusing the catalog's own row has nothing pending. */
 const pendingOf = (r: Row) => (r.useExisting ? [] : missingFields({ title: r.title, artist: r.artist || null, key: r.key || null, lyricHint: null, note: null }));
 
-export function ImportRepertoire({ bandId, songs }: { bandId: string; songs: CatalogRef[] }) {
+export function ImportRepertoire({ bandId, songs, usage }: { bandId: string; songs: CatalogRef[]; usage: ImportUsage | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<'pick' | 'reading' | 'review' | 'saving'>('pick');
@@ -52,6 +54,8 @@ export function ImportRepertoire({ bandId, songs }: { bandId: string; songs: Cat
   const [fileName, setFileName] = useState('');
   const [setlistName, setSetlistName] = useState('');
   const [blocks, setBlocks] = useState<Blk[]>([]);
+  const [fresh, setFresh] = useState<ImportUsage | null>(null);
+  const quota = fresh ?? usage;
   const [onlyPending, setOnlyPending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -94,7 +98,8 @@ export function ImportRepertoire({ bandId, songs }: { bandId: string; songs: Cat
     fd.set('band_id', bandId);
     try {
       const res = await fetch('/api/repertorio/importar', { method: 'POST', body: fd });
-      const data = (await res.json().catch(() => ({}))) as ImportResult & { error?: string };
+      const data = (await res.json().catch(() => ({}))) as ImportResult & { error?: string; usage?: ImportUsage };
+      if (data.usage) setFresh(data.usage);
       if (!res.ok) {
         setError(data.error ?? 'Não foi possível ler o documento.');
         return setStep('pick');
@@ -178,22 +183,23 @@ export function ImportRepertoire({ bandId, songs }: { bandId: string; songs: Cat
                     className={`${inputCls} file:mr-3 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1 file:text-zinc-200`}
                   />
                 </label>
+                {quota && (
+                  <p className={`text-xs ${quota.used >= quota.limit ? 'font-semibold text-amber-400' : 'text-zinc-500'}`}>
+                    {quota.used} de {quota.limit} importações usadas este mês (gigs e repertório).
+                  </p>
+                )}
                 <ul className="list-disc space-y-1 pl-4 text-xs text-zinc-500">
                   <li>O texto do arquivo é enviado ao Google (Gemini) para identificar as músicas e esse conteúdo pode ser usado para melhorar os produtos deles: não envie dados sensíveis (senhas, telefones, CPFs).</li>
                   <li>Depois de importar, você pode editar todas as músicas e o repertório.</li>
                   <li>PDF escaneado (foto) não é lido.</li>
                 </ul>
                 {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
-                {step === 'reading' && (
-                  <p className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm text-zinc-300">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Lendo {fileName || 'o documento'}... isso pode levar até um minuto.
-                  </p>
-                )}
+                {step === 'reading' && <ReadProgress what={fileName || 'o documento'} />}
                 <div className="flex justify-end gap-2">
                   <button type="button" onClick={close} disabled={step === 'reading'} className="rounded-md px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200 disabled:opacity-40">
                     Cancelar
                   </button>
-                  <button type="button" onClick={read} disabled={step === 'reading' || !fileName} className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-bold text-zinc-900 hover:bg-white disabled:opacity-50">
+                  <button type="button" onClick={read} disabled={step === 'reading' || !fileName || (quota ? quota.used >= quota.limit : false)} className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-bold text-zinc-900 hover:bg-white disabled:opacity-50">
                     Ler documento
                   </button>
                 </div>

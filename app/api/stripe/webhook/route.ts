@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { stripe, syncSubscription } from '@/lib/stripe';
+import { reconcilePricing } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,10 @@ export async function POST(req: Request) {
 
   if (subscriptionId) {
     try {
-      await syncSubscription(await stripe().subscriptions.retrieve(subscriptionId));
+      const sub = await stripe().subscriptions.retrieve(subscriptionId);
+      await syncSubscription(sub);
+      // Another account of the same person may now deserve a different price (principal vs adesão).
+      if (sub.metadata.owner_id) await reconcilePricing(sub.metadata.owner_id);
     } catch {
       return NextResponse.json({ error: 'Sync failed' }, { status: 500 }); // Stripe retries
     }

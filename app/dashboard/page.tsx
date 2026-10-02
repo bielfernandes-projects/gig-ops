@@ -44,7 +44,9 @@ export default async function DashboardPage() {
       role={info.role}
       userId={info.userId ?? ''}
       tourSeen={Boolean(profile?.tour_seen_at)}
-      bandRoles={toBandRoles(info.bands)}
+      freela={info.kind === 'freela'}
+      // Only the accounts in view: a Banda next to a Freela must not make the Freela's Dashboard talk about "a pagar à equipe".
+      bandRoles={toBandRoles(Object.fromEntries(info.bandIds.map((id) => [id, info.bands[id]])))}
       allBands={info.allBands}
       gigs={allGigs}
       lineups={lineups}

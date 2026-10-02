@@ -14,6 +14,8 @@ interface EditGigModalProps {
   gig: GigWithProject;
   projects: GoProject[];
   members: GoMember[];
+  /** Freela account: no sound crew. */
+  freela?: boolean;
 }
 
 function toDatetimeLocal(isoString: string): string {
@@ -22,7 +24,7 @@ function toDatetimeLocal(isoString: string): string {
   return toLocalInputValue(d);
 }
 
-export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
+export function EditGigModal({ gig, projects, members, freela = false }: EditGigModalProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirmDelete, setIsConfirmDelete] = useState(false);
@@ -237,6 +239,8 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                 </div>
               </div>
 
+              {!freela && (
+                <>
               {/* Sound Equipment Toggle */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                 <div className="flex items-center justify-between">
@@ -331,6 +335,9 @@ export function EditGigModal({ gig, projects, members }: EditGigModalProps) {
                   </div>
                 )}
               </div>
+
+                </>
+              )}
 
               {/* Notes */}
               <div className="flex flex-col gap-1.5">

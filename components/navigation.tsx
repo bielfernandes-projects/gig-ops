@@ -6,7 +6,8 @@ import { Logo } from '@/components/logo';
 import { CalendarDays, FolderOpen, Users, UserRound, LayoutDashboard, BarChart3, Music, Gift, LifeBuoy, LogOut, type LucideIcon } from 'lucide-react';
 import { signout } from '@/app/login/actions';
 import { BandFilter } from '@/components/band-switcher';
-import { InstagramLink } from '@/components/instagram-link';
+import { SidebarExtras } from '@/components/sidebar-extras';
+import { useShowTeam } from '@/components/use-show-team';
 
 type NavItem = { name: string; href: string; icon: LucideIcon; disabled?: boolean };
 
@@ -28,6 +29,7 @@ export const hideNav = (pathname: string) => HIDE_NAV_PATHS.includes(pathname) |
 /** Desktop sidebar. The phone layout lives in MobileNav. */
 export function Navigation() {
   const pathname = usePathname();
+  const showTeam = useShowTeam();
 
   if (hideNav(pathname)) return null;
 
@@ -39,7 +41,7 @@ export function Navigation() {
       </div>
       <div className="px-4"><BandFilter /></div>
       <nav className="flex-1 px-4 space-y-2 mt-3">
-        {navItems.map((item) => {
+        {navItems.filter((item) => showTeam || item.href !== '/members').map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           if (item.disabled) {
@@ -82,7 +84,7 @@ export function Navigation() {
             Sair
           </button>
         </form>
-        <InstagramLink className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-pink-400" />
+        <SidebarExtras />
       </div>
     </div>
   );

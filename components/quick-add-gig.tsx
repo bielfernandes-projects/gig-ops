@@ -18,7 +18,7 @@ interface LineupEntry {
   fee_amount: number;
 }
 
-type BandChoice = { bandId: string; name: string };
+type BandChoice = { bandId: string; name: string; kind?: 'banda' | 'freela' };
 
 // Badge colors for projects created inline (editable later in Projetos).
 const PROJECT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
@@ -50,6 +50,8 @@ export function QuickAddGig({
   const [creatingProject, setCreatingProject] = useState(false);
   const projects = [...allProjects, ...createdProjects].filter((p) => p.band_id === bandId);
   const members = allMembers.filter((m) => m.band_id === bandId);
+  // Freela account: one person. No sound crew and no lineup; the cachê is theirs.
+  const freela = bands.find((b) => b.bandId === bandId)?.kind === 'freela';
   const defaultMemberIds = allDefaultMemberIds?.filter((id) => members.some((m) => m.id === id));
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -415,6 +417,8 @@ export function QuickAddGig({
                 </div>
               </div>
 
+              {!freela && (
+                <>
               {/* Sound Equipment */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                 <div className="flex items-center justify-between">
@@ -549,6 +553,9 @@ export function QuickAddGig({
                   <p className="text-xs font-medium text-zinc-500">Nenhum membro cadastrado. Cadastre membros primeiro.</p>
                 )}
               </div>
+
+                </>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="recurrence" className="text-xs font-medium text-zinc-400">

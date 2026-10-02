@@ -160,16 +160,6 @@
   .setlist .st > span, .setlist .tot > span { transition: none; }
 }
 
-/* Feature carousel: continuous marquee, paused on hover/press */
-@keyframes gg-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-.gg-marquee-track { animation: gg-marquee linear infinite; }
-@media (prefers-reduced-motion: reduce) {
-  .gg-marquee-track { animation: none; }
-}
-
 /* Phone layout: the top bar (MobileNav) is fixed, so leave room for it while it is shown */
 @media (max-width: 767px) {
   :root.has-mobile-nav main { padding-top: 3.5rem; }

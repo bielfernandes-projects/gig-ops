@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireOwnerFor } from '@/lib/auth';
+import { requireTeamFor } from '@/lib/auth';
 
 function money(value: FormDataEntryValue | null): number | null {
   const n = parseFloat(String(value ?? '').replace(',', '.'));
@@ -15,7 +15,7 @@ function refresh(gigId: string) {
 }
 
 export async function addExpense(formData: FormData) {
-  const ctx = await requireOwnerFor('go_gigs', String(formData.get('gig_id') ?? ''));
+  const ctx = await requireTeamFor('go_gigs', String(formData.get('gig_id') ?? ''));
   if (!ctx.ok) return { error: ctx.error };
 
   const gigId = String(formData.get('gig_id') ?? '');
@@ -36,7 +36,7 @@ export async function addExpense(formData: FormData) {
 }
 
 export async function deleteExpense(id: string, gigId: string) {
-  const ctx = await requireOwnerFor('go_gigs', gigId);
+  const ctx = await requireTeamFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
 
   const { error } = await ctx.supabase.from('gig_expenses').delete().eq('id', id).eq('band_id', ctx.bandId);
@@ -48,7 +48,7 @@ export async function deleteExpense(id: string, gigId: string) {
 
 /** Registers money received from the client (sinal, restante). Turns receipt tracking on for the gig. */
 export async function addPayment(formData: FormData) {
-  const ctx = await requireOwnerFor('go_gigs', String(formData.get('gig_id') ?? ''));
+  const ctx = await requireTeamFor('go_gigs', String(formData.get('gig_id') ?? ''));
   if (!ctx.ok) return { error: ctx.error };
 
   const gigId = String(formData.get('gig_id') ?? '');
@@ -71,7 +71,7 @@ export async function addPayment(formData: FormData) {
 }
 
 export async function deletePayment(id: string, gigId: string) {
-  const ctx = await requireOwnerFor('go_gigs', gigId);
+  const ctx = await requireTeamFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
 
   const { error } = await ctx.supabase.from('gig_payments').delete().eq('id', id).eq('band_id', ctx.bandId);
@@ -82,7 +82,7 @@ export async function deletePayment(id: string, gigId: string) {
 }
 
 export async function setTrackReceipts(gigId: string, on: boolean) {
-  const ctx = await requireOwnerFor('go_gigs', gigId);
+  const ctx = await requireTeamFor('go_gigs', gigId);
   if (!ctx.ok) return { error: ctx.error };
 
   const { error } = await ctx.supabase

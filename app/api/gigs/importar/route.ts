@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireOwner } from '@/lib/auth';
+import { getUserInfo, requireOwner } from '@/lib/auth';
+import { quotaError, recordImport } from '@/lib/import-quota';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logAction } from '@/lib/telemetry';
 import { parseGigs } from '@/lib/gig-import';
@@ -33,6 +34,10 @@ export async function POST(request: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return fail('A importação ainda não está disponível neste ambiente.', 503);
 
+  const limit = (await getUserInfo()).bands[ctx.bandId]?.importQuota ?? 0;
+  const overQuota = await quotaError(ctx.bandId, limit);
+  if (overQuota) return fail(overQuota, 429);
+
   const since = new Date(Date.now() - 86_400_000).toISOString();
   const { count } = await createAdminClient()
     .from('app_events')
@@ -47,7 +52,7 @@ export async function POST(request: Request) {
     const result = await parseGigs(input, { apiKey, model: process.env.GEMINI_MODEL });
     if (result.gigs.length === 0) return fail('Não encontrei gigs nessa lista.', 422);
     await logAction('gigs_lidas', ctx.userId, ctx.bandId);
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, usage: await recordImport(ctx.bandId, limit) });
   } catch (e) {
     if (e instanceof ImportError) return fail(e.message, 422);
     console.error('gig import failed', e);

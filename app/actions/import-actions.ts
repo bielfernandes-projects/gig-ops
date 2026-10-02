@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireOwner } from '@/lib/auth';
 import { logAction } from '@/lib/telemetry';
+import { setlistLimitError, songLimitError } from '@/lib/plan-limits';
 import { normalizeKey, titleKey } from '@/lib/repertoire-import';
 
 export type ImportPayload = {
@@ -78,6 +79,8 @@ export async function saveImportedRepertoire(payload: ImportPayload) {
   });
 
   const newSongs = [...created.values()];
+  const limit = (await songLimitError(ctx.supabase, ctx.bandId, newSongs.length)) ?? (await setlistLimitError(ctx.supabase, ctx.bandId));
+  if (limit) return { error: limit };
   const setlistId = crypto.randomUUID();
   const undo = async () => {
     await ctx.supabase.from('setlists').delete().eq('id', setlistId); // blocks and block_songs go with it (cascade)

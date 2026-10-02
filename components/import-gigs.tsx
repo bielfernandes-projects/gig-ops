@@ -4,8 +4,10 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { FileUp, Loader2, Trash2, TriangleAlert, X } from 'lucide-react';
+import { ReadProgress } from '@/components/read-progress';
 import { saveImportedGigs } from '@/app/actions/gig-import-actions';
 import { gigInstant, missingGigFields, type GigImportResult } from '@/lib/gig-import-model';
+import type { ImportUsage } from '@/lib/import-quota';
 import { dayKey, dayOffset } from '@/lib/time';
 import type { GoProject } from '@/lib/types';
 
@@ -27,7 +29,7 @@ const feeOf = (r: Row) => {
   return Number.isFinite(n) && n >= 0 ? n : null;
 };
 
-export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects: GoProject[] }) {
+export function ImportGigs({ bands, projects, usage }: { bands: BandChoice[]; projects: GoProject[]; usage: Record<string, ImportUsage> }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<'pick' | 'reading' | 'review' | 'saving'>('pick');
@@ -38,6 +40,9 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
   const [bandId, setBandId] = useState(bands[0]?.bandId ?? '');
   const [defaultProjectId, setDefaultProjectId] = useState('');
   const [rows, setRows] = useState<Row[]>([]);
+  // What the server last said about the month's allowance; until a read happens, the page's numbers.
+  const [fresh, setFresh] = useState<Record<string, ImportUsage>>({});
+  const quota = fresh[bandId] ?? usage[bandId];
   const [onlyPending, setOnlyPending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -80,7 +85,8 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
     else fd.set('text', text);
     try {
       const res = await fetch('/api/gigs/importar', { method: 'POST', body: fd });
-      const data = (await res.json().catch(() => ({}))) as GigImportResult & { error?: string };
+      const data = (await res.json().catch(() => ({}))) as GigImportResult & { error?: string; usage?: ImportUsage };
+      if (data.usage) setFresh((f) => ({ ...f, [bandId]: data.usage! }));
       if (!res.ok) {
         setError(data.error ?? 'Não foi possível ler a lista.');
         return setStep('pick');
@@ -196,6 +202,11 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                   </label>
                 )}
 
+                {quota && (
+                  <p className={`text-xs ${quota.used >= quota.limit ? 'font-semibold text-amber-400' : 'text-zinc-500'}`}>
+                    {quota.used} de {quota.limit} importações usadas este mês (gigs e repertório).
+                  </p>
+                )}
                 <div className="rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2.5 text-xs text-zinc-400">
                   <p className="font-semibold text-zinc-300">Cole do jeito que a lista vier.</p>
                   <p className="mt-1">
@@ -217,11 +228,7 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                   <li>Gigs de mais de uma semana atrás entram como já realizadas e com o cachê recebido. As da última semana ficam pendentes de recebimento.</li>
                 </ul>
                 {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
-                {step === 'reading' && (
-                  <p className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm text-zinc-300">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Lendo {fileName || 'a lista'}... isso pode levar até um minuto.
-                  </p>
-                )}
+                {step === 'reading' && <ReadProgress what={fileName || 'a lista'} />}
                 <div className="flex justify-end gap-2">
                   <button type="button" onClick={close} disabled={step === 'reading'} className="rounded-md px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200 disabled:opacity-40">
                     Cancelar
@@ -229,7 +236,7 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                   <button
                     type="button"
                     onClick={read}
-                    disabled={step === 'reading' || (mode === 'file' ? !fileName : text.trim().length < 5)}
+                    disabled={step === 'reading' || (quota ? quota.used >= quota.limit : false) || (mode === 'file' ? !fileName : text.trim().length < 5)}
                     className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-bold text-zinc-900 hover:bg-white disabled:opacity-50"
                   >
                     Ler lista

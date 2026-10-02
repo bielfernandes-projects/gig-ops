@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { createBand, joinBand } from './actions';
+import { PlanChoice } from '@/components/plan-choice';
+import type { BandKind } from '@/lib/plans';
 
 export default function OnboardingPage() {
   const [error, setError] = useState('');
@@ -9,6 +11,7 @@ export default function OnboardingPage() {
   // "Seu nome" sits above both sections, so it belongs to neither <form>: it is carried over by
   // hand into whichever FormData gets submitted.
   const [displayName, setDisplayName] = useState('');
+  const [kind, setKind] = useState<BandKind>('banda');
 
   const formDataWithName = (form: HTMLFormElement) => {
     const fd = new FormData(form);
@@ -72,22 +75,27 @@ export default function OnboardingPage() {
         </div>
 
         <section className="flex flex-col gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="font-bold">Sou o responsável pela banda</h2>
-          <p className="text-xs text-zinc-400">Crie sua banda e gerencie gigs, escala e cachês.</p>
+          <h2 className="font-bold">Vou criar minha conta</h2>
+          <p className="text-xs text-zinc-400">Escolha o tipo e comece a gerenciar gigs e cachês.</p>
           <form onSubmit={handleCreate} className="mt-2 flex flex-col gap-2">
-            <input name="bandName" required maxLength={60} autoComplete="off" placeholder="Nome da banda" className={inputCls} />
+            <PlanChoice value={kind} onChange={setKind} />
+            <input name="bandName" required maxLength={60} autoComplete="off" placeholder={kind === 'freela' ? 'Nome da conta (ex: Meus freelas)' : 'Nome da banda'} className={inputCls} />
             {/* A code the owner invents, so the real 5-char limit applies here (the field in the
                 other section receives an existing band's code, which may be a longer legacy one). */}
-            <input name="inviteCode" autoComplete="off" maxLength={5} placeholder="Código de convite (opcional)" className={`${inputCls} uppercase`} />
-            <p className="text-[11px] leading-snug text-zinc-500">
-              É o código que <strong className="text-zinc-400">você passa pros seus músicos</strong> pra eles entrarem na banda: até 5 letras ou números, sem espaços nem acentos. Deixando vazio, o app gera um — e dá pra trocar depois no Perfil.
-            </p>
+            {kind === 'banda' && (
+              <>
+                <input name="inviteCode" autoComplete="off" maxLength={5} placeholder="Código de convite (opcional)" className={`${inputCls} uppercase`} />
+                <p className="text-[11px] leading-snug text-zinc-500">
+                  É o código que <strong className="text-zinc-400">você passa pros seus músicos</strong> pra eles entrarem na banda: até 5 letras ou números, sem espaços nem acentos. Deixando vazio, o app gera um — e dá pra trocar depois no Perfil.
+                </p>
+              </>
+            )}
             <button
               type="submit"
               disabled={loading !== null}
               className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-bold text-white transition-transform hover:bg-indigo-500 active:scale-[0.98] disabled:opacity-50"
             >
-              {loading === 'create' ? 'Criando...' : 'Criar minha banda'}
+              {loading === 'create' ? 'Criando...' : kind === 'freela' ? 'Criar minha conta Freela' : 'Criar minha banda'}
             </button>
           </form>
         </section>

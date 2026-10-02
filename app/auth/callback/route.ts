@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { BAND_COOKIE } from '@/lib/auth';
 import { createBandFor } from '@/lib/bands';
 import { logAction } from '@/lib/telemetry';
-import { PENDING_BAND_COOKIE } from '@/lib/pending-band';
+import { PENDING_BAND_COOKIE, PENDING_KIND_COOKIE } from '@/lib/pending-band';
 
 // OAuth (Google) return URL: swaps the code for a session, then sends brand-new
 // accounts (no band yet) to /onboarding and everyone else to the dashboard.
@@ -26,9 +26,11 @@ export async function GET(request: Request) {
       // banda aqui e pula o /onboarding. Qualquer falha cai no /onboarding, que pergunta de novo.
       const jar = await cookies();
       const pendingName = decodeURIComponent(jar.get(PENDING_BAND_COOKIE)?.value ?? '').trim();
+      const pendingKind = jar.get(PENDING_KIND_COOKIE)?.value === 'freela' ? 'freela' : 'banda';
       if (pendingName) jar.delete(PENDING_BAND_COOKIE);
+      jar.delete(PENDING_KIND_COOKIE);
       if (user && !count && pendingName) {
-        const created = await createBandFor(user.id, pendingName.slice(0, 60));
+        const created = await createBandFor(user.id, pendingName.slice(0, 60), { kind: pendingKind });
         if (!('error' in created)) {
           await logAction('banda_criada', user.id, created.bandId);
           jar.set(BAND_COOKIE, created.bandId, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });

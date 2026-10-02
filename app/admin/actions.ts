@@ -8,6 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { UPDATE_KINDS, type UpdateKind } from '@/lib/notification-model';
 import { sendPushToAll } from '@/lib/push';
+import { addSelfAsMember } from '@/lib/bands';
 import { dayKey, toIso } from '@/lib/time';
 
 /**
@@ -235,5 +236,57 @@ export async function deleteAppUpdate(id: string) {
     return { error: 'Não foi possível apagar.' };
   }
   revalidatePath('/admin/atualizacoes');
+  return { success: true };
+}
+
+/**
+ * Muda o tipo de uma conta (Banda ↔ Freela). Freela é uma pessoa só: recusado se a conta tem outros
+ * membros. Ao virar Freela, o dono ganha a linha própria no elenco (`addSelfAsMember`) e as gigs que
+ * ainda não tinham escala passam a ter ele escalado com o cachê da gig (é assim que o Freela vê o que
+ * tem a receber). Voltar a Banda não mexe em dados.
+ */
+export async function setBandKind(bandId: string, kind: 'banda' | 'freela') {
+  const gate = await requireSuperAdmin();
+  if (!gate.ok) return { error: gate.error };
+  if (kind !== 'banda' && kind !== 'freela') return { error: 'Tipo inválido.' };
+
+  const admin = createAdminClient();
+  const { data: members } = await admin.from('band_members').select('user_id, role').eq('band_id', bandId);
+  if (!members || members.length === 0) return { error: 'Conta não encontrada.' };
+  if (kind === 'freela') {
+    if (members.length > 1) return { error: 'Essa conta tem mais de uma pessoa. Freela é uma pessoa só: remova os outros membros antes.' };
+
+    const owner = members.find((m) => m.role === 'owner');
+    if (!owner) return { error: 'Essa conta não tem dono.' };
+    const selfId = await addSelfAsMember(bandId, owner.user_id as string);
+    if (!selfId) return { error: 'Não foi possível criar o músico do dono.' };
+
+    const { data: gigs } = (await admin.from('go_gigs').select('id, gross_value, go_lineup(id)').eq('band_id', bandId)) as unknown as {
+      data: { id: string; gross_value: number; go_lineup: { id: string }[] }[] | null;
+    };
+    const bare = (gigs ?? []).filter((g) => g.go_lineup.length === 0);
+    if (bare.length > 0) {
+      const { error } = await admin.from('go_lineup').insert(bare.map((g) => ({ gig_id: g.id, member_id: selfId, fee_amount: Number(g.gross_value), status: 'pendente' })));
+      if (error) return { error: 'Não foi possível escalar o dono nas gigs existentes.' };
+    }
+  }
+
+  const { error } = await admin.from('bands').update({ kind }).eq('id', bandId);
+  if (error) return { error: 'Não foi possível mudar o tipo da conta.' };
+
+  revalidatePath('/admin/usuarios');
+  return { success: true };
+}
+
+/** Cota mensal de importações por IA de uma conta. Vazio volta ao padrão do app (`IMPORT_QUOTA`). */
+export async function setImportQuota(bandId: string, quota: number | null) {
+  const gate = await requireSuperAdmin();
+  if (!gate.ok) return { error: gate.error };
+  if (quota !== null && (!Number.isInteger(quota) || quota < 0 || quota > 1000)) return { error: 'Cota inválida (0 a 1000).' };
+
+  const { error } = await createAdminClient().from('subscriptions').update({ import_quota: quota }).eq('band_id', bandId);
+  if (error) return { error: 'Não foi possível salvar a cota.' };
+
+  revalidatePath('/admin/usuarios');
   return { success: true };
 }

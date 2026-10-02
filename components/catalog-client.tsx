@@ -8,6 +8,7 @@ import { addSong, updateSong, deleteSong, getSongPdfUrl } from '@/app/actions/so
 import { MUSICAL_KEYS } from '@/lib/keys';
 import { cifraClubUrl, letrasUrl } from '@/lib/song-links';
 import { SongViewer } from '@/components/song-viewer';
+import type { ImportUsage } from '@/lib/import-quota';
 import { ImportRepertoire } from '@/components/import-repertoire';
 
 export type CatalogSong = {
@@ -206,7 +207,7 @@ function SongForm({ song, bandId, onDone }: { song: CatalogSong | null; bandId: 
 }
 
 /** Catalog of one band (`bandId` is where new songs go). */
-export function CatalogClient({ songs, userId, isOwner, bandId }: { songs: CatalogSong[]; userId: string; isOwner: boolean; bandId: string }) {
+export function CatalogClient({ songs, userId, isOwner, bandId, usage }: { songs: CatalogSong[]; userId: string; isOwner: boolean; bandId: string; usage: ImportUsage | null }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<CatalogSong | 'new' | null>(null);
@@ -237,7 +238,7 @@ export function CatalogClient({ songs, userId, isOwner, bandId }: { songs: Catal
         >
           <Plus className="h-4 w-4" /> Nova música
         </button>
-        {isOwner && <ImportRepertoire bandId={bandId} songs={songs.filter((s) => s.scope !== 'personal').map((s) => ({ id: s.id, title: s.title }))} />}
+        {isOwner && <ImportRepertoire bandId={bandId} usage={usage} songs={songs.filter((s) => s.scope !== 'personal').map((s) => ({ id: s.id, title: s.title }))} />}
       </div>
 
       {editing && (

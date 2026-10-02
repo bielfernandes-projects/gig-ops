@@ -41,6 +41,15 @@ const OWNER_STEPS: Step[] = [
   nav('/profile', 'Chame a banda', 'No Perfil fica o código de convite pros músicos entrarem, a assinatura (é lá que você assina e gerencia o cartão) e o botão pra rever este tour. Precisou de ajuda? Em "Ajuda" tem o FAQ e um formulário pra falar com a gente. No sino do Dashboard ficam seus avisos e as novidades do app.'),
 ];
 
+const FREELA_STEPS: Step[] = [
+  welcome('Aqui você organiza suas gigs e vê quanto cada banda ou contratante te deve, tudo num lugar só.'),
+  nav('/agenda', 'Cadastre suas gigs', 'Toque em "Nova Gig", escolha o projeto e informe o cachê. Já tem uma lista? Use "Importar gigs" para trazer de uma planilha ou texto.'),
+  nav('/projects', 'Um projeto para cada banda', 'Crie um projeto para cada grupo que te chama. No Relatório você vê quanto recebeu de cada um.'),
+  nav('/repertorio', 'Seu repertório', 'Guarde até 150 músicas e 3 repertórios, com tom, cifra e letra.'),
+  nav('/relatorio', 'Seus cachês', 'Quanto você recebeu e quanto ainda falta receber, por mês e por projeto. Marque cada cachê como pago dentro da gig.'),
+  nav('/profile', 'Assinatura e ajuda', 'No Perfil fica a assinatura (é lá que você assina e gerencia o cartão) e o botão pra rever este tour. Precisou de ajuda? Em "Ajuda" tem o FAQ e um formulário pra falar com a gente. No sino do Dashboard ficam seus avisos e as novidades do app.'),
+];
+
 const MUSICIAN_STEPS: Step[] = [
   welcome('Aqui você acompanha as gigs em que está escalado, sem precisar caçar mensagem no grupo.'),
   nav('/agenda', 'Suas gigs', 'Todas as gigs em que você está escalado. Abra uma pra ver local, horário, seu cachê e confirmar presença.'),
@@ -53,7 +62,7 @@ const MUSICIAN_STEPS: Step[] = [
  * First-run guided tour. Mounted client-only (next/dynamic, ssr: false) so reading localStorage
  * and the URL during the initial state is safe. `?tour=1` forces a replay (link in the Profile).
  */
-export default function AppTour({ role, userId, tourSeen }: { role: 'admin' | 'viewer'; userId: string; tourSeen: boolean }) {
+export default function AppTour({ role, userId, tourSeen, freela = false }: { role: 'admin' | 'viewer'; userId: string; tourSeen: boolean; freela?: boolean }) {
   const [run, setRun] = useState(() => {
     try {
       // Whoever had already seen the tour on this device sees it one more time; from here on it is
@@ -70,7 +79,7 @@ export default function AppTour({ role, userId, tourSeen }: { role: 'admin' | 'v
   const { Tour } = useJoyride({
     run,
     continuous: true,
-    steps: role === 'admin' ? OWNER_STEPS : MUSICIAN_STEPS,
+    steps: freela ? FREELA_STEPS : role === 'admin' ? OWNER_STEPS : MUSICIAN_STEPS,
     options: {
       showProgress: true,
       skipBeacon: true,

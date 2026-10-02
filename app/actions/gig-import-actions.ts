@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { requireOwner } from '@/lib/auth';
 import { logAction } from '@/lib/telemetry';
+import { freelaSelfId, isFreelaBand } from '@/lib/plan-limits';
 import { endInstant, gigInstant } from '@/lib/gig-import-model';
 import { dayKey, startOfToday } from '@/lib/time';
+import { PAID } from '@/lib/gig-view';
 
 export type GigImportPayload = {
   bandId: string;
@@ -112,11 +114,28 @@ export async function saveImportedGigs(payload: GigImportPayload) {
     return { error: error.message };
   }
 
+  // Freela: the owner is the whole lineup. Old gigs come in already paid, the others pending.
+  const settleCutoff = startOfToday().getTime() - SETTLED_AFTER_DAYS * 86_400_000;
+  if (await isFreelaBand(bandId)) {
+    const selfId = await freelaSelfId(bandId, ctx.userId);
+    if (selfId && made && made.length > 0) {
+      const { error: lineupError } = await supabase.from('go_lineup').insert(
+        made.map((g) => ({ gig_id: g.id as string, member_id: selfId, fee_amount: Number(g.gross_value), status: Date.parse(g.start_time as string) < settleCutoff && Number(g.gross_value) > 0 ? PAID : 'pendente' })),
+      );
+      if (lineupError) console.error('Error scheduling imported Freela gigs:', lineupError);
+    }
+    await logAction('gigs_importadas', ctx.userId, bandId);
+    revalidatePath('/agenda');
+    revalidatePath('/dashboard');
+    revalidatePath('/projects');
+    revalidatePath('/relatorio');
+    return { created: toInsert.length, skipped, projectsCreated: missing.length, settled: 0 };
+  }
+
   // Old gigs come in already settled: one receipt for the full cachê, dated the day of the show. A gig with no cachê
   // has nothing to receive (`gig_payments.amount` must be > 0), so it is simply left alone.
-  const cutoff = startOfToday().getTime() - SETTLED_AFTER_DAYS * 86_400_000;
   const receipts = (made ?? [])
-    .filter((g) => Date.parse(g.start_time as string) < cutoff && Number(g.gross_value) > 0)
+    .filter((g) => Date.parse(g.start_time as string) < settleCutoff && Number(g.gross_value) > 0)
     .map((g) => ({ band_id: bandId, gig_id: g.id as string, amount: Number(g.gross_value), paid_at: dayKey(g.start_time as string), note: 'Recebido (importação da lista)' }));
   if (receipts.length > 0) {
     const { error: receiptError } = await supabase.from('gig_payments').insert(receipts);

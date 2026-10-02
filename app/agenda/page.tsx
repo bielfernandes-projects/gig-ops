@@ -39,6 +39,7 @@ import { Suspense } from 'react';
 import { AgendaCalendar } from '@/components/agenda-calendar';
 import { PageHeader } from '@/components/page-header';
 import { BandTag } from '@/components/band-tag';
+import { importsUsed } from '@/lib/import-quota';
 
 export const revalidate = 0;
 
@@ -152,7 +153,7 @@ export default async function Home({
     .eq('role', 'owner');
 
   // Parallel data fetching — all queries run simultaneously
-  const [gigsResult, projectsResult, cloneResult, membersResult, ownersResult] = await Promise.all([
+  const [gigsResult, projectsResult, cloneResult, membersResult, ownersResult, used] = await Promise.all([
     gigsQuery as unknown as Promise<{ data: GigWithProject[] | null, error: PostgrestError | null }>,
     projectsQuery as unknown as Promise<{ data: GoProject[] | null }>,
     cloneId && ownedIds.length > 0
@@ -165,6 +166,7 @@ export default async function Home({
       : Promise.resolve({ data: null }),
     membersQuery as unknown as Promise<{ data: GoMember[] | null }>,
     ownersQuery as unknown as Promise<{ data: { user_id: string; band_id: string }[] | null }>,
+    importsUsed(ownedIds),
   ]);
 
   const allGigs = gigsResult.data || [];
@@ -229,7 +231,7 @@ export default async function Home({
 
         {owned.length > 0 && (
           <div className="mb-5">
-            <ImportGigs bands={owned} projects={projects.filter((p) => p.band_id && ownedIds.includes(p.band_id))} />
+            <ImportGigs bands={owned} projects={projects.filter((p) => p.band_id && ownedIds.includes(p.band_id))} usage={Object.fromEntries(ownedIds.map((id) => [id, { used: used[id] ?? 0, limit: info.bands[id]?.importQuota ?? 0 }]))} />
           </div>
         )}
 
@@ -243,7 +245,7 @@ export default async function Home({
             <span className="text-xs font-medium text-zinc-500 block mb-1">A receber</span>
             <span className={`text-xl font-bold ${feeToReceive > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>{brl(feeToReceive)}</span>
           </div>
-          {owned.length > 0 && (
+          {ownedIds.some((id) => roles[id]?.role === 'admin') && (
             <div className="min-w-[140px] bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 snap-start shrink-0">
               <span className="text-xs font-medium text-zinc-500 block mb-1">A pagar à equipe</span>
               <span className={`text-xl font-bold ${feeToPay > 0 ? 'text-amber-300' : 'text-zinc-400'}`}>{brl(feeToPay)}</span>

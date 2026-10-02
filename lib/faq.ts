@@ -66,7 +66,19 @@ export const FAQ: { title: string; items: FaqItem[] }[] = [
     items: [
       {
         q: 'Como funciona o teste grátis e a assinatura?',
-        a: 'Toda banda tem 7 dias de teste grátis, sem cartão. Depois, a assinatura é por banda: mensal (R$ 49,90) ou anual (R$ 499,00). Sem pagamento, a banda passa ao modo somente leitura: seus dados continuam salvos e visíveis.',
+        a: 'Toda conta nova tem 7 dias de teste grátis, sem cartão. Depois, a assinatura é por conta: Banda por R$ 49,90 por mês (ou R$ 499,00 por ano) e Freela por R$ 14,90 por mês (ou R$ 149,00 por ano). Sem pagamento, a conta passa ao modo somente leitura: seus dados continuam salvos e visíveis.',
+      },
+      {
+        q: 'Qual a diferença entre a conta Banda e a conta Freela?',
+        a: 'A Banda é para quem gerencia um grupo: escala músicos, controla despesas, som, divisão de lucro e convida a equipe. A Freela é para quem toca para várias bandas e quer organizar as próprias gigs e cachês: tem agenda, projetos (um por banda que te chama), Relatório de cachês, Google Agenda e até 150 músicas em 3 repertórios, mas não tem equipe, escala nem despesas. Dá para subir de Freela para Banda sem perder seus dados.',
+      },
+      {
+        q: 'Posso ter mais de uma conta?',
+        a: 'Pode. Em Perfil, "Criar outra conta". A conta mais cara que você paga fica com o preço cheio; cada conta a mais é uma adesão e custa menos: Banda extra R$ 29,90 por mês (R$ 299,00 por ano) e Freela extra R$ 9,90 por mês (R$ 99,00 por ano). A adesão é cobrada desde a criação, sem teste grátis.',
+      },
+      {
+        q: 'Quantas importações por IA posso fazer?',
+        a: 'Cada conta tem 20 importações por mês, somando importação de gigs e de repertório. Só conta a leitura que deu certo, e a cota zera no dia 1. A tela de importar mostra quantas você já usou.',
       },
       {
         q: 'Como cancelo a assinatura?',

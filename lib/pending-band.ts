@@ -5,3 +5,5 @@
  */
 export const PENDING_BAND_COOKIE = 'gig_pending_band';
 export const PENDING_BAND_MAX_AGE = 60 * 10;
+/** Tipo de conta escolhido em /login junto do nome ('banda' | 'freela'). */
+export const PENDING_KIND_COOKIE = 'gig_pending_kind';

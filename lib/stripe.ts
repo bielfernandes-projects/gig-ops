@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { BillingPeriod } from '@/lib/pricing';
+import type { BillingPeriod, PriceTier } from '@/lib/pricing';
+import type { BandKind } from '@/lib/plans';
 
 let client: Stripe | null = null;
 
@@ -10,9 +11,24 @@ export function stripe(): Stripe {
   return (client ??= new Stripe(key));
 }
 
-export function priceIdFor(period: BillingPeriod, plan: 'founder' | 'standard'): string {
-  const id = period === 'annual' ? process.env.STRIPE_PRICE_ANNUAL : plan === 'founder' ? process.env.STRIPE_PRICE_FOUNDER : process.env.STRIPE_PRICE_MONTHLY;
-  if (!id) throw new Error('Preço do Stripe não configurado (STRIPE_PRICE_MONTHLY / STRIPE_PRICE_FOUNDER / STRIPE_PRICE_ANNUAL).');
+/** Env var that holds the Stripe price id for each plan (see DOCUMENTATION.md, "Planos e preços"). */
+const PRICE_ENV: Record<string, string> = {
+  'banda.principal.monthly': 'STRIPE_PRICE_MONTHLY',
+  'banda.principal.annual': 'STRIPE_PRICE_ANNUAL',
+  'banda.principal.founder': 'STRIPE_PRICE_FOUNDER',
+  'banda.adesao.monthly': 'STRIPE_PRICE_ADESAO_BANDA',
+  'banda.adesao.annual': 'STRIPE_PRICE_ADESAO_BANDA_ANNUAL',
+  'freela.principal.monthly': 'STRIPE_PRICE_FREELA',
+  'freela.principal.annual': 'STRIPE_PRICE_FREELA_ANNUAL',
+  'freela.adesao.monthly': 'STRIPE_PRICE_ADESAO_FREELA',
+  'freela.adesao.annual': 'STRIPE_PRICE_ADESAO_FREELA_ANNUAL',
+};
+
+export function priceIdFor(kind: BandKind, tier: PriceTier, period: BillingPeriod, founder = false): string {
+  const slot = founder && kind === 'banda' && tier === 'principal' && period === 'monthly' ? 'founder' : period;
+  const name = PRICE_ENV[`${kind}.${tier}.${slot}`];
+  const id = process.env[name];
+  if (!id) throw new Error(`Preço do Stripe não configurado (${name}).`);
   return id;
 }
 
@@ -33,6 +49,7 @@ export async function syncSubscription(sub: Stripe.Subscription) {
     billing_period: item.price.recurring?.interval === 'year' ? 'annual' : 'monthly',
     stripe_customer_id: typeof sub.customer === 'string' ? sub.customer : sub.customer.id,
     stripe_subscription_id: sub.id,
+    price_tier: sub.metadata.tier === 'adesao' ? 'adesao' : 'principal',
   };
   if (sub.metadata.plan === 'founder') update.price_plan = 'founder';
 

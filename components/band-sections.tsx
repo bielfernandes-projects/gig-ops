@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Crown, Users, UserMinus, PenLine, X, ShieldCheck, ShieldOff, LogOut, MessageCircle } from 'lucide-react';
+import { Crown, Users, UserMinus, PenLine, X, ShieldCheck, ShieldOff, LogOut } from 'lucide-react';
 import {
   saveInviteCode,
   renameBand,
@@ -22,13 +22,17 @@ import { BANDS_CHANGED, type BandOption } from '@/components/band-switcher';
 import { subscriptionLabel, type SubscriptionState, type Tone } from '@/lib/subscription';
 import { fmtLongDate } from '@/lib/time';
 import { ALL_BANDS } from '@/lib/band-view';
-import { PRICES, type BillingPeriod } from '@/lib/pricing';
+import { type BillingPeriod, type PriceTier } from '@/lib/pricing';
+import { KIND_LABEL, type BandKind } from '@/lib/plans';
 import { brl } from '@/lib/finance';
+
+/** What a new account of each type would cost this person (principal or adesão), for the creation form. */
+export type NewAccountQuotes = Record<BandKind, { tier: PriceTier; founder: boolean; monthly: number; annual: number }>;
 
 export type BandMemberView = { userId: string; email: string; label: string; role: 'owner' | 'member'; isSelf: boolean; share: number | null };
 
 /** Owner-only billing data for the subscription card. */
-export type BillingView = { monthlyPrice: number; hasStripe: boolean; justPaid: boolean };
+export type BillingView = { monthlyPrice: number; annualPrice: number; tier: PriceTier; founder: boolean; hasStripe: boolean; justPaid: boolean };
 
 type Props = {
   role: 'admin' | 'viewer';
@@ -39,15 +43,17 @@ type Props = {
   members: BandMemberView[];
   subscription: SubscriptionState | null;
   pricePlan: 'standard' | 'founder' | 'solo';
+  kind: BandKind;
+  newAccountQuotes: NewAccountQuotes | null;
   billing: BillingView | null;
-  founderWhatsappUrl: string | null;
 };
 
 const inputCls =
   'bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500 placeholder-zinc-600';
 const primaryBtn = 'bg-zinc-100 hover:bg-white text-zinc-900 font-bold px-4 py-2 rounded-lg text-sm transition-colors';
 
-const PLAN_NAMES: Record<Props['pricePlan'], string> = { standard: 'Banda', founder: 'Banda (Fundador)', solo: 'Solo' };
+const planName = (kind: BandKind, pricePlan: Props['pricePlan'], tier?: PriceTier) =>
+  `${KIND_LABEL[kind]}${kind === 'banda' && pricePlan === 'founder' ? ' (Fundador)' : ''}${tier === 'adesao' ? ' · adesão' : ''}`;
 
 
 const fmtDate = fmtLongDate;
@@ -66,11 +72,15 @@ function subscriptionDateLine(s: Props['subscription']) {
   return null;
 }
 
-export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, billing, founderWhatsappUrl }: Props) {
+export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, billing }: Props) {
   const router = useRouter();
   const [paying, setPaying] = useState(false);
   const [editingInvite, setEditingInvite] = useState(false);
   const [inviteInput, setInviteInput] = useState(inviteCode || '');
+  const [newKind, setNewKind] = useState<BandKind>('banda');
+  const [newPeriod, setNewPeriod] = useState<BillingPeriod>('monthly');
+  const isFreela = kind === 'freela';
+  const newQuote = newAccountQuotes?.[newKind];
 
   const run = async (action: () => Promise<{ error?: string; success?: boolean } | undefined>, okMsg: string) => {
     const res = await action();
@@ -102,7 +112,7 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6 flex flex-col gap-5">
         <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
           <Users className="w-5 h-5 text-indigo-400" />
-          <h3 className="text-zinc-100 font-bold">Suas bandas</h3>
+          <h3 className="text-zinc-100 font-bold">Suas contas</h3>
           {memberships.length > 1 && bandId && (
             <button
               type="button"
@@ -124,7 +134,7 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-zinc-100">{m.name}</p>
-                <p className="text-xs text-zinc-500">{m.role === 'owner' ? 'Dono' : 'Músico'}</p>
+                <p className="text-xs text-zinc-500">{m.role === 'owner' ? (m.kind === 'freela' ? 'Freela' : 'Dono') : 'Músico'}</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 {m.bandId === bandId ? (
@@ -174,16 +184,45 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
             onSubmit={async (e) => {
               e.preventDefault();
               const form = e.currentTarget;
-              const res = await run(() => createAnotherBand(new FormData(form)), 'Banda criada.');
-              if (!res?.error) form.reset();
+              const fd = new FormData(form);
+              fd.set('kind', newKind);
+              const res = await createAnotherBand(fd);
+              if (res.error) return void toast.error(res.error);
+              form.reset();
+              window.dispatchEvent(new Event(BANDS_CHANGED));
+              // An extra account is paid from the start: straight to the checkout.
+              if (res.needsPayment && res.bandId) return goToStripe(() => startCheckout(newPeriod, res.bandId));
+              toast.success('Conta criada.');
+              router.refresh();
             }}
             className="flex flex-col gap-2"
           >
-            <label className="text-xs font-medium text-zinc-500">Criar uma nova banda</label>
-            <div className="flex gap-2">
-              <input name="bandName" required maxLength={60} placeholder="Nome da banda" className={`${inputCls} w-full min-w-0`} />
-              <button type="submit" className={primaryBtn}>Criar</button>
+            <label className="text-xs font-medium text-zinc-500">Criar outra conta</label>
+            <div className="flex gap-2 text-xs font-semibold">
+              {(['banda', 'freela'] as BandKind[]).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setNewKind(k)}
+                  className={`rounded-md px-3 py-1.5 ${newKind === k ? 'bg-zinc-100 text-zinc-900' : 'border border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`}
+                >
+                  {KIND_LABEL[k]}
+                </button>
+              ))}
+              <select value={newPeriod} onChange={(e) => setNewPeriod(e.target.value as BillingPeriod)} aria-label="Cobrança" className={`${inputCls} ml-auto py-1 text-xs`}>
+                <option value="monthly">Mensal</option>
+                <option value="annual">Anual</option>
+              </select>
             </div>
+            <div className="flex gap-2">
+              <input name="bandName" required maxLength={60} placeholder={newKind === 'freela' ? 'Nome da conta (ex: Meus freelas)' : 'Nome da banda'} className={`${inputCls} w-full min-w-0`} />
+              <button type="submit" disabled={paying} className={`${primaryBtn} disabled:opacity-60`}>Criar</button>
+            </div>
+            {newQuote && memberships.some((m) => m.role === 'owner') && (
+              <p className="text-[11px] leading-snug text-zinc-500">
+                {newQuote.tier === 'adesao' ? 'Adesão' : 'Plano'} {KIND_LABEL[newKind]}: <strong className="text-zinc-300">{brl(newPeriod === 'monthly' ? newQuote.monthly : newQuote.annual)}/{newPeriod === 'monthly' ? 'mês' : 'ano'}</strong>, cobrado já na criação (sem teste grátis).
+              </p>
+            )}
           </form>
         </div>
       </section>
@@ -200,12 +239,12 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
         <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm p-6 flex flex-col gap-6">
           <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
             <Crown className="w-5 h-5 text-amber-500" />
-            <h3 className="text-zinc-100 font-bold">Gestão da banda</h3>
+            <h3 className="text-zinc-100 font-bold">{isFreela ? 'Gestão da conta' : 'Gestão da banda'}</h3>
           </div>
 
           {sub && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 flex flex-col gap-2">
-              <p className="text-xs font-medium text-zinc-500">Plano {PLAN_NAMES[pricePlan]}</p>
+              <p className="text-xs font-medium text-zinc-500">Plano {planName(kind, pricePlan, billing?.tier)}</p>
               <p className={`text-sm font-semibold ${LABEL_TONE[sub.tone]}`}>{sub.text}</p>
               {subscriptionDateLine(subscription) && <p className="text-xs text-zinc-500">{subscriptionDateLine(subscription)}</p>}
               {billing?.justPaid && <p className="text-xs text-emerald-400">Pagamento recebido! Se o plano ainda não mudou, atualize a página em instantes.</p>}
@@ -219,9 +258,9 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
                       onClick={() => goToStripe(() => startCheckout(period))}
                       className={`${primaryBtn} flex flex-col items-center gap-0.5 disabled:opacity-60`}
                     >
-                      <span>{period === 'monthly' ? `Assinar por ${brl(billing.monthlyPrice)}/mês` : `Assinar por ${brl(PRICES.annual)}/ano`}</span>
+                      <span>{period === 'monthly' ? `Assinar por ${brl(billing.monthlyPrice)}/mês` : `Assinar por ${brl(billing.annualPrice)}/ano`}</span>
                       <span className="text-[11px] font-medium text-zinc-600">
-                        {period === 'annual' ? 'cerca de R$ 41,60/mês, cobrado de uma vez' : billing.monthlyPrice === PRICES.founder ? 'preço de Fundador, para sempre' : 'cobrança mensal no cartão'}
+                        {period === 'annual' ? `cerca de ${brl(billing.annualPrice / 12)}/mês, cobrado de uma vez` : billing.founder ? 'preço de Fundador, para sempre' : billing.tier === 'adesao' ? 'preço de adesão (outra conta sua já paga o plano principal)' : 'cobrança mensal no cartão'}
                       </span>
                     </button>
                   ))}
@@ -257,18 +296,6 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
             </div>
           )}
 
-          {founderWhatsappUrl && (
-            <a
-              href={founderWhatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-lg border border-[#25D366]/30 bg-[#25D366]/10 px-4 py-3 text-sm font-semibold text-[#25D366] transition-colors hover:bg-[#25D366]/20"
-            >
-              <MessageCircle className="h-5 w-5 shrink-0" />
-              Você é Fundador! Entre no grupo exclusivo do WhatsApp
-            </a>
-          )}
-
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -276,13 +303,15 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
             }}
             className="flex flex-col gap-2"
           >
-            <label className="text-xs font-medium text-zinc-500">Nome da banda</label>
+            <label className="text-xs font-medium text-zinc-500">{isFreela ? 'Nome da conta' : 'Nome da banda'}</label>
             <div className="flex gap-2">
               <input key={bandId} name="bandName" defaultValue={bandName ?? ''} required maxLength={60} className={`${inputCls} w-full min-w-0`} />
               <button type="submit" className={primaryBtn}>Salvar</button>
             </div>
           </form>
 
+          {!isFreela && (
+            <>
           <div>
             <label className="text-xs font-medium text-zinc-500 block mb-1">Código de convite da banda</label>
             {editingInvite ? (
@@ -419,6 +448,8 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
               {members.length === 0 && <span className="text-xs text-zinc-500 font-medium">Nenhum membro encontrado.</span>}
             </div>
           </div>
+            </>
+          )}
         </section>
       )}
 

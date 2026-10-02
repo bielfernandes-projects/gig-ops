@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { subscriptionState } from '@/lib/subscription';
-import { PRICES, FOUNDER_LIMIT } from '@/lib/pricing';
+import { FOUNDER_LIMIT, priceOf, type PriceTier } from '@/lib/pricing';
+import type { BandKind } from '@/lib/plans';
 
 /**
  * Números do painel de produto (/admin). Tudo com o service role: são dados de todas as bandas, que
@@ -32,12 +33,17 @@ type SubRow = {
   price_plan: 'standard' | 'founder' | 'solo';
   billing_period: 'monthly' | 'annual' | null;
   stripe_subscription_id: string | null;
+  price_tier: PriceTier | null;
+  bands: { kind: BandKind } | { kind: BandKind }[] | null;
 };
 
 /** Quanto uma assinatura ativa vale por mês. Anual entra rateado, senão o MRR pula de degrau. */
 function monthlyValue(sub: SubRow): number {
-  if (sub.billing_period === 'annual') return PRICES.annual / 12;
-  return sub.price_plan === 'founder' ? PRICES.founder : PRICES.standard;
+  const band = Array.isArray(sub.bands) ? sub.bands[0] : sub.bands;
+  const kind = band?.kind ?? 'banda';
+  const tier = sub.price_tier ?? 'principal';
+  if (sub.billing_period === 'annual') return priceOf(kind, tier, 'annual') / 12;
+  return priceOf(kind, tier, 'monthly', sub.price_plan === 'founder');
 }
 
 export async function productOverview(): Promise<ProductOverview> {
@@ -50,7 +56,7 @@ export async function productOverview(): Promise<ProductOverview> {
     admin.from('band_members').select('user_id', { count: 'exact', head: true }).eq('role', 'member') as unknown as Promise<{ count: number | null }>,
     admin
       .from('subscriptions')
-      .select('status, trial_ends_at, paid_until, price_plan, billing_period, stripe_subscription_id') as unknown as Promise<{ data: SubRow[] | null }>,
+      .select('status, trial_ends_at, paid_until, price_plan, billing_period, stripe_subscription_id, price_tier, bands(kind)') as unknown as Promise<{ data: SubRow[] | null }>,
     admin.from('subscriptions').select('band_id', { count: 'exact', head: true }).eq('price_plan', 'founder') as unknown as Promise<{ count: number | null }>,
     admin.rpc('admin_signups_by_day', { p_days: 30 }) as unknown as Promise<{ data: { day: string; total: number }[] | null }>,
     admin.rpc('admin_event_counts', { p_days: 30 }) as unknown as Promise<{
@@ -108,6 +114,9 @@ export type AdminUserBand = {
   hasStripe: boolean;
   /** null com `state` ativo = liberada na mão, sem prazo. */
   paidUntil: string | null;
+  kind: BandKind;
+  /** Cota mensal de importações definida à mão (null = padrão do app). */
+  importQuota: number | null;
 };
 
 export type AdminUser = {
@@ -136,22 +145,23 @@ export async function listUsers(): Promise<AdminUser[]> {
 
   const [profilesResult, membershipResult, subsResult] = await Promise.all([
     admin.from('go_profiles').select('id, display_name') as unknown as Promise<{ data: { id: string; display_name: string | null }[] | null }>,
-    admin.from('band_members').select('user_id, band_id, role, bands(name)') as unknown as Promise<{
-      data: { user_id: string; band_id: string; role: 'owner' | 'member'; bands: { name: string } | { name: string }[] | null }[] | null;
+    admin.from('band_members').select('user_id, band_id, role, bands(name, kind)') as unknown as Promise<{
+      data: { user_id: string; band_id: string; role: 'owner' | 'member'; bands: { name: string; kind: BandKind } | { name: string; kind: BandKind }[] | null }[] | null;
     }>,
-    admin.from('subscriptions').select('band_id, status, trial_ends_at, paid_until, stripe_subscription_id') as unknown as Promise<{
-      data: { band_id: string; status: 'trial' | 'active' | 'expired'; trial_ends_at: string; paid_until: string | null; stripe_subscription_id: string | null }[] | null;
+    admin.from('subscriptions').select('band_id, status, trial_ends_at, paid_until, stripe_subscription_id, import_quota') as unknown as Promise<{
+      data: { band_id: string; status: 'trial' | 'active' | 'expired'; trial_ends_at: string; paid_until: string | null; stripe_subscription_id: string | null; import_quota: number | null }[] | null;
     }>,
   ]);
 
   const nameById = new Map((profilesResult.data ?? []).map((p) => [p.id, p.display_name]));
   const subByBand = new Map(
-    (subsResult.data ?? []).map((s) => [s.band_id, { state: subscriptionState(s).state, hasStripe: Boolean(s.stripe_subscription_id), paidUntil: s.paid_until }])
+    (subsResult.data ?? []).map((s) => [s.band_id, { state: subscriptionState(s).state, hasStripe: Boolean(s.stripe_subscription_id), paidUntil: s.paid_until, importQuota: s.import_quota }])
   );
 
   const bandsByUser = new Map<string, AdminUser['bands']>();
   for (const row of membershipResult.data ?? []) {
-    const name = (Array.isArray(row.bands) ? row.bands[0]?.name : row.bands?.name) ?? 'Banda';
+    const band = Array.isArray(row.bands) ? row.bands[0] : row.bands;
+    const name = band?.name ?? 'Banda';
     const list = bandsByUser.get(row.user_id) ?? [];
     const sub = subByBand.get(row.band_id);
     list.push({
@@ -161,6 +171,8 @@ export async function listUsers(): Promise<AdminUser[]> {
       state: sub?.state ?? 'trial',
       hasStripe: sub?.hasStripe ?? false,
       paidUntil: sub?.paidUntil ?? null,
+      kind: band?.kind ?? 'banda',
+      importQuota: sub?.importQuota ?? null,
     });
     bandsByUser.set(row.user_id, list);
   }

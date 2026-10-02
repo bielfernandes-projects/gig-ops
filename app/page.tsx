@@ -3,15 +3,19 @@ import type { Metadata } from 'next';
 import { Logo } from '@/components/logo';
 import { InstagramLink } from '@/components/instagram-link';
 import { Setlist } from '@/components/landing-setlist';
-import { ClickableShot, FeatureCarousel, type Shot } from '@/components/screenshot-lightbox';
-import { FOUNDER_LIMIT } from '@/lib/pricing';
+import { ClickableShot, type Shot } from '@/components/screenshot-lightbox';
+import { FeatureCarousel, type Slide } from '@/components/feature-carousel';
+import { FOUNDER_LIMIT, PRICE_TABLE } from '@/lib/pricing';
+import { FREELA_LIMITS, IMPORT_QUOTA } from '@/lib/plans';
 import { countFounders } from '@/lib/founders';
+import { brl } from '@/lib/finance';
 import { APP_VERSION } from '@/lib/version';
 
 export const revalidate = 3600;
 
-const title = 'Gigueiros: agenda, escala e cachês da sua banda';
-const description = 'Chega de planilha e grupo de WhatsApp. Organize gigs, escala de músicos, cachês, repertório (importe o seu de um PDF ou Word) e financeiro em um app feito para bandas.';
+const title = 'Gigueiros: agenda, escala e cachês para quem toca';
+const description =
+  'O app para músicos: donos de banda e freelancers organizam gigs, escala, cachês, repertório (importe o seu de um PDF ou Word) e financeiro em um lugar só. Chega de planilha e grupo de WhatsApp.';
 
 export const metadata: Metadata = {
   title,
@@ -29,38 +33,44 @@ const jsonLd = {
   operatingSystem: 'Web, iOS, Android',
   description,
   url: 'https://gigueiros.com.br',
-  offers: {
-    '@type': 'Offer',
-    price: '49.90',
-    priceCurrency: 'BRL',
-    priceValidUntil: '2027-12-31',
-  },
+  offers: [
+    { '@type': 'Offer', name: 'Plano Banda', price: String(PRICE_TABLE.banda.principal.monthly), priceCurrency: 'BRL', priceValidUntil: '2027-12-31' },
+    { '@type': 'Offer', name: 'Plano Freela', price: String(PRICE_TABLE.freela.principal.monthly), priceCurrency: 'BRL', priceValidUntil: '2027-12-31' },
+  ],
 };
 
-const features = [
+type Audience = 'Banda e Freela' | 'Só Banda';
+
+const features: { title: string; text: string; for: Audience }[] = [
   {
     title: 'Agenda de gigs',
-    text: 'Todas as gigs da banda em uma linha do tempo, com sincronização no Google Agenda e no Apple Calendário. Já tem a lista numa planilha ou no WhatsApp? Cole e importe, com prévia antes de salvar.',
+    text: 'Todas as suas gigs em uma linha do tempo, com sincronização no Google Agenda e no Apple Calendário. Já tem a lista numa planilha ou no WhatsApp? Cole e importe, com prévia antes de salvar.',
+    for: 'Banda e Freela',
   },
   {
     title: 'Escala de músicos',
     text: 'Escale quem toca em cada gig. O músico recebe o aviso no celular na mesma hora.',
+    for: 'Só Banda',
   },
   {
     title: 'Cachês e pendências',
-    text: 'Veja quem já recebeu, quem falta pagar e quanto sobrou de cada gig.',
+    text: 'Veja quem já recebeu, quem falta pagar e quanto sobrou de cada gig. No Freela, quanto cada banda ainda te deve.',
+    for: 'Banda e Freela',
   },
   {
     title: 'Lembretes e cancelamentos',
     text: 'Aviso antes da gig. Se uma gig cai, todos os escalados sabem o motivo.',
+    for: 'Banda e Freela',
   },
   {
     title: 'Repertório e cifras',
-    text: 'Catálogo de músicas da banda com links de cifra e letra, tom, tom que começa, observações e arquivos anexados (partitura, cifra). Já tem o repertório em PDF, Word ou TXT? Importe: o app lê o arquivo, cria as músicas e os blocos e você revisa antes de salvar. Monte repertórios reutilizáveis, marque um como principal e compartilhe por link ou WhatsApp. Na gig, abra o repertório com blocos, tons pedidos e observações.',
+    text: 'Catálogo de músicas com links de cifra e letra, tom, tom que começa, observações e arquivos anexados (partitura, cifra). Já tem o repertório em PDF, Word ou TXT? Importe: o app lê o arquivo, cria as músicas e os blocos e você revisa antes de salvar. Monte repertórios reutilizáveis, compartilhe por link ou WhatsApp e abra na gig, com blocos, tons pedidos e observações.',
+    for: 'Banda e Freela',
   },
   {
     title: 'Financeiro e rateio',
-    text: 'Recibo em PDF para o contratante, controle de sinal e restante, e divisão do lucro entre os sócios da banda.',
+    text: 'Recibo em PDF para o contratante, controle de sinal e restante, despesas e divisão do lucro entre os sócios da banda.',
+    for: 'Só Banda',
   },
 ];
 
@@ -79,16 +89,32 @@ const importSteps = [
   },
 ];
 
-const dashboardDesktop: Shot = { src: '/screenshots/dashboard-desktop.jpg', alt: 'Dashboard do Gigueiros no computador, com próxima gig e gráficos financeiros', width: 1568, height: 652 };
-const dashboardTablet: Shot = { src: '/screenshots/dashboard-tablet.png', alt: 'Dashboard do Gigueiros aberto em um tablet', width: 1004, height: 771 };
-const dashboardMobile: Shot = { src: '/screenshots/dashboard-mobile.png', alt: 'Dashboard do Gigueiros aberto no celular, com navegação inferior de app', width: 478, height: 771 };
+const dashboardDesktop: Shot = { src: '/screenshots/dashboard-desktop.jpg', alt: 'Dashboard do Gigueiros no computador, com a próxima gig, gigs pendentes e os cachês a receber e a pagar', width: 1568, height: 652 };
+const dashboardTablet: Shot = { src: '/screenshots/dashboard-tablet.png', alt: 'Dashboard do Gigueiros aberto em um tablet', width: 1004, height: 640 };
+const dashboardMobile: Shot = { src: '/screenshots/dashboard-mobile.png', alt: 'Dashboard do Gigueiros aberto no celular, com o menu no topo', width: 390, height: 640 };
 
-const featureShots: (Shot & { caption: string })[] = [
-  { src: '/screenshots/agenda.jpg', alt: 'Agenda de gigs do Gigueiros, com o calendário do mês e várias gigs marcadas', width: 1536, height: 639, caption: 'Agenda' },
-  { src: '/screenshots/financeiro.jpg', alt: 'Tela de uma gig no Gigueiros mostrando cachê bruto, custos e lucro líquido', width: 1536, height: 639, caption: 'Financeiro de cada gig' },
-  { src: '/screenshots/repertorio.jpg', alt: 'Catálogo de músicas do repertório no Gigueiros', width: 1536, height: 639, caption: 'Repertório' },
-  { src: '/screenshots/relatorio.jpg', alt: 'Relatório financeiro mensal do Gigueiros, com faturamento, custos e lucro', width: 1536, height: 639, caption: 'Relatório financeiro' },
-  { src: '/screenshots/musicos.jpg', alt: 'Lista de músicos do banco de talentos no Gigueiros', width: 1536, height: 639, caption: 'Músicos' },
+const slides: Slide[] = [
+  { src: '/screenshots/agenda.jpg', alt: 'Agenda de gigs do Gigueiros, com o calendário de outubro e as gigs marcadas por projeto', width: 1568, height: 652, caption: 'Agenda', blurb: 'O mês inteiro de gigs, em calendário ou em lista, com o seu cachê em cada uma.' },
+  { src: '/screenshots/financeiro.jpg', alt: 'Tela de uma gig no Gigueiros com cachê bruto, escala, custo do som, despesas e o recebimento do contratante', width: 1568, height: 652, caption: 'Financeiro de cada gig', blurb: 'Cachê, custos e lucro da gig, e quanto o contratante já pagou.' },
+  { src: '/screenshots/repertorio.jpg', alt: 'Catálogo de músicas do Gigueiros, com tom, tom que começa e os repertórios da banda', width: 1568, height: 652, caption: 'Repertório', blurb: 'Catálogo com tom, cifra e letra, e repertórios prontos para qualquer gig.' },
+  { src: '/screenshots/relatorio.jpg', alt: 'Relatório mensal da banda no Gigueiros, com faturamento, custos, lucro previsto e o que falta receber', width: 1568, height: 652, caption: 'Relatório da banda', blurb: 'Faturamento, custos e lucro mês a mês, para o dono da banda.' },
+  { src: '/screenshots/freela.jpg', alt: 'Tela Meus cachês da conta Freela, com cachê recebido e a receber e o total por projeto', width: 1568, height: 652, caption: 'Meus cachês (Freela)', blurb: 'Para quem toca em várias bandas: quanto cada uma já pagou e quanto ainda deve.' },
+  { src: '/screenshots/musicos.jpg', alt: 'Lista de músicos da banda no Gigueiros, com instrumento e músicos fixos', width: 1568, height: 652, caption: 'Músicos', blurb: 'A equipe da banda com instrumento e contato, para escalar em dois toques.' },
+];
+
+const bandaFeatures = [
+  'Escala de músicos, com aviso no celular',
+  'Cachê de cada um e o que falta pagar',
+  'Despesas, som e recibo em PDF',
+  'Divisão do lucro entre os sócios',
+  'Repertório e catálogo sem limite',
+];
+
+const freelaFeatures = [
+  'Todas as suas gigs numa agenda, com Google Agenda',
+  'Um projeto por banda: quanto cada uma te pagou',
+  'Cachê a receber e recebido, mês a mês',
+  `Até ${FREELA_LIMITS.songs} músicas em ${FREELA_LIMITS.setlists} repertórios`,
 ];
 
 const adminSees = [
@@ -99,11 +125,21 @@ const adminSees = [
 
 const musicianSees = ['Só as gigs em que está escalado', 'Só o próprio cachê', 'Nenhum valor dos colegas'];
 
-const priceItems = ['7 dias grátis, sem cartão', 'Músicos ilimitados na banda', 'Assinatura no cartão de crédito', 'Cancele quando quiser'];
+const priceFacts = [
+  '7 dias grátis na primeira conta, sem cartão',
+  'Músicos ilimitados na banda',
+  `${IMPORT_QUOTA} importações por IA por mês em cada conta`,
+  'Assinatura no cartão de crédito, cancele quando quiser',
+];
+
+const cta =
+  'inline-flex items-center rounded-md bg-[var(--l-fg)] px-6 py-3.5 text-base font-bold text-[var(--l-bg)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]';
 
 export default async function Landing() {
   const founders = await countFounders();
   const left = Math.max(0, FOUNDER_LIMIT - founders);
+  const banda = PRICE_TABLE.banda;
+  const freela = PRICE_TABLE.freela;
 
   return (
     <div className="landing fixed inset-0 z-[999] overflow-y-auto bg-[var(--l-bg)] text-[var(--l-fg)]">
@@ -111,6 +147,9 @@ export default async function Landing() {
       <header className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <Logo className="h-auto w-32 sm:w-36" priority />
         <nav className="flex items-center gap-1 sm:gap-3">
+          <a href="#planos" className="hidden rounded-md px-3 py-2 text-sm font-semibold transition-opacity hover:opacity-70 sm:inline-block">
+            Planos
+          </a>
           <Link
             href="/login"
             className="rounded-md px-3 py-2 text-sm font-semibold underline decoration-2 underline-offset-4 transition-opacity hover:opacity-70"
@@ -131,23 +170,74 @@ export default async function Landing() {
         <section className="mx-auto grid w-full max-w-6xl items-center gap-14 px-5 pb-24 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] lg:gap-8 lg:pb-32 lg:pt-16">
           <div>
             <h1 className="text-balance text-[clamp(2.5rem,8vw,4.5rem)] lg:text-[clamp(2.5rem,5.2vw,4.5rem)] font-black leading-[0.98] tracking-[-0.035em]">
-              A agenda e o caixa da banda num lugar só.
+              O app de quem vive de tocar.
             </h1>
             <p className="mt-6 max-w-md text-lg text-[var(--l-mute)]">
-              Gigs, escala e cachê de cada músico. Chega de planilha e de grupo de WhatsApp.
+              Dono de banda ou freela: gigs, escala e cachês num lugar só. Chega de planilha e de grupo de WhatsApp.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <Link
-                href="/login?cadastro=1"
-                className="inline-flex items-center rounded-md bg-[var(--l-fg)] px-6 py-3.5 text-base font-bold text-[var(--l-bg)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
-              >
+              <Link href="/login?cadastro=1" className={cta}>
                 Testar 7 dias grátis
               </Link>
-              <span className="text-sm text-[var(--l-mute)]">Sem cartão de crédito.</span>
+              <a href="#planos" className="text-sm font-semibold underline decoration-2 underline-offset-4 transition-opacity hover:opacity-70">
+                Ver os planos
+              </a>
             </div>
+            <p className="mt-4 text-sm text-[var(--l-mute)]">Sem cartão de crédito.</p>
           </div>
           <div className="flex justify-center pr-2 sm:pr-0 lg:justify-end lg:pr-3">
             <Setlist />
+          </div>
+        </section>
+
+        {/* Para quem é */}
+        <section id="para-quem" className="border-t-2 border-[var(--l-fg)]">
+          <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
+            <h2 className="max-w-3xl text-balance text-3xl font-black tracking-[-0.03em] sm:text-5xl">
+              De músico para músicos. Do jeito que você toca.
+            </h2>
+            <p className="mt-4 max-w-2xl text-pretty text-base text-[var(--l-mute)] sm:text-lg">
+              O Gigueiros é para quem vive música todo dia: quem tem uma banda para tocar e quem toca como freela para várias. Cada um tem a sua conta, com o que precisa e nada a mais.
+            </p>
+
+            <div className="mt-12 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start lg:gap-10">
+              <div className="border-2 border-[var(--l-fg)] bg-[var(--l-card)] p-7 shadow-[5px_5px_0_var(--l-fg)] sm:p-9 sm:shadow-[8px_8px_0_var(--l-fg)]">
+                <h3 className="text-2xl font-black tracking-[-0.02em] sm:text-3xl">Dono de banda</h3>
+                <p className="mt-2 text-lg font-semibold">Você escala, paga e divide.</p>
+                <ul className="mt-6 space-y-3 text-base sm:text-lg">
+                  {bandaFeatures.map((item) => (
+                    <li key={item} className="flex gap-3">
+                      <span aria-hidden className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--l-fg)]" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-7 border-t border-[var(--l-line)] pt-4 text-sm text-[var(--l-mute)]">
+                  Plano <strong className="text-[var(--l-fg)]">Banda</strong>, a partir de {brl(banda.principal.monthly)} por mês.
+                </p>
+              </div>
+
+              <div className="border-2 border-dashed border-[var(--l-fg)] p-7 sm:p-9">
+                <h3 className="text-2xl font-black tracking-[-0.02em] sm:text-3xl">Músico freela</h3>
+                <p className="mt-2 text-lg font-semibold">Você toca em várias bandas e quer saber quanto cada uma te deve.</p>
+                <ul className="mt-6 space-y-3 text-base sm:text-lg">
+                  {freelaFeatures.map((item) => (
+                    <li key={item} className="flex gap-3">
+                      <span aria-hidden className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full border border-[var(--l-fg)]" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-sm text-[var(--l-mute)]">Sem equipe e sem escala: só o que é seu.</p>
+                <p className="mt-7 border-t border-[var(--l-line)] pt-4 text-sm text-[var(--l-mute)]">
+                  Plano <strong className="text-[var(--l-fg)]">Freela</strong>, {brl(freela.principal.monthly)} por mês.
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-8 border-l-0 border-t-2 border-[var(--l-fg)] pt-5 text-base sm:text-lg">
+              <strong>Foi convidado por uma banda?</strong> Entra de graça com o código de convite e vê só as suas gigs e o seu cachê.
+            </p>
           </div>
         </section>
 
@@ -163,9 +253,16 @@ export default async function Landing() {
                   key={f.title}
                   className="group grid gap-2 py-7 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] sm:gap-10 sm:py-9"
                 >
-                  <h3 className="text-2xl font-bold tracking-[-0.02em] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-2 sm:text-3xl">
-                    {f.title}
-                  </h3>
+                  <div>
+                    <h3 className="text-2xl font-bold tracking-[-0.02em] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-2 sm:text-3xl">
+                      {f.title}
+                    </h3>
+                    <span
+                      className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-bold ${f.for === 'Só Banda' ? 'border border-[var(--l-fg)] text-[var(--l-fg)]' : 'border border-dashed border-[var(--l-mute)] text-[var(--l-mute)]'}`}
+                    >
+                      {f.for}
+                    </span>
+                  </div>
                   <p className="max-w-prose text-pretty text-base text-[var(--l-mute)] sm:text-lg">{f.text}</p>
                 </li>
               ))}
@@ -211,11 +308,11 @@ export default async function Landing() {
               <ClickableShot shot={dashboardMobile} device="phone" sizes="(min-width: 1024px) 14vw, 45vw" />
             </div>
             <p className="mt-4 text-sm text-[var(--l-mute)] sm:text-base">
-              Computador, tablet ou celular: o mesmo app, sempre com você. Funciona como PWA — instala na tela inicial e abre igual um aplicativo nativo.
+              Computador, tablet ou celular: o mesmo app, sempre com você. Funciona como PWA: instala na tela inicial e abre igual um aplicativo nativo.
             </p>
 
             <div className="mt-16 w-full">
-              <FeatureCarousel shots={featureShots} />
+              <FeatureCarousel slides={slides} />
             </div>
           </div>
         </section>
@@ -248,54 +345,97 @@ export default async function Landing() {
           </div>
         </section>
 
-        {/* Preço */}
-        <section className="border-t-2 border-[var(--l-fg)]">
-          <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:gap-16 lg:py-28">
-            <div>
-              <p className="whitespace-nowrap text-[clamp(4rem,15vw,9rem)] font-black leading-[0.85] tracking-[-0.04em] tabular-nums lg:text-[clamp(4rem,7.5vw,7rem)]">R$ 49,90</p>
-              <p className="mt-4 text-xl font-semibold sm:text-2xl">por mês, por banda.</p>
-              {left > 0 && (
-                <div className="mt-6 border-2 border-[var(--l-fg)] p-4 sm:p-5">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <p className="text-base sm:text-lg">
-                      <strong>Fundadores:</strong> as {FOUNDER_LIMIT} primeiras bandas pagam <strong>R$ 24,90</strong> para sempre.
-                    </p>
-                    <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-black">
-                      <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--l-fg)] opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--l-fg)]" />
+        {/* Planos */}
+        <section id="planos" className="border-t-2 border-[var(--l-fg)]">
+          <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
+            <h2 className="max-w-3xl text-balance text-3xl font-black tracking-[-0.03em] sm:text-5xl">
+              Dois planos. Um é do seu tamanho.
+            </h2>
+
+            <div className="mt-12 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-10">
+              {/* Banda */}
+              <div className="border-2 border-[var(--l-fg)] bg-[var(--l-card)] p-7 shadow-[5px_5px_0_var(--l-fg)] sm:p-9 sm:shadow-[8px_8px_0_var(--l-fg)]">
+                <h3 className="text-2xl font-black tracking-[-0.02em]">Banda</h3>
+                <p className="mt-4 whitespace-nowrap text-[clamp(3.5rem,13vw,6rem)] font-black leading-[0.9] tracking-[-0.04em] tabular-nums">{brl(banda.principal.monthly)}</p>
+                <p className="mt-3 text-lg font-semibold">por mês, por banda.</p>
+                <p className="mt-1 text-sm text-[var(--l-mute)]">Ou {brl(banda.principal.annual)} por ano, cerca de {brl(banda.principal.annual / 12)} por mês.</p>
+
+                <ul className="mt-6 space-y-2.5 text-base">
+                  {[...bandaFeatures, 'Músicos ilimitados na banda'].map((item) => (
+                    <li key={item} className="flex gap-3">
+                      <span aria-hidden className="font-black">+</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+
+                {left > 0 && (
+                  <div className="mt-7 border-2 border-[var(--l-fg)] p-4 sm:p-5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                      <p className="text-base sm:text-lg">
+                        <strong>Fundadores:</strong> as {FOUNDER_LIMIT} primeiras bandas pagam <strong>R$ 24,90</strong> para sempre.
+                      </p>
+                      <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-black">
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--l-fg)] opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--l-fg)]" />
+                        </span>
+                        Restam {left}
                       </span>
-                      Restam {left}
-                    </span>
+                    </div>
+                    <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-[var(--l-line)]" role="progressbar" aria-valuenow={founders} aria-valuemin={0} aria-valuemax={FOUNDER_LIMIT}>
+                      <div
+                        className="h-full rounded-full bg-[var(--l-fg)] transition-[width] duration-700 ease-out"
+                        style={{ width: `${Math.max(4, Math.round((founders / FOUNDER_LIMIT) * 100))}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-[var(--l-mute)]">{founders} de {FOUNDER_LIMIT} vagas preenchidas</p>
                   </div>
-                  <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-[var(--l-line)]" role="progressbar" aria-valuenow={founders} aria-valuemin={0} aria-valuemax={FOUNDER_LIMIT}>
-                    <div
-                      className="h-full rounded-full bg-[var(--l-fg)] transition-[width] duration-700 ease-out"
-                      style={{ width: `${Math.max(4, Math.round((founders / FOUNDER_LIMIT) * 100))}%` }}
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-[var(--l-mute)]">{founders} de {FOUNDER_LIMIT} vagas preenchidas</p>
-                  <p className="mt-3 border-t border-[var(--l-line)] pt-3 text-sm sm:text-base">
-                    Fundadores entram no <strong>grupo de suporte direto comigo</strong> e participam ativamente da construção e da melhoria do app.
-                  </p>
-                </div>
-              )}
-              <p className="mt-4 text-sm text-[var(--l-mute)]">Prefere pagar de uma vez? Plano anual: R$ 499,00 (cerca de R$ 41,60 por mês).</p>
-              <Link
-                href="/login?cadastro=1"
-                className="mt-8 inline-flex items-center rounded-md bg-[var(--l-fg)] px-6 py-3.5 text-base font-bold text-[var(--l-bg)] transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
-              >
+                )}
+              </div>
+
+              {/* Freela */}
+              <div className="border-2 border-dashed border-[var(--l-fg)] p-7 sm:p-9">
+                <h3 className="text-2xl font-black tracking-[-0.02em]">Freela</h3>
+                <p className="mt-4 whitespace-nowrap text-[clamp(3.5rem,13vw,6rem)] font-black leading-[0.9] tracking-[-0.04em] tabular-nums lg:text-[clamp(3rem,5.6vw,5rem)]">{brl(freela.principal.monthly)}</p>
+                <p className="mt-3 text-lg font-semibold">por mês.</p>
+                <p className="mt-1 text-sm text-[var(--l-mute)]">Ou {brl(freela.principal.annual)} por ano, cerca de {brl(freela.principal.annual / 12)} por mês.</p>
+
+                <ul className="mt-6 space-y-2.5 text-base">
+                  {freelaFeatures.map((item) => (
+                    <li key={item} className="flex gap-3">
+                      <span aria-hidden className="font-black">+</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 text-sm text-[var(--l-mute)]">Não tem equipe, escala, despesas nem divisão de lucro. Para isso, é o plano Banda.</p>
+                <p className="mt-2 text-sm text-[var(--l-mute)]">Quando virar dono de uma banda, é só subir para o plano Banda e levar suas gigs junto.</p>
+              </div>
+            </div>
+
+            <div className="mt-10 grid gap-8 lg:grid-cols-2 lg:gap-16">
+              <div>
+                <h3 className="text-xl font-bold tracking-[-0.02em] sm:text-2xl">Tem mais de uma conta?</h3>
+                <p className="mt-2 max-w-prose text-base text-[var(--l-mute)]">
+                  A conta mais cara paga o preço cheio. Cada outra conta custa menos: Banda extra por {brl(banda.adesao.monthly)} por mês, Freela extra por {brl(freela.adesao.monthly)} por mês. O teste grátis vale só para a primeira.
+                </p>
+              </div>
+              <ul className="space-y-3 text-base sm:text-lg">
+                {priceFacts.map((item) => (
+                  <li key={item} className="flex gap-3 border-b border-[var(--l-line)] pb-3">
+                    <span aria-hidden className="font-black">+</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-10">
+              <Link href="/login?cadastro=1" className={cta}>
                 Testar 7 dias grátis
               </Link>
             </div>
-            <ul className="space-y-3 text-base sm:text-lg">
-              {priceItems.map((item) => (
-                <li key={item} className="flex gap-3 border-b border-[var(--l-line)] pb-3">
-                  <span aria-hidden className="font-black">+</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
           </div>
         </section>
       </main>
