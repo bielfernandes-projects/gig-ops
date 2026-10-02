@@ -30,18 +30,42 @@ export async function textOf(file: ImportFile): Promise<string> {
     }
     return text;
   }
-  throw new ImportError('Formato não suportado. Envie um PDF, DOCX, TXT ou CSV.');
+  if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.ods') || name.endsWith('.numbers')) {
+    throw new ImportError('Ainda não leio planilhas direto. Abra a planilha, copie as células e cole no campo "Colar texto" — ou salve como CSV e envie de novo.');
+  }
+  if (/\.(png|jpe?g|webp|heic|gif)$/.test(name) || file.mime.startsWith('image/')) {
+    throw new ImportError('Ainda não leio imagens nem prints. Cole o texto da lista no campo "Colar texto", ou envie um PDF com texto, DOCX, TXT ou CSV.');
+  }
+  throw new ImportError('Formato não suportado. Envie um PDF com texto, DOCX, TXT ou CSV — ou cole a lista no campo "Colar texto".');
 }
 
-/** Collapses the whitespace noise of a document before it goes to the IA. */
-export const tidy = (text: string) => text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n');
+/**
+ * Collapses the whitespace noise of a document before it goes to the IA. Tabs survive on purpose: a list copied from
+ * Excel or Google Planilhas separates its columns with tabs, and squashing them into spaces turned
+ * "Nome<TAB>Projeto<TAB>15/10" into one blurry phrase — the IA then folded the project into the name and lost the fee.
+ */
+export const tidy = (text: string) =>
+  text
+    .replace(/\r\n?/g, '\n')
+    .replace(/[^\S\n\t]+/g, ' ')
+    .replace(/ *\t */g, '\t')
+    .replace(/\n{3,}/g, '\n\n');
 
 /**
  * Asks Gemini to read `text` following `instructions` and answer as JSON matching `schema`. The text goes in as
  * plain text (sending the PDF itself was slower and hit "overloaded" errors far more often on the free tier).
  * `label` only names the flow in server logs.
  */
-export async function generateJson(opts: { apiKey: string; model?: string; instructions: string; schema: unknown; text: string; label: string }): Promise<unknown> {
+export async function generateJson(opts: {
+  apiKey: string;
+  model?: string;
+  instructions: string;
+  schema: unknown;
+  text: string;
+  label: string;
+  /** How hard the model may think. `low` is enough to copy rows out of a table; a gig list written in free-form prose needs `medium`. */
+  thinkingLevel?: 'low' | 'medium' | 'high';
+}): Promise<unknown> {
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: opts.instructions }] },
     contents: [{ role: 'user', parts: [{ text: opts.text }] }],
@@ -49,8 +73,9 @@ export async function generateJson(opts: { apiKey: string; model?: string; instr
       responseMimeType: 'application/json',
       responseSchema: opts.schema,
       temperature: 0,
-      // Extracting a list needs no long "thinking"; without this the 3.x models take ~90s on a 200-song document.
-      thinkingConfig: { thinkingLevel: 'low' },
+      // Copying a list out of a table needs no long "thinking"; without a cap the 3.x models take ~90s on a 200-song
+      // document. A caller whose input is messier (a gig list written however the band leader felt like) raises it.
+      thinkingConfig: { thinkingLevel: opts.thinkingLevel ?? 'low' },
     },
   });
   const call = (model: string) =>

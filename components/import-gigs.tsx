@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { FileUp, Loader2, Trash2, TriangleAlert, X } from 'lucide-react';
 import { saveImportedGigs } from '@/app/actions/gig-import-actions';
 import { gigInstant, missingGigFields, type GigImportResult } from '@/lib/gig-import-model';
-import { dayKey } from '@/lib/time';
+import { dayKey, dayOffset } from '@/lib/time';
 import type { GoProject } from '@/lib/types';
 
 type BandChoice = { bandId: string; name: string };
@@ -61,6 +61,8 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
   };
 
   const today = dayKey();
+  // Mirror of SETTLED_AFTER_DAYS in saveImportedGigs: a row before this day is imported as already received.
+  const settledBefore = dayOffset(today, -7);
   const pending = rows.filter((r) => pendingOf(r).length > 0).length;
   const past = rows.filter((r) => r.date && r.date < today).length;
   const total = useMemo(() => rows.reduce((s, r) => s + (feeOf(r) ?? 0), 0), [rows]);
@@ -102,8 +104,10 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
       toast.error(res?.error ?? 'Não foi possível importar.');
       return setStep('review');
     }
-    const { created, skipped, projectsCreated } = res;
-    toast.success(`${created} ${created === 1 ? 'gig importada' : 'gigs importadas'}${projectsCreated > 0 ? `, ${projectsCreated} ${projectsCreated === 1 ? 'projeto criado' : 'projetos criados'}` : ''}${skipped > 0 ? `; ${skipped} já existia${skipped === 1 ? '' : 'm'} e ${skipped === 1 ? 'foi ignorada' : 'foram ignoradas'}` : ''}.`);
+    const { created, skipped, projectsCreated, settled } = res;
+    toast.success(
+      `${created} ${created === 1 ? 'gig importada' : 'gigs importadas'}${projectsCreated > 0 ? `, ${projectsCreated} ${projectsCreated === 1 ? 'projeto criado' : 'projetos criados'}` : ''}${settled > 0 ? `, ${settled} ${settled === 1 ? 'antiga já como cachê recebido' : 'antigas já como cachê recebido'}` : ''}${skipped > 0 ? `; ${skipped} já existia${skipped === 1 ? '' : 'm'} e ${skipped === 1 ? 'foi ignorada' : 'foram ignoradas'}` : ''}.`
+    );
     setOpen(false);
     reset();
     router.refresh();
@@ -192,10 +196,25 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                   </label>
                 )}
 
+                <div className="rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2.5 text-xs text-zinc-400">
+                  <p className="font-semibold text-zinc-300">Cole do jeito que a lista vier.</p>
+                  <p className="mt-1">
+                    A leitura entende planilha, tabela, recado de WhatsApp e agenda em tópicos, em qualquer ordem de colunas, com ou sem rótulos. Não precisa reescrever nada — e você
+                    confere tudo na próxima tela antes de salvar.
+                  </p>
+                  <p className="mt-2 text-zinc-500">
+                    Se você for <span className="text-zinc-300">digitar do zero</span>, esta ordem é a que erra menos (uma gig por linha):
+                  </p>
+                  <p className="mt-1 font-mono text-[11px] text-zinc-300">data | início | término | título | projeto | cachê</p>
+                  <p className="mt-1 font-mono text-[11px] text-zinc-500">24/05/2026 | 20:00 | 23:00 | Sunrise | Grupo Deixa em Off | Cachê: R$ 150,00</p>
+                  <p className="mt-1">Só data, horário e título são necessários; término, projeto e cachê entram quando a lista tiver.</p>
+                </div>
+
                 <ul className="list-disc space-y-1 pl-4 text-xs text-zinc-500">
                   <li>O texto é enviado ao Google (Gemini) para identificar as gigs e esse conteúdo pode ser usado para melhorar os produtos deles: não envie dados sensíveis (senhas, telefones, CPFs).</li>
                   <li>Depois de importar, você pode editar todos os dados de cada gig.</li>
                   <li>Planilha Excel (.xlsx): copie as células e cole aqui, ou salve como CSV.</li>
+                  <li>Gigs de mais de uma semana atrás entram como já realizadas e com o cachê recebido. As da última semana ficam pendentes de recebimento.</li>
                 </ul>
                 {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
                 {step === 'reading' && (
@@ -278,7 +297,7 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                           <input type="time" value={r.endTime} onChange={(e) => patch(r.id, { endTime: e.target.value })} aria-label="Horário final" title="Horário final" className={inputCls} />
                           <input type="number" min="0" step="0.01" inputMode="decimal" value={r.fee} onChange={(e) => patch(r.id, { fee: e.target.value })} placeholder="Cachê" aria-label="Cachê" className={inputCls} />
                         </div>
-                        {(missing.length > 0 || (r.project.trim() && !knownProject(r.project)) || r.location || r.notes || (r.date && r.time && gigInstant(r.date, r.time) < new Date().toISOString())) && (
+                        {(missing.length > 0 || (r.project.trim() && !knownProject(r.project)) || r.location || r.notes || (r.date && r.date < settledBefore) || (r.date && r.time && gigInstant(r.date, r.time) < new Date().toISOString())) && (
                           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                             {missing.length > 0 && (
                               <span className="inline-flex items-center gap-1 font-semibold text-amber-400">
@@ -286,7 +305,11 @@ export function ImportGigs({ bands, projects }: { bands: BandChoice[]; projects:
                               </span>
                             )}
                             {r.project.trim() && !knownProject(r.project) && <span className="text-sky-300">Projeto novo: {r.project.trim()}</span>}
-                            {r.date && r.time && gigInstant(r.date, r.time) < new Date().toISOString() && <span className="text-zinc-500">Data passada</span>}
+                            {r.date && r.date < settledBefore ? (
+                              <span className="text-emerald-400/80">Entra como realizada e cachê recebido</span>
+                            ) : (
+                              r.date && r.time && gigInstant(r.date, r.time) < new Date().toISOString() && <span className="text-zinc-500">Data passada</span>
+                            )}
                             {r.location && <span className="text-zinc-500">Local: {r.location}</span>}
                             {r.notes && <span className="text-zinc-500">Obs.: {r.notes}</span>}
                           </div>

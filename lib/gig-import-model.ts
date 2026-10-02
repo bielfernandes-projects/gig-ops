@@ -37,6 +37,33 @@ function cleanTime(v: unknown): string | null {
   return `${m[1].padStart(2, '0')}:${m[2]}`;
 }
 
+/**
+ * Fee in reais. The schema asks the IA for a number, but it often answers the text of the cell instead ("R$ 1.200,00",
+ * "Cachê: 450", "1,5k") — dropping those as "not a number" was losing the cachê of whole lists, so they are read here.
+ * Brazilian notation: the dot groups thousands and the comma separates cents.
+ */
+export function cleanFee(v: unknown): number | null {
+  const round = (n: number) => (Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null);
+  if (typeof v === 'number') return round(v);
+  if (typeof v !== 'string') return null;
+
+  const raw = v.replace(/\s| /g, '');
+  if (/-\d/.test(raw)) return null; // a negative cachê is a reading mistake, not a value
+  let s = raw.replace(/^[^\d]+/, ''); // drops the label and the currency ("Cachê:R$")
+  const k = /^(\d[\d.,]*)k$/i.exec(s);
+  if (k) s = k[1];
+  if (!/^\d[\d.,]*$/.test(s)) return null;
+
+  const dot = s.includes('.');
+  const comma = s.includes(',');
+  let norm = s;
+  if (dot && comma) norm = s.replace(/\./g, '').replace(',', '.');
+  else if (comma) norm = /^\d+,\d{1,2}$/.test(s) ? s.replace(',', '.') : s.replace(/,/g, '');
+  else if (dot) norm = /^\d+\.\d{1,2}$/.test(s) ? s : s.replace(/\./g, '');
+  const n = Number(norm);
+  return Number.isNaN(n) ? null : round(k ? n * 1000 : n);
+}
+
 /** Turns whatever the IA answered into clean gigs; anything unreadable becomes null (and shows up as "falta" on screen). */
 export function cleanGigImport(raw: unknown): GigImportResult {
   const list = (raw as { gigs?: unknown })?.gigs;
@@ -51,7 +78,7 @@ export function cleanGigImport(raw: unknown): GigImportResult {
       date,
       time: cleanTime(o.time),
       endTime: cleanTime(o.endTime),
-      fee: typeof o.fee === 'number' && Number.isFinite(o.fee) && o.fee >= 0 ? Math.round(o.fee * 100) / 100 : null,
+      fee: cleanFee(o.fee),
       project: str(o.project, 80),
       location: str(o.location, 200),
       notes: str(o.notes, 500),
