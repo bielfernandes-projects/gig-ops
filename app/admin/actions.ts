@@ -261,12 +261,15 @@ export async function setBandKind(bandId: string, kind: 'banda' | 'freela') {
     const selfId = await addSelfAsMember(bandId, owner.user_id as string);
     if (!selfId) return { error: 'Não foi possível criar o músico do dono.' };
 
-    const { data: gigs } = (await admin.from('go_gigs').select('id, gross_value, go_lineup(id)').eq('band_id', bandId)) as unknown as {
-      data: { id: string; gross_value: number; go_lineup: { id: string }[] }[] | null;
+    const { data: gigs } = (await admin.from('go_gigs').select('id, gross_value, start_time, go_lineup(id), gig_payments(amount)').eq('band_id', bandId)) as unknown as {
+      data: { id: string; gross_value: number; start_time: string; go_lineup: { id: string }[]; gig_payments: { amount: number }[] }[] | null;
     };
     const bare = (gigs ?? []).filter((g) => g.go_lineup.length === 0);
     if (bare.length > 0) {
-      const { error } = await admin.from('go_lineup').insert(bare.map((g) => ({ gig_id: g.id, member_id: selfId, fee_amount: Number(g.gross_value), status: 'pendente' })));
+      // A gig already played whose cachê was fully received (e.g. imported as "recebido") enters as paid; the rest is still to receive.
+      const now = Date.now();
+      const received = (g: (typeof bare)[number]) => Number(g.gross_value) > 0 && new Date(g.start_time).getTime() < now && g.gig_payments.reduce((sum, p) => sum + Number(p.amount), 0) >= Number(g.gross_value);
+      const { error } = await admin.from('go_lineup').insert(bare.map((g) => ({ gig_id: g.id, member_id: selfId, fee_amount: Number(g.gross_value), status: received(g) ? 'pago' : 'pendente' })));
       if (error) return { error: 'Não foi possível escalar o dono nas gigs existentes.' };
     }
   }
