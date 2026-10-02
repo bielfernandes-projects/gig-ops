@@ -3,6 +3,9 @@
 alter table public.bands add column if not exists kind text not null default 'banda';
 alter table public.bands drop constraint if exists bands_kind_check;
 alter table public.bands add constraint bands_kind_check check (kind in ('banda', 'freela'));
+-- A tabela bands tem privilegio por coluna para o usuario logado: sem este grant o app nao consegue ler o tipo
+-- e acha que a pessoa nao tem banda (caia no onboarding em producao, 2026-10-02).
+grant select (kind) on public.bands to authenticated;
 
 -- Cota mensal de importações por IA (gigs + repertório somados). Nulo = padrão do app (20);
 -- o painel /admin pode dar folga a uma conta específica.
