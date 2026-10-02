@@ -2,6 +2,20 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.7.0] - 2026-10-02
+
+### Adicionado
+- **Subir de Freela para Banda** pelo Perfil: o card "Montou uma banda? Suba para o plano Banda" muda o tipo da mesma conta (com as gigs, projetos e repertório de antes) e libera equipe, escala, despesas, som e divisão de lucro. É só de ida. Com assinatura no cartão, o preço do Stripe é trocado pelo da Banda (principal ou adesão, Fundador se couber) e a diferença é cobrada proporcionalmente na próxima fatura; se o Stripe recusar, a conta continua Freela. Sem cartão (teste, expirada ou cortesia) só muda o tipo. Ação `conta_promovida` na telemetria.
+
+### Corrigido
+- **Resumo Financeiro da gig:** os cinco valores (cachê bruto, músicos, som, despesas e seu cachê) ficavam numa linha só e o último passava da borda do cartão em telas médias. Agora a linha quebra.
+
+### Alterado
+- Landing: print do financeiro da gig refeito, sem o transbordo.
+
+### Não testado em produção
+- A troca de preço no Stripe do "Subir para Banda" (a homologação não tem a chave do Stripe). Testar com cupom de 100% e conferir a próxima fatura.
+
 ## [1.6.0] - 2026-10-02
 
 ### Adicionado

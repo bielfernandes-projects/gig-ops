@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { updatePassword, setDisplayName, renameBand } from '@/app/profile/actions';
 import { savePushSubscription, removePushSubscription } from '@/app/actions/push-actions';
 import { signout } from '@/app/login/actions';
-import { BandSections, type BandMemberView, type BillingView, type NewAccountQuotes } from '@/components/band-sections';
+import { BandSections, type BandMemberView, type BillingView, type NewAccountQuotes, type UpgradeQuote } from '@/components/band-sections';
 import type { BandKind } from '@/lib/plans';
 import type { BandOption } from '@/components/band-switcher';
 import type { SubscriptionState } from '@/lib/subscription';
@@ -42,11 +42,12 @@ type Props = {
   pricePlan: 'standard' | 'founder' | 'solo';
   kind: BandKind;
   newAccountQuotes: NewAccountQuotes | null;
+  upgradeQuote: UpgradeQuote | null;
   billing: BillingView | null;
   appVersion: string;
 };
 
-export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, billing, appVersion }: Props) {
+export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, upgradeQuote, billing, appVersion }: Props) {
   // The browser's permission is the starting point; `override` is what this screen's own
   // buttons set while subscribing/unsubscribing.
   const permission = useSyncExternalStore(subscribePermission, readPermission, serverPermission);
@@ -251,6 +252,7 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
         pricePlan={pricePlan}
         kind={kind}
         newAccountQuotes={newAccountQuotes}
+        upgradeQuote={upgradeQuote}
         billing={billing}
       />
 

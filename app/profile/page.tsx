@@ -16,6 +16,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   let inviteCode: string | null = null;
   let members: BandMemberView[] = [];
   let billing: BillingView | null = null;
+  let upgradeQuote: Awaited<ReturnType<typeof quoteFor>> | null = null;
   // What a new account would cost this person, per type (shown in the "create another account" form).
   const [bandaQuote, freelaQuote] = info.userId
     ? await Promise.all([quoteFor(info.userId, null, 'banda'), quoteFor(info.userId, null, 'freela')])
@@ -35,6 +36,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     ]);
 
     inviteCode = bandResult.data?.invite_code ?? null;
+    // What this account would cost as a Banda (the Freela -> Banda upgrade card).
+    if (isOwner && info.kind === 'freela') upgradeQuote = await quoteFor(info.userId!, info.bandId, 'banda');
     if (isOwner) {
       billing = {
         monthlyPrice: quote!.monthly,
@@ -82,6 +85,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       pricePlan={info.pricePlan}
       kind={info.kind}
       newAccountQuotes={bandaQuote && freelaQuote ? { banda: bandaQuote, freela: freelaQuote } : null}
+      upgradeQuote={upgradeQuote}
       billing={billing}
       appVersion={APP_VERSION}
     />

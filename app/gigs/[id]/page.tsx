@@ -295,7 +295,7 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
       <section className="mb-10">
         <h2 className="text-sm font-semibold text-zinc-200 mb-4 px-1">Resumo Financeiro</h2>
         <div className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:flex-wrap md:items-end justify-between gap-x-6 gap-y-5">
             <div className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-zinc-500">Cachê Bruto</span>
               <span className="text-xl md:text-2xl font-bold text-zinc-50">{brl(Number(gigData.gross_value))}</span>
@@ -303,7 +303,6 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
             {role === 'admin' && !freela && (
               <>
-                <div className="hidden md:block w-px h-12 bg-zinc-800" />
                 <div className="flex flex-col gap-1.5">
                    <span className="text-xs font-medium text-zinc-500">Músicos (Escala)</span>
                   <span className="text-xl md:text-2xl font-bold text-red-400">− {brl(lineupCost)}</span>
@@ -313,7 +312,6 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
             {gigData.bring_sound && (
               <>
-                <div className="hidden md:block w-px h-12 bg-zinc-800" />
                 <div className="flex flex-col gap-1.5">
                    <span className="text-xs font-medium text-amber-500/80">Custo do Som</span>
                   <span className="text-xl md:text-2xl font-bold text-amber-400">− {brl(soundCost)}</span>
@@ -323,7 +321,6 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
 
             {role === 'admin' && expensesTotal > 0 && (
               <>
-                <div className="hidden md:block w-px h-12 bg-zinc-800" />
                 <div className="flex flex-col gap-1.5">
                   <span className="text-xs font-medium text-zinc-500">Despesas</span>
                   <span className="text-xl md:text-2xl font-bold text-red-400">− {brl(expensesTotal)}</span>
@@ -331,7 +328,6 @@ export default async function GigDetails({ params }: { params: Promise<{ id: str
               </>
             )}
 
-            <div className="hidden md:block w-px h-12 bg-zinc-800" />
 
             {role === 'admin' ? (
               adminMyLineup ? (

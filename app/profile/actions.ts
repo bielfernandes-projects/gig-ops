@@ -10,7 +10,8 @@ import { sendPushToBandOwners } from '@/lib/push';
 import { FOUNDER_LIMIT, type BillingPeriod } from '@/lib/pricing';
 import { countFounders } from '@/lib/founders';
 import { priceIdFor, stripe } from '@/lib/stripe';
-import { ownedAccounts, tierFor } from '@/lib/billing';
+import { ownedAccounts, reconcilePricing, tierFor } from '@/lib/billing';
+import { logAction } from '@/lib/telemetry';
 import type { BandKind } from '@/lib/plans';
 
 const revalidateAll = () => revalidatePath('/', 'layout');
@@ -67,6 +68,52 @@ export async function createAnotherBand(formData: FormData): Promise<{ error?: s
   await rememberBand(created.bandId);
   revalidateAll();
   return { success: true, bandId: created.bandId, needsPayment: ownsOne };
+}
+
+/**
+ * Freela -> Banda, in place: same account, same gigs, projects and repertoire, now with a team.
+ * One way only (a Banda has crew data a Freela cannot hold). With a card behind it, the Stripe price
+ * moves to the Banda price of this person first (principal or adesão, founder if it applies) and the
+ * difference is prorated onto the next invoice; if Stripe refuses, the account stays a Freela.
+ * Without a card (trial, expired, courtesy access) it just changes type and the state is kept.
+ */
+export async function upgradeToBanda(): Promise<{ error?: string; success?: boolean }> {
+  const owner = await billingOwner();
+  if (!owner) return { error: 'Só o dono da conta pode fazer isso.' };
+  const { info, band } = owner;
+  if (band.kind !== 'freela') return { error: 'Esta conta já é Banda.' };
+
+  const admin = createAdminClient();
+  const { data: sub } = (await admin.from('subscriptions').select('stripe_subscription_id, billing_period').eq('band_id', band.bandId).maybeSingle()) as unknown as {
+    data: { stripe_subscription_id: string | null; billing_period: BillingPeriod | null } | null;
+  };
+
+  if (sub?.stripe_subscription_id) {
+    try {
+      const period: BillingPeriod = sub.billing_period === 'annual' ? 'annual' : 'monthly';
+      const [{ tier, founder: mayBeFounder }, founders] = await Promise.all([tierFor(info.userId!, band.bandId, 'banda'), countFounders()]);
+      const founder = period === 'monthly' && mayBeFounder && founders < FOUNDER_LIMIT;
+      const current = await stripe().subscriptions.retrieve(sub.stripe_subscription_id);
+      await stripe().subscriptions.update(current.id, {
+        items: [{ id: current.items.data[0].id, price: priceIdFor('banda', tier, period, founder) }],
+        metadata: { ...current.metadata, kind: 'banda', tier, plan: founder ? 'founder' : 'standard' },
+        proration_behavior: 'create_prorations',
+      });
+    } catch (e) {
+      console.error('upgradeToBanda: stripe', e);
+      return { error: 'Não foi possível mudar o plano no cartão agora. Nada foi alterado: tente de novo em instantes.' };
+    }
+  }
+
+  const { error } = await admin.from('bands').update({ kind: 'banda' }).eq('id', band.bandId);
+  if (error) return { error: 'Não foi possível subir para Banda. Tente de novo.' };
+
+  // The person's other paying accounts may now deserve another price (a Freela that was principal becomes adesão).
+  if (sub?.stripe_subscription_id) await reconcilePricing(info.userId!).catch((e) => console.error('upgradeToBanda: reconcile', e));
+
+  await logAction('conta_promovida', info.userId!, band.bandId);
+  revalidateAll();
+  return { success: true };
 }
 
 /** Joins another band with its invite code (the user keeps the bands they already belong to). */
