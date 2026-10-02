@@ -378,9 +378,8 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 - Ao apagar uma música, o PDF é removido do storage antes da linha ser apagada (a policy de Storage depende da música ainda existir).
 - O link público de repertório (`/s/[token]`) não expunha PDF nem cifra na época; hoje expõe (ver §35).
 
-## 23. Grupo do WhatsApp dos Fundadores
-- `FOUNDER_WHATSAPP_URL` (env var, vazia por padrão): link de convite do grupo exclusivo.
-- Quando a banda tem `subscriptions.price_plan = 'founder'` e a env var está preenchida, o Perfil (seção "Gestão da banda") mostra um card com o link. Sem env var configurada, nada aparece — sem depender de e-mail (Resend ainda não existe).
+## 23. Grupo do WhatsApp dos Fundadores (removido)
+- O grupo exclusivo foi **removido** em 2026-10-02 (card do Trello #26): manter um grupo de suporte direto exigiria uma atenção que não dá para garantir, e o canal de suporte já é "Ajuda" (FAQ e formulário). Saíram o card do Perfil, o texto "grupo de suporte direto comigo" da landing e a env var `FOUNDER_WHATSAPP_URL` (pode ser apagada da Vercel). **O preço de Fundador (R$ 24,90, 50 vagas) continua**; só o grupo acabou.
 
 ## 24. Prints reais, lightbox e carrossel na Landing Page
 - Seção "O app de verdade, sem enrolação": Dashboard em destaque com moldura de dispositivo (notebook maior, tablet e celular ao lado), mostrando responsividade e o esquema de PWA. Componente `DeviceChrome` em `components/screenshot-lightbox.tsx` desenha as molduras com CSS puro (sem imagens de bezel).
@@ -470,7 +469,7 @@ Ver `docs/PLANO-UNIFICADO.md`. Estado após a Fase 0:
 
 ## 28. Prévia de link (WhatsApp) e CTA da landing
 * `app/opengraph-image.tsx` gera a thumb de compartilhamento. O `proxy.ts` (auth) redirecionava `/opengraph-image` para `/login`, então os crawlers (WhatsApp etc.) recebiam HTML e não mostravam imagem; a rota agora está excluída do `matcher`. Depois do deploy, o WhatsApp pode manter o cache antigo do link por um tempo (testar com um link novo, ex.: `?v=2`).
-* Landing: a seção de preço ganhou um segundo botão "Testar 7 dias grátis" e, no card de Fundadores, o texto sobre o grupo de suporte direto com o criador.
+* Landing: a seção de preço ganhou um segundo botão "Testar 7 dias grátis" e, no card de Fundadores, um texto sobre o grupo de suporte direto com o criador (removido depois, §23).
 
 ## 38. Cadastro pelo Google voltava pra landing page sem erro
 * **Sintoma:** "Continuar com Google" abria o consentimento normalmente, mas depois a pessoa caía na landing page (`/`) sem sessão, sem conta finalizada e sem nenhuma mensagem de erro.

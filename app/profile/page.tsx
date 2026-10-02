@@ -84,7 +84,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       newAccountQuotes={bandaQuote && freelaQuote ? { banda: bandaQuote, freela: freelaQuote } : null}
       billing={billing}
       appVersion={APP_VERSION}
-      founderWhatsappUrl={info.isFounder ? process.env.FOUNDER_WHATSAPP_URL || null : null}
     />
   );
 }

@@ -390,9 +390,6 @@ export default async function Landing() {
                       />
                     </div>
                     <p className="mt-2 text-xs text-[var(--l-mute)]">{founders} de {FOUNDER_LIMIT} vagas preenchidas</p>
-                    <p className="mt-3 border-t border-[var(--l-line)] pt-3 text-sm sm:text-base">
-                      Fundadores entram no <strong>grupo de suporte direto comigo</strong> e participam ativamente da construção e da melhoria do app.
-                    </p>
                   </div>
                 )}
               </div>

@@ -43,11 +43,10 @@ type Props = {
   kind: BandKind;
   newAccountQuotes: NewAccountQuotes | null;
   billing: BillingView | null;
-  founderWhatsappUrl: string | null;
   appVersion: string;
 };
 
-export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, billing, founderWhatsappUrl, appVersion }: Props) {
+export default function ProfileClient({ role, email, displayName, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, billing, appVersion }: Props) {
   // The browser's permission is the starting point; `override` is what this screen's own
   // buttons set while subscribing/unsubscribing.
   const permission = useSyncExternalStore(subscribePermission, readPermission, serverPermission);
@@ -253,7 +252,6 @@ export default function ProfileClient({ role, email, displayName, bandId, bandNa
         kind={kind}
         newAccountQuotes={newAccountQuotes}
         billing={billing}
-        founderWhatsappUrl={founderWhatsappUrl}
       />
 
       {/* ─── SECTION: SEGURANÇA E ACESSO ─── */}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Crown, Users, UserMinus, PenLine, X, ShieldCheck, ShieldOff, LogOut, MessageCircle } from 'lucide-react';
+import { Crown, Users, UserMinus, PenLine, X, ShieldCheck, ShieldOff, LogOut } from 'lucide-react';
 import {
   saveInviteCode,
   renameBand,
@@ -46,7 +46,6 @@ type Props = {
   kind: BandKind;
   newAccountQuotes: NewAccountQuotes | null;
   billing: BillingView | null;
-  founderWhatsappUrl: string | null;
 };
 
 const inputCls =
@@ -73,7 +72,7 @@ function subscriptionDateLine(s: Props['subscription']) {
   return null;
 }
 
-export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, billing, founderWhatsappUrl }: Props) {
+export function BandSections({ role, bandId, bandName, memberships, inviteCode, members, subscription, pricePlan, kind, newAccountQuotes, billing }: Props) {
   const router = useRouter();
   const [paying, setPaying] = useState(false);
   const [editingInvite, setEditingInvite] = useState(false);
@@ -295,18 +294,6 @@ export function BandSections({ role, bandId, bandName, memberships, inviteCode, 
                 </button>
               )}
             </div>
-          )}
-
-          {founderWhatsappUrl && (
-            <a
-              href={founderWhatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-lg border border-[#25D366]/30 bg-[#25D366]/10 px-4 py-3 text-sm font-semibold text-[#25D366] transition-colors hover:bg-[#25D366]/20"
-            >
-              <MessageCircle className="h-5 w-5 shrink-0" />
-              Você é Fundador! Entre no grupo exclusivo do WhatsApp
-            </a>
           )}
 
           <form
