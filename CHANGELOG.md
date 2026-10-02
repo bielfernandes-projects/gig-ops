@@ -2,6 +2,14 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.7.1] - 2026-10-02
+
+### Corrigido
+- **Admin, virar Freela:** ao virar uma conta Banda em Freela, as gigs que já tinham sido recebidas ficavam com a escala do dono como pendente. Agora entram como paga.
+
+### Segurança
+- O acesso do papel `anon` às tabelas `bands` e `go_members` foi removido (antes só o RLS protegia o `calendar_token`). Migration `20261002000200`, aplicada na homologação e na produção.
+
 ## [1.7.0] - 2026-10-02
 
 ### Adicionado
